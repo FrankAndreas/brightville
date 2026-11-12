@@ -1,11 +1,15 @@
 import type { DoorDef } from '@/city/doors'
 import type { DeviceCaps } from '@/services/device'
 import type { BuildingDef } from './types'
-import YogaStudio from './yoga/YogaStudio.vue'
+import { defineAsyncComponent } from 'vue'
 
 /** Every building in the town */
 export const BUILDINGS: BuildingDef[] = [
-  { id: 'yoga', spokenName: 'Yoga', icon: '🧘', needs: ['camera'], door: { x: 0, z: -14 }, component: YogaStudio },
+  {
+    id: 'yoga', spokenName: 'Yoga', icon: '🧘', needs: ['camera'], door: { x: 0, z: -14 },
+    // Loaded on first visit: the body tracking is large and the town doesn't need it
+    component: defineAsyncComponent(() => import('./yoga/YogaStudio.vue')),
+  },
 ]
 
 export function canServe(building: BuildingDef, device: DeviceCaps): boolean {

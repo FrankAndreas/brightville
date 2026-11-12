@@ -35,6 +35,7 @@ const debug = {
     d.frame = f
     d.maxY = Math.max(d.maxY, f.y)
     if (f.event) d.events.push(f.event)
+    if (d.events.length > 200) d.events.shift()
   },
 }
 

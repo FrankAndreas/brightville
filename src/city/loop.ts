@@ -29,6 +29,8 @@ export function createLoop(intents: IntentSource, step: (intents: Intents, dt: n
   function pause() {
     running = false
     cancelAnimationFrame(raf)
+    // Whatever was held belongs to the screen that is ending
+    intents.reset()
   }
 
   return {
@@ -38,7 +40,7 @@ export function createLoop(intents: IntentSource, step: (intents: Intents, dt: n
       running = true
       // Presses made while paused belong to whatever was on screen then:
       // the Enter that leaves a building must not walk straight back in
-      intents.read()
+      intents.reset()
       last = performance.now()
       raf = requestAnimationFrame(tick)
     },

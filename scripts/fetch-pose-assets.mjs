@@ -12,7 +12,7 @@ const wasmFrom = join(root, 'node_modules/@mediapipe/tasks-vision/wasm')
 const target = join(root, 'public/mediapipe')
 const model = join(target, 'pose_landmarker_lite.task')
 const MODEL_URL =
-  'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task'
+  'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task'
 
 const exists = path => stat(path).then(() => true, () => false)
 

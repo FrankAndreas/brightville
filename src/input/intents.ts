@@ -14,6 +14,8 @@ export interface Intents {
 
 export interface IntentSource {
   read(): Intents
+  /** Lets go of every held key and forgets pending presses */
+  reset(): void
   dispose(): void
 }
 
@@ -66,6 +68,7 @@ export function keyboardIntents(target: Window = window): IntentSource {
       interact: take('interact'),
       leave: take('leave'),
     }),
+    reset: forget,
     dispose() {
       forget()
       target.removeEventListener('keydown', onDown)

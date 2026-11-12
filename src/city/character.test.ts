@@ -81,6 +81,25 @@ describe('character', () => {
     expect(f.x).toBeLessThan(HALF_SIZE)
   })
 
+  it('reports the speed it really moves at, not the speed it wants', () => {
+    const { run } = setup()
+    settle(run)
+    const f = run(12, { ...still, moveX: 1 }).at(-1)!
+    expect(f.speed).toBeLessThan(0.5)
+  })
+
+  it('never tumbles from jumping against a wall', () => {
+    const { run } = setup()
+    settle(run)
+    run(8, { ...still, moveX: 1 })
+    const seen: unknown[] = []
+    for (let i = 0; i < 12; i++) {
+      seen.push(...events(run(DT, { moveX: 1, moveZ: 0, jump: true })), ...events(run(1.1 + i * 0.013, { ...still, moveX: 1 })))
+    }
+    expect(seen).not.toContain('tumble')
+    expect(seen).toContain('jump')
+  })
+
   it('bounces on the trampoline, tumbles after the fall, stands up and walks on', () => {
     const { run } = setup({ x: TRAMPOLINE.x, z: TRAMPOLINE.z })
     // Dropped onto the pad: bounces without any key

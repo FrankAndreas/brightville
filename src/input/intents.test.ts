@@ -85,6 +85,15 @@ describe('keyboardIntents', () => {
     expect(other.defaultPrevented).toBe(false)
   })
 
+  it('reset lets go of everything but keeps listening', () => {
+    down('ArrowLeft')
+    down('Enter')
+    source.reset()
+    expect(source.read()).toMatchObject({ moveX: 0, interact: false })
+    down('ArrowRight')
+    expect(source.read().moveX).toBe(1)
+  })
+
   it('stops listening after dispose', () => {
     source.dispose()
     down('ArrowLeft')

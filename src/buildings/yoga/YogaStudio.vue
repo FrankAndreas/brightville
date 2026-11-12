@@ -24,6 +24,9 @@ const MIN_FRAME_MS = 30
 // A stalled tab must not count as seconds of holding or of waiting
 const MAX_FRAME_MS = 250
 const CONFETTI_MS = 3000
+// Enter is ignored this long after the no-camera picture appears, so a second
+// press at the door doesn't skip it before it is seen. Esc always works.
+const NO_CAMERA_GRACE_MS = 1000
 
 const poses = props.poses ?? pickPoses()
 const flow = createYogaFlow(poses)
@@ -36,7 +39,8 @@ let stream: MediaStream | null = null
 let tracker: PoseTracker | null = null
 let intents: IntentSource | null = null
 let raf = 0
-let lastFrame = 0
+let lastFrame: number | null = null
+let noCameraSince: number | null = null
 let doneTimer: ReturnType<typeof setTimeout> | undefined
 let closed = false
 let lastBody: Body | null = null
@@ -68,11 +72,21 @@ function shutDown() {
   closed = true
   cancelAnimationFrame(raf)
   clearTimeout(doneTimer)
-  if (stream) closeCamera(stream)
-  tracker?.close()
-  intents?.dispose()
-  stopSpeaking()
-  window.removeEventListener('keydown', logBody)
+  // Each step on its own: one failing must not keep the camera on or the child inside
+  const steps = [
+    () => { if (stream) closeCamera(stream) },
+    () => tracker?.close(),
+    () => intents?.dispose(),
+    () => stopSpeaking(),
+    () => window.removeEventListener('keydown', logBody),
+  ]
+  for (const step of steps) {
+    try {
+      step()
+    } catch {
+      // nothing more to do for this one
+    }
+  }
 }
 
 function leave() {
@@ -86,11 +100,18 @@ function tick(time: number) {
   raf = requestAnimationFrame(tick)
 
   const keys = intents!.read()
-  if (keys.leave || (keys.interact && view.phase === 'noCamera')) {
+  if (view.phase === 'noCamera') noCameraSince ??= time
+  const mayConfirm = noCameraSince !== null && time - noCameraSince >= NO_CAMERA_GRACE_MS
+  if (keys.leave || (keys.interact && mayConfirm)) {
     leave()
     return
   }
   if (!tracker || !video.value || view.phase === 'noCamera' || view.phase === 'done') return
+  // The first picture only starts the clock
+  if (lastFrame === null) {
+    lastFrame = time
+    return
+  }
   const dt = time - lastFrame
   if (dt < MIN_FRAME_MS) return
   lastFrame = time

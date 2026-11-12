@@ -63,6 +63,19 @@ describe('createLoop', () => {
     loop.pause()
   })
 
+  it('lets go of held keys when paused', async () => {
+    const loop = start()
+    loop.resume()
+    down('ArrowLeft')
+    await vi.advanceTimersByTimeAsync(50)
+    expect(steps.at(-1)!.intents.moveX).toBe(-1)
+    loop.pause()
+    loop.resume()
+    await vi.advanceTimersByTimeAsync(50)
+    expect(steps.at(-1)!.intents.moveX).toBe(0)
+    loop.pause()
+  })
+
   it('still sees presses made while running', async () => {
     const loop = start()
     loop.resume()

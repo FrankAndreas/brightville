@@ -75,6 +75,11 @@ describe('YogaStudio', () => {
     expect(w.find('[data-test="no-camera"]').exists()).toBe(true)
     expect(speak).toHaveBeenCalledWith('Ich finde keine Kamera.')
     expect(createPoseTracker).not.toHaveBeenCalled()
+    // A second Enter right at the door must not skip the screen before it is seen
+    press('Enter')
+    await run(50)
+    expect(w.emitted('finished')).toBeUndefined()
+    await run(1000)
     press('Enter')
     await run(50)
     expect(w.emitted('finished')).toEqual([[{ stars: 0 }]])
@@ -184,6 +189,35 @@ describe('YogaStudio', () => {
     press('Escape')
     await run(50)
     expect(closeCamera).toHaveBeenCalledTimes(1)
+    w.unmount()
+  })
+
+  it('lets the child out with Escape right away on the no-camera screen', async () => {
+    vi.mocked(openCamera).mockRejectedValue(new CameraError('denied'))
+    const w = await open()
+    press('Escape')
+    await run(50)
+    expect(w.emitted('finished')).toEqual([[{ stars: 0 }]])
+    w.unmount()
+  })
+
+  it('still lets the child out when switching the tracker off fails', async () => {
+    const w = await calibrated()
+    tracker.close.mockImplementationOnce(() => { throw new Error('close failed') })
+    press('Escape')
+    await run(50)
+    expect(w.emitted('finished')).toEqual([[{ stars: 0 }]])
+    expect(closeCamera).toHaveBeenCalledWith(stream)
+    w.unmount()
+  })
+
+  it('does not count the time before the first picture as holding', async () => {
+    const w = await open()
+    await run(5000)
+    seen = standing()
+    await run(40)
+    // one 30 ms frame of standing is far from the full second of calibration
+    expect(w.find('[data-test="teacher"]').attributes('data-pose')).toBe('none')
     w.unmount()
   })
 

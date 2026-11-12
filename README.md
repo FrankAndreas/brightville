@@ -15,12 +15,16 @@ the plan for stage 1 is in [docs/superpowers/plans/2026-11-12-brightville-stage1
 Requires Node 22 or later.
 
 ```bash
-npm install      # also copies the body-tracking files into public/mediapipe/
-npm run dev      # http://localhost:5173
-npm test         # Vitest
-npm run lint     # ESLint
-npm run build    # type check, then static files in dist/
+npm install        # also copies the body-tracking files into public/mediapipe/ and enables the git hook
+npm run dev        # http://localhost:5173
+npm test           # Vitest
+npm run lint       # ESLint
+npm run typecheck  # vue-tsc
+npm run build      # type check, then static files in dist/
 ```
+
+The pre-commit hook (`.githooks/pre-commit`, the same script as in the other family repos) runs lint and the type check on commits that touch code.
+CI (`.github/workflows/ci.yml`) runs the audit, the tests, lint and the build on every push to `main` and on pull requests.
 
 The camera only works on `localhost` or over HTTPS. On a plain `http://` address the Yoga Studio door stays closed.
 

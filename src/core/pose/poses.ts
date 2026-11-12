@@ -1,6 +1,11 @@
 import { MIN_VISIBILITY, allSeen, type Body, type Joint } from './body'
 import { angleDeg, distance, mid, shoulderWidth, tiltDeg } from './geometry'
 
+// Side-on to the camera the shoulders nearly overlap and every length measured
+// in shoulder widths would look huge. The body counts as facing the camera when
+// the shoulders are at least this wide compared with shoulder-to-hip.
+const MIN_FACING = 0.4
+
 export type PoseId = 'stern' | 'riese' | 'baum' | 'frosch' | 'flieger'
 
 export interface PoseDef {
@@ -38,7 +43,8 @@ function legs(b: Body, sw: number) {
   }
 }
 
-const ARMS: Joint[] = ['lShoulder', 'rShoulder', 'lElbow', 'rElbow', 'lWrist', 'rWrist']
+const SHOULDERS: Joint[] = ['lShoulder', 'rShoulder']
+const ARMS: Joint[] = [...SHOULDERS, 'lElbow', 'rElbow', 'lWrist', 'rWrist']
 const KNEES: Joint[] = ['lKnee', 'rKnee']
 const HIPS: Joint[] = ['lHip', 'rHip']
 
@@ -94,7 +100,12 @@ const RULES: Rule[] = [
     test(b, sw) {
       const hips = mid(b.lHip, b.rHip)
       const knees = mid(b.lKnee, b.rKnee)
-      return knees.y - hips.y < 0.5 * sw && b.lWrist.y > hips.y && b.rWrist.y > hips.y
+      const left = Math.min(b.lKnee.x, b.rKnee.x)
+      const right = Math.max(b.lKnee.x, b.rKnee.x)
+      const between = (wrist: Joint) => b[wrist].x > left && b[wrist].x < right
+      // Hands down between the knees: not hanging beside a chair, not resting in the lap
+      const down = (wrist: Joint) => b[wrist].y > knees.y
+      return knees.y - hips.y < 0.5 * sw && between('lWrist') && between('rWrist') && down('lWrist') && down('rWrist')
     },
   },
   {
@@ -103,15 +114,19 @@ const RULES: Rule[] = [
     needs: ARMS,
     test(b, sw) {
       const tilt = tiltDeg(b.lWrist, b.rWrist)
-      return armsStraight(b) && distance(b.lWrist, b.rWrist) > 2.5 * sw && tilt >= 20 && tilt <= 65
+      // The whole upper body leans, not just one arm up and one down
+      const leaning = tiltDeg(b.lShoulder, b.rShoulder) >= 8
+      return armsStraight(b) && distance(b.lWrist, b.rWrist) > 2.5 * sw && tilt >= 20 && tilt <= 65 && leaning
     },
   },
 ]
 
 function check(rule: Rule, b: Body): boolean {
-  if (!allSeen(b, rule.needs)) return false
+  if (!allSeen(b, [...rule.needs, ...SHOULDERS, ...HIPS])) return false
   const sw = shoulderWidth(b)
-  return sw > 0 && rule.test(b, sw)
+  const torso = distance(mid(b.lShoulder, b.rShoulder), mid(b.lHip, b.rHip))
+  if (sw <= 0 || sw < MIN_FACING * torso) return false
+  return rule.test(b, sw)
 }
 
 export const POSES: PoseDef[] = RULES.map(rule => ({

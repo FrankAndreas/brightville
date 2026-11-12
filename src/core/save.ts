@@ -25,7 +25,7 @@ export function parseSave(raw: string | null): SaveData {
   if (typeof data !== 'object' || data === null) return emptySave()
   const { version, stars } = data as Record<string, unknown>
   if (version !== SAVE_VERSION) return emptySave()
-  if (typeof stars !== 'number' || !Number.isInteger(stars) || stars < 0) return emptySave()
+  if (typeof stars !== 'number' || !Number.isSafeInteger(stars) || stars < 0) return emptySave()
   return { version: SAVE_VERSION, stars }
 }
 

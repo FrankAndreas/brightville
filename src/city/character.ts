@@ -83,15 +83,19 @@ export function createCharacter(
     body.setRotation({ x: 0, y: 0, z: 0, w: 1 }, true)
     body.setTranslation({ x: p.x, y: Math.max(p.y, HALF_HEIGHT) + 0.1, z: p.z }, true)
     v.x = v.y = v.z = 0
+    speed = 0
     peakY = p.y
     grounded = false
   }
+
+  /** Ground speed actually achieved in the last step; lower than wanted when pushing against something */
+  let speed = 0
 
   function frame(event: CharacterFrame['event'], impact = 0): CharacterFrame {
     const p = body.translation()
     const tumbling = tumbleLeftMs > 0
     return {
-      x: p.x, y: p.y, z: p.z, heading, speed: Math.hypot(v.x, v.z), grounded, tumbling,
+      x: p.x, y: p.y, z: p.z, heading, speed, grounded, tumbling,
       rotation: tumbling ? body.rotation() : null, event, impact,
     }
   }
@@ -140,13 +144,23 @@ export function createCharacter(
       const wasGrounded = grounded
       grounded = controller.computedGrounded()
 
-      // Speed actually achieved; what was lost is the bump
+      // Speed actually achieved; what was lost is the bump. Sideways bumps and
+      // landings are judged separately, so a jump against a wall is not a crash.
+      // (Walking is slower than TUMBLE_IMPACT_SPEED: bumps only tumble once
+      // something faster exists, such as running or a scooter.)
       const got = { x: move.x / dt, y: move.y / dt, z: move.z / dt }
-      const impact = Math.hypot(before.x - got.x, Math.min(0, before.y) - Math.min(0, got.y), before.z - got.z)
+      speed = Math.hypot(got.x, got.z)
+      const bump = Math.hypot(before.x - got.x, before.z - got.z)
+      const landing = Math.abs(Math.min(0, before.y) - Math.min(0, got.y))
+      const impact = Math.max(bump, landing)
       const next = { x: p.x + move.x, y: p.y + move.y, z: p.z + move.z }
 
       if (!grounded) {
         peakY = Math.max(peakY, next.y)
+        if (shouldTumble(bump, 0)) {
+          startTumble()
+          return frame('tumble', bump)
+        }
         // Bumped the head: stop rising
         if (v.y > 0 && got.y < v.y * 0.5) v.y = 0
         return frame(event)
@@ -160,7 +174,7 @@ export function createCharacter(
         grounded = false
         return frame('bounce', impact)
       }
-      if (!wasGrounded && shouldTumble(impact, fall)) {
+      if (shouldTumble(bump, 0) || (!wasGrounded && shouldTumble(landing, fall))) {
         startTumble()
         return frame('tumble', impact)
       }
