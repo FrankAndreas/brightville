@@ -36,6 +36,9 @@ The camera only works on `localhost` or over HTTPS. On a plain `http://` address
 | Jump | Space |
 | Go into a building | Enter or E, in front of the glowing door |
 | Leave a building | Esc |
+| Show the controls | H or F1, or the ? button |
+
+A new player (0 Stars) sees the controls as pictures at the start, read aloud; any key closes them.
 
 The trampoline bounces by itself. A long fall makes the character tumble for a moment; nothing is ever lost.
 

@@ -7,6 +7,7 @@ import { createCity, type CityOptions } from './city/city'
 import { unlockAudio } from './services/sound'
 import { speak } from './services/tts'
 import type { BuildingDef, BuildingResult } from './buildings/types'
+import { usePlayerStore } from './stores/player'
 
 vi.mock('./city/city', () => ({ createCity: vi.fn() }))
 vi.mock('./services/sound', () => ({ unlockAudio: vi.fn(), playBeat: vi.fn() }))
@@ -31,12 +32,25 @@ const camOnly: BuildingDef = { ...stub, id: 'touchy', spokenName: 'Schreiben', n
 const mountApp = (buildings: BuildingDef[] = []) =>
   mount(App, { props: { buildings }, global: { plugins: [createPinia()] } })
 
-async function started(buildings: BuildingDef[] = [stub, camOnly]) {
+/** In the game, with the first-visit help still open. */
+async function startedWithHelp(buildings: BuildingDef[] = [stub, camOnly]) {
   const w = mountApp(buildings)
   await w.find('[data-test="start-gate"]').trigger('pointerdown')
   await flushPromises()
   return w
 }
+
+/** In the game, walking around. */
+async function started(buildings: BuildingDef[] = [stub, camOnly]) {
+  const w = await startedWithHelp(buildings)
+  await w.find('[data-test="help"]').trigger('pointerdown')
+  vi.mocked(speak).mockClear()
+  city.pause.mockClear()
+  city.resume.mockClear()
+  return w
+}
+
+const key = (code: string) => window.dispatchEvent(new KeyboardEvent('keydown', { code }))
 
 describe('App', () => {
   beforeEach(() => {
@@ -148,5 +162,72 @@ describe('App', () => {
     await nextTick()
     expect(city.pause).not.toHaveBeenCalled()
     w.unmount()
+  })
+
+  describe('help', () => {
+    it('shows the controls to a new player, reads them out and holds the town', async () => {
+      const w = await startedWithHelp()
+      const help = w.find('[data-test="help"]')
+      expect(help.exists()).toBe(true)
+      expect(help.findAll('[data-test="help-row"]')).toHaveLength(4)
+      expect(vi.mocked(speak).mock.calls[0][0]).toContain('Pfeiltasten')
+      expect(city.pause).toHaveBeenCalledTimes(1)
+      w.unmount()
+    })
+
+    it('closes on any key and lets the town go on', async () => {
+      const w = await startedWithHelp()
+      key('ArrowLeft')
+      await nextTick()
+      expect(w.find('[data-test="help"]').exists()).toBe(false)
+      expect(city.resume).toHaveBeenCalledTimes(1)
+      w.unmount()
+    })
+
+    it('is not shown at the start to a player who already has Stars', async () => {
+      const pinia = createPinia()
+      usePlayerStore(pinia).award(3)
+      const w = mount(App, { props: { buildings: [stub] }, global: { plugins: [pinia] } })
+      await w.find('[data-test="start-gate"]').trigger('pointerdown')
+      await flushPromises()
+      expect(w.find('[data-test="help"]').exists()).toBe(false)
+      w.unmount()
+    })
+
+    it.each(['KeyH', 'F1'])('opens with %s', async code => {
+      const w = await started()
+      key(code)
+      await nextTick()
+      expect(w.find('[data-test="help"]').exists()).toBe(true)
+      expect(city.pause).toHaveBeenCalledTimes(1)
+      w.unmount()
+    })
+
+    it('opens with the question mark button', async () => {
+      const w = await started()
+      await w.find('[data-test="help-button"]').trigger('pointerdown')
+      expect(w.find('[data-test="help"]').exists()).toBe(true)
+      w.unmount()
+    })
+
+    it('does not open inside a building', async () => {
+      const w = await started()
+      cityOptions.onEnter('stub')
+      await nextTick()
+      key('KeyH')
+      await nextTick()
+      expect(w.find('[data-test="help"]').exists()).toBe(false)
+      expect(w.find('[data-test="help-button"]').exists()).toBe(false)
+      w.unmount()
+    })
+
+    it('hides the door prompt while open', async () => {
+      const w = await started()
+      cityOptions.onNearDoor('stub')
+      key('KeyH')
+      await nextTick()
+      expect(w.find('[data-test="door-prompt"]').exists()).toBe(false)
+      w.unmount()
+    })
   })
 })
