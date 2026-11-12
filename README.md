@@ -77,6 +77,8 @@ Lifting early starts that stroke again. Nothing is ever taken away.
 
 The door is open only on a device with a touch screen.
 
+**The pen.** The rules were tuned in Spielzeugkiste with a children's stylus (Edurino) on the iPad. Its recorded tries (`../kids-games/traces/`) show that Safari reports that pen as an ordinary touch of 41.6 px, the same as a fingertip, so pen and finger are treated alike. A resting hand is told apart by comparing each touch with the smallest one seen in the visit, not by a fixed size. An Apple Pencil has not been tried.
+
 ## Yoga Studio
 
 1. The browser asks for the camera. Without one, a crossed-out camera is shown and Enter leads back.
