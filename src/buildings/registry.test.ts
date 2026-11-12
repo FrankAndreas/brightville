@@ -25,6 +25,12 @@ describe('building registry', () => {
     ])
   })
 
+  it('lists the yoga studio and needs a camera', () => {
+    const studio = BUILDINGS.find(b => b.id === 'yoga')
+    expect(studio).toMatchObject({ spokenName: 'Yoga', icon: '🧘', needs: ['camera'], door: { x: 0, z: -14 } })
+    expect(studio?.component).toBeTruthy()
+  })
+
   it('has unique ids', () => {
     expect(new Set(BUILDINGS.map(b => b.id)).size).toBe(BUILDINGS.length)
   })

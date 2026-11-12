@@ -1,9 +1,12 @@
 import type { DoorDef } from '@/city/doors'
 import type { DeviceCaps } from '@/services/device'
 import type { BuildingDef } from './types'
+import YogaStudio from './yoga/YogaStudio.vue'
 
 /** Every building in the town */
-export const BUILDINGS: BuildingDef[] = []
+export const BUILDINGS: BuildingDef[] = [
+  { id: 'yoga', spokenName: 'Yoga', icon: '🧘', needs: ['camera'], door: { x: 0, z: -14 }, component: YogaStudio },
+]
 
 export function canServe(building: BuildingDef, device: DeviceCaps): boolean {
   return building.needs.every(need => device[need])

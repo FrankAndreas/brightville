@@ -49,13 +49,17 @@ function house(
   group.position.set(x, 0, z)
   const walls = box(w, h, d, color)
   walls.position.y = h / 2
-  const roof = new THREE.Mesh(
-    new THREE.ConeGeometry(Math.max(w, d) * 0.78, h * 0.6, 4),
+  // A four-sided roof fitted to the walls with a small overhang
+  const cone = new THREE.Mesh(
+    new THREE.ConeGeometry(1, h * 0.6, 4),
     new THREE.MeshStandardMaterial({ color: roofColor, roughness: 0.9, flatShading: true }),
   )
+  cone.rotation.y = Math.PI / 4
+  cone.castShadow = true
+  const roof = new THREE.Group()
+  roof.add(cone)
   roof.position.y = h + h * 0.3
-  roof.rotation.y = Math.PI / 4
-  roof.castShadow = true
+  roof.scale.set(w * 0.78, 1, d * 0.78)
   group.add(walls, roof)
   scene.add(group)
   staticBox(R, world, x, h / 2, z, w, h, d)
@@ -84,7 +88,7 @@ function sign(icon: string): THREE.Mesh {
   const texture = new THREE.CanvasTexture(canvas)
   texture.colorSpace = THREE.SRGBColorSpace
   return new THREE.Mesh(
-    new THREE.CircleGeometry(1.1, 40),
+    new THREE.CircleGeometry(0.95, 40),
     new THREE.MeshBasicMaterial({ map: texture, transparent: true }),
   )
 }
@@ -93,7 +97,7 @@ function sign(icon: string): THREE.Mesh {
 function doorBuilding(R: Rapier, world: RAPIER.World, scene: THREE.Scene, door: DoorDef): DoorVisual {
   const depth = 5
   const frontZ = door.z - 1
-  const group = house(R, world, scene, door.x, frontZ - depth / 2, 8, 4, depth, COLORS.studio, COLORS.studioRoof)
+  const group = house(R, world, scene, door.x, frontZ - depth / 2, 8, 5, depth, COLORS.studio, COLORS.studioRoof)
 
   const color = door.open ? COLORS.doorOpen : COLORS.doorClosed
   const frame = box(2.2, 2.9, 0.2, color)
@@ -104,7 +108,7 @@ function doorBuilding(R: Rapier, world: RAPIER.World, scene: THREE.Scene, door: 
 
   if (door.icon) {
     const board = sign(door.icon)
-    board.position.set(0, 4.3, depth / 2 + 0.3)
+    board.position.set(0, 3.95, depth / 2 + 0.06)
     group.add(board)
   }
 

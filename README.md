@@ -1,0 +1,62 @@
+# Brightville
+
+A small, friendly town for a kindergarten-age child: walk a wobbly character around, go into buildings, and earn Stars there by learning and moving.
+Everything the child sees is pictures and a German voice; no reading is needed.
+
+**Stage 1** has the town square (trampoline, balls to push) and one building, the Yoga Studio, where the camera checks three poses per visit.
+Each held pose earns 3 Stars. The Star count is saved in the browser.
+
+The idea behind the game is in [Learning City – Gameplay Design.md](Learning%20City%20%E2%80%93%20Gameplay%20Design.md).
+How it is built and what comes next is in [docs/superpowers/specs/2026-11-12-brightville-stage1-design.md](docs/superpowers/specs/2026-11-12-brightville-stage1-design.md);
+the plan for stage 1 is in [docs/superpowers/plans/2026-11-12-brightville-stage1.md](docs/superpowers/plans/2026-11-12-brightville-stage1.md).
+
+## Run it
+
+Requires Node 22 or later.
+
+```bash
+npm install      # also copies the body-tracking files into public/mediapipe/
+npm run dev      # http://localhost:5173
+npm test         # Vitest
+npm run lint     # ESLint
+npm run build    # type check, then static files in dist/
+```
+
+The camera only works on `localhost` or over HTTPS. On a plain `http://` address the Yoga Studio door stays closed.
+
+## Controls
+
+| Action | Keyboard |
+|---|---|
+| Walk | Arrow keys or W A S D |
+| Jump | Space |
+| Go into a building | Enter or E, in front of the glowing door |
+| Leave a building | Esc |
+
+The trampoline bounces by itself. A long fall makes the character tumble for a moment; nothing is ever lost.
+
+## Yoga Studio
+
+1. The browser asks for the camera. Without one, a crossed-out camera is shown and Enter leads back.
+2. Stand so that head to knees are in the picture; the outline turns green.
+3. The teacher shows a pose and names it. Hold it until the ring is full (5 seconds). A wobble only drains the ring slowly.
+4. After 30 seconds without success the teacher moves on, with no Stars and no comment.
+
+The five poses are Stern, Riese, Baum, Frosch and Flieger. Their rules are in `src/core/pose/poses.ts`.
+
+Camera pictures are analysed in the page and thrown away. Nothing is recorded or sent anywhere.
+The tracking model (`public/mediapipe/pose_landmarker_lite.task`, from Google's MediaPipe) is part of the repo, so the game works offline.
+
+## How the code is organised
+
+| Folder | What it holds |
+|---|---|
+| `src/core` | Pure logic with tests and no browser code: saving, pose rules, the hold ring |
+| `src/input` | Turns the keyboard into intents (move, jump, go in, leave); touch comes later |
+| `src/city` | The 3D town: Three.js for drawing, Rapier for physics |
+| `src/buildings` | One folder per building, plus the list of buildings in `registry.ts` |
+| `src/services` | Voice, sound, camera, body tracking, storage, device detection |
+
+A building is a Vue component that emits `finished` with `{ stars }`. To add one, write the component and add an entry to `src/buildings/registry.ts` with its door position, picture, spoken name and what it needs from the device (camera, touch, keyboard). The town shows a door as closed when the device can't serve it.
+
+In development mode, pressing L in the Yoga Studio prints the tracked body to the browser console, which is how real poses can be turned into test data.
