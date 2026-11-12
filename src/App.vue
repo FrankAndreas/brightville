@@ -249,7 +249,7 @@ onBeforeUnmount(() => {
     />
     <div class="hud">
       <button
-        class="who" data-test="who" :aria-label="session.person?.name"
+        class="badge" data-test="who" :aria-label="session.person?.name"
         :style="{ background: session.person?.color ?? '#ff9a3c' }"
         @pointerdown="session.canSwitch && inTown && switchPerson()"
       >{{ session.person?.name.slice(0, 1).toUpperCase() }}</button>
@@ -306,7 +306,7 @@ body {
   border-radius: 999px;
   background: rgb(255 255 255 / 85%);
 }
-.who {
+.badge {
   width: 48px;
   height: 48px;
   border: 3px solid #fff;
