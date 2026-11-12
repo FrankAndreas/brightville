@@ -2,12 +2,18 @@
 import { ref } from 'vue'
 import StarCounter from '@/components/StarCounter.vue'
 import StartGate from '@/components/StartGate.vue'
+import { unlockAudio } from '@/services/sound'
 
 const started = ref(false)
+
+function start() {
+  unlockAudio()
+  started.value = true
+}
 </script>
 
 <template>
-  <StartGate v-if="!started" @start="started = true" />
+  <StartGate v-if="!started" @start="start" />
   <main v-else class="game" data-test="game">
     <StarCounter />
   </main>

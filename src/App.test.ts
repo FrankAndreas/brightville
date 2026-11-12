@@ -1,8 +1,11 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { nextTick } from 'vue'
 import App from './App.vue'
+import { unlockAudio } from './services/sound'
+
+vi.mock('./services/sound', () => ({ unlockAudio: vi.fn(), playBeat: vi.fn() }))
 
 const mountApp = () => mount(App, { global: { plugins: [createPinia()] } })
 
@@ -22,6 +25,15 @@ describe('App', () => {
     const w = mountApp()
     await w.find('[data-test="start-gate"]').trigger('pointerdown')
     expect(w.find('[data-test="stars"]').text()).toBe('0')
+    w.unmount()
+  })
+
+  it('unlocks sound when the game starts', async () => {
+    vi.mocked(unlockAudio).mockClear()
+    const w = mountApp()
+    expect(unlockAudio).not.toHaveBeenCalled()
+    await w.find('[data-test="start-gate"]').trigger('pointerdown')
+    expect(unlockAudio).toHaveBeenCalledTimes(1)
     w.unmount()
   })
 
