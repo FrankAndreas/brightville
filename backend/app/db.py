@@ -53,7 +53,9 @@ def path() -> Path:
 
 
 def connect() -> sqlite3.Connection:
-    connection = sqlite3.connect(path(), timeout=10, isolation_level=None)
+    # One connection per request, used by one thread at a time; FastAPI may open it in one thread of its pool and
+    # run the request in another, which sqlite3 refuses unless told
+    connection = sqlite3.connect(path(), timeout=10, isolation_level=None, check_same_thread=False)
     connection.row_factory = sqlite3.Row
     connection.execute("PRAGMA journal_mode=WAL")
     if connection.execute("PRAGMA user_version").fetchone()[0] < VERSION:
