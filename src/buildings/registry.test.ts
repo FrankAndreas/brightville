@@ -4,9 +4,10 @@ import { BUILDINGS, canServe, toDoors } from './registry'
 import type { BuildingDef } from './types'
 
 const component = defineComponent({ render: () => null })
-const yoga: BuildingDef = { id: 'yoga', spokenName: 'Yoga', icon: '🧘', needs: ['camera'], door: { x: 0, z: -14 }, component }
-const write: BuildingDef = { id: 'write', spokenName: 'Schreiben', icon: '✏️', needs: ['touch'], door: { x: 5, z: 5 }, component }
-const open: BuildingDef = { id: 'open', spokenName: 'Offen', icon: '🚪', needs: [], door: { x: 1, z: 1 }, component }
+const yoga: BuildingDef = { id: 'yoga', spokenName: 'Yoga', icon: '🧘', kind: 'earn', needs: ['camera'], door: { x: 0, z: -14 }, component }
+const write: BuildingDef = { id: 'write', spokenName: 'Schreiben', icon: '✏️', kind: 'earn', needs: ['touch'], door: { x: 5, z: 5 }, component }
+const open: BuildingDef = { id: 'open', spokenName: 'Offen', icon: '🚪', kind: 'earn', needs: [], door: { x: 1, z: 1 }, component }
+const play: BuildingDef = { id: 'play', spokenName: 'Spielhalle', icon: '🃏', kind: 'play', cost: 3, needs: [], door: { x: 9, z: 9 }, component }
 
 describe('building registry', () => {
   it('serves a building only when every need is met', () => {
@@ -19,15 +20,23 @@ describe('building registry', () => {
   })
 
   it('turns buildings into doors, closed when the device cannot serve them', () => {
-    expect(toDoors([yoga, write], { camera: false, touch: true, keyboard: false })).toEqual([
-      { id: 'yoga', x: 0, z: -14, open: false, icon: '🧘' },
-      { id: 'write', x: 5, z: 5, open: true, icon: '✏️' },
+    expect(toDoors([yoga, write], { camera: false, touch: true, keyboard: false }, false, 0)).toEqual([
+      { id: 'yoga', x: 0, z: -14, open: false, locked: false, icon: '🧘' },
+      { id: 'write', x: 5, z: 5, open: true, locked: false, icon: '✏️' },
     ])
+  })
+
+  it('shows a play door locked before the goal, closed without stars, open with both', () => {
+    const device = { camera: true, touch: false, keyboard: true }
+    const door = (goal: boolean, stars: number) => toDoors([play], device, goal, stars)[0]
+    expect(door(false, 10)).toMatchObject({ open: false, locked: true })
+    expect(door(true, 2)).toMatchObject({ open: false, locked: false })
+    expect(door(true, 3)).toMatchObject({ open: true, locked: false })
   })
 
   it('lists the yoga studio and needs a camera', () => {
     const studio = BUILDINGS.find(b => b.id === 'yoga')
-    expect(studio).toMatchObject({ spokenName: 'Yoga', icon: '🧘', needs: ['camera'], door: { x: 0, z: -14 } })
+    expect(studio).toMatchObject({ spokenName: 'Yoga', icon: '🧘', kind: 'earn', needs: ['camera'], door: { x: 0, z: -14 } })
     expect(studio?.component).toBeTruthy()
   })
 

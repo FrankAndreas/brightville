@@ -14,10 +14,11 @@ let unmounted = false
 
 onMounted(async () => {
   intents = keyboardIntents()
+  const initialDoors = props.doors
   const created = await createCity({
     canvas: canvas.value!,
     intents,
-    doors: props.doors,
+    doors: initialDoors,
     onNearDoor: id => emit('near-door', id),
     onEnter: id => emit('enter', id),
   })
@@ -27,6 +28,8 @@ onMounted(async () => {
     return
   }
   city = created
+  // The doors may have changed while the town was loading
+  if (props.doors !== initialDoors) city.setDoors(props.doors)
   if (props.paused) city.pause()
 })
 
@@ -34,6 +37,8 @@ watch(() => props.paused, paused => {
   if (paused) city?.pause()
   else city?.resume()
 })
+
+watch(() => props.doors, doors => city?.setDoors(doors))
 
 onBeforeUnmount(() => {
   unmounted = true

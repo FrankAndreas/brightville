@@ -18,6 +18,10 @@ export interface BuildingDef {
   spokenName: string
   /** Picture on the sign and in the door prompt */
   icon: string
+  /** Earning buildings give Stars and count towards the daily goal; play buildings cost Stars */
+  kind: 'earn' | 'play'
+  /** Stars taken on entering a play building */
+  cost?: number
   needs: Need[]
   door: { x: number; z: number }
   component: Component

@@ -20,6 +20,8 @@ export interface CityOptions {
 }
 
 export interface City {
+  /** The same doors with a new state: repaints them and changes which can be entered */
+  setDoors(doors: DoorDef[]): void
   pause(): void
   resume(): void
   dispose(): void
@@ -63,6 +65,7 @@ export async function createCity(opts: CityOptions): Promise<City> {
   resize()
   window.addEventListener('resize', resize)
 
+  let doors = opts.doors
   let time = 0
   let nearId: string | null = null
   let first = true
@@ -83,7 +86,7 @@ export async function createCity(opts: CityOptions): Promise<City> {
     first = false
     renderer.render(town.scene, view.camera)
 
-    const near = f.tumbling ? null : nearestDoor(f, opts.doors)
+    const near = f.tumbling ? null : nearestDoor(f, doors)
     if ((near?.id ?? null) !== nearId) {
       nearId = near?.id ?? null
       opts.onNearDoor(nearId)
@@ -93,6 +96,10 @@ export async function createCity(opts: CityOptions): Promise<City> {
   loop.resume()
 
   return {
+    setDoors(next) {
+      doors = next
+      next.forEach((door, i) => town.doorVisuals[i]?.setState(door.open, door.locked ?? false))
+    },
     pause: loop.pause,
     resume: loop.resume,
     dispose() {

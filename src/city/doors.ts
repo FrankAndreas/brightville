@@ -6,6 +6,8 @@ export interface DoorDef {
   open: boolean
   /** Picture for the sign above the door */
   icon?: string
+  /** Closed until today's learning is done: shown with a lock */
+  locked?: boolean
 }
 
 /** How close (metres) the character must be to a door to use it */
