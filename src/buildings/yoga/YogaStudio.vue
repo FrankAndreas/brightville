@@ -8,6 +8,7 @@ import { closeCamera, onCameraLost, openCamera } from '@/services/camera'
 import { createPoseTracker, type PoseTracker } from '@/services/poseTracker'
 import { playBeat } from '@/services/sound'
 import { speak, stopSpeaking } from '@/services/tts'
+import { onLeaveRequest } from '../leave'
 import type { BuildingResult } from '../types'
 import HoldRing from './HoldRing.vue'
 import YogaTeacher from './YogaTeacher.vue'
@@ -66,6 +67,11 @@ function send(event: YogaEvent) {
   }
 }
 
+/** Takes back this building's answer to the leave button */
+let stopLeaveRequests = () => {}
+/** True once the no-camera picture has been up long enough to be seen */
+let mayConfirm = false
+
 /** Switches everything off. Safe to call more than once. */
 function shutDown() {
   if (closed) return
@@ -78,6 +84,7 @@ function shutDown() {
     () => tracker?.close(),
     () => intents?.dispose(),
     () => stopSpeaking(),
+    () => stopLeaveRequests(),
     () => window.removeEventListener('keydown', logBody),
   ]
   for (const step of steps) {
@@ -101,7 +108,7 @@ function tick(time: number) {
 
   const keys = intents!.read()
   if (view.phase === 'noCamera') noCameraSince ??= time
-  const mayConfirm = noCameraSince !== null && time - noCameraSince >= NO_CAMERA_GRACE_MS
+  mayConfirm = noCameraSince !== null && time - noCameraSince >= NO_CAMERA_GRACE_MS
   if (keys.leave || (keys.interact && mayConfirm)) {
     leave()
     return
@@ -131,6 +138,7 @@ function logBody(e: KeyboardEvent) {
 
 onMounted(async () => {
   intents = keyboardIntents()
+  stopLeaveRequests = onLeaveRequest(leave)
   if (import.meta.env.DEV) window.addEventListener('keydown', logBody)
   raf = requestAnimationFrame(tick)
   try {
@@ -164,7 +172,7 @@ onBeforeUnmount(shutDown)
 
 <template>
   <div class="studio">
-    <div v-if="view.phase === 'noCamera'" class="no-camera" data-test="no-camera" aria-hidden="true">
+    <div v-if="view.phase === 'noCamera'" class="no-camera" data-test="no-camera" aria-hidden="true" @pointerdown="mayConfirm && leave()">
       <svg viewBox="0 0 120 100" class="camera-off">
         <rect x="14" y="30" width="92" height="56" rx="12" />
         <rect x="42" y="18" width="36" height="16" rx="5" />

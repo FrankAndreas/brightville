@@ -18,6 +18,7 @@ The idea behind the game is in [Learning City – Gameplay Design.md](Learning%2
 How it is built and what comes next is in [docs/superpowers/specs/2026-11-12-brightville-stage1-design.md](docs/superpowers/specs/2026-11-12-brightville-stage1-design.md);
 the plan for stage 1 is in [docs/superpowers/plans/2026-11-12-brightville-stage1.md](docs/superpowers/plans/2026-11-12-brightville-stage1.md).
 Stage 2 (School, Arcade, daily goal) has its own [design](docs/superpowers/specs/2026-11-12-brightville-stage2-design.md) and [plan](docs/superpowers/plans/2026-11-12-brightville-stage2.md).
+Stage 3 (iPad and NAS) has a [design](docs/superpowers/specs/2026-11-12-brightville-stage3-design.md) and a [plan for its first part](docs/superpowers/plans/2026-11-12-brightville-stage3-part1.md).
 
 ## Run it
 
@@ -33,21 +34,25 @@ npm run build      # type check, then static files in dist/
 ```
 
 The pre-commit hook (`.githooks/pre-commit`, the same script as in the other family repos) runs lint and the type check on commits that touch code.
-CI (`.github/workflows/ci.yml`) runs the audit, the tests, lint and the build on every push to `main` and on pull requests.
+CI (`.github/workflows/ci.yml`) runs the audit, the tests, lint and the build on every push to `main` and on pull requests, and builds the container image; a push to `main` publishes it as `ghcr.io/frankandreas/brightville:latest`.
+
+Running it on the NAS for the iPad: [docs/deploy-nas.md](docs/deploy-nas.md).
 
 The camera only works on `localhost` or over HTTPS. On a plain `http://` address the Yoga Studio door stays closed.
 
 ## Controls
 
-| Action | Keyboard |
-|---|---|
-| Walk | Arrow keys or W A S D |
-| Jump | Space |
-| Go into a building | Enter or E, in front of the glowing door |
-| Leave a building | Esc |
-| Show the controls | H or F1, or the ? button |
+| Action | Keyboard | Touch screen |
+|---|---|---|
+| Walk | Arrow keys or W A S D | Drag a finger anywhere in the left half of the screen |
+| Jump | Space | The yellow arrow button, bottom right |
+| Go into a building | Enter or E, in front of the glowing door | Tap the picture that appears at the door (a mouse click works too) |
+| Leave a building | Esc | The door button, top left (also for the mouse) |
+| Show the controls | H or F1 | The ? button |
 
-A new player (0 Stars) sees the controls as pictures at the start, read aloud; any key closes them.
+Keys and fingers work at the same time. The stick and the jump button appear only on a device with a touch screen.
+
+A new player (0 Stars) sees the controls as pictures at the start, read aloud; any key or tap closes them. A device with touch and no mouse gets the finger pictures instead of the keys.
 
 The trampoline bounces by itself. A long fall makes the character tumble for a moment; nothing is ever lost.
 
@@ -78,11 +83,11 @@ The tracking model (`public/mediapipe/pose_landmarker_lite.task`, from Google's 
 | Folder | What it holds |
 |---|---|
 | `src/core` | Pure logic with tests and no browser code: saving, the daily goal, door rules, counting tasks, Memory, pose rules |
-| `src/input` | Turns the keyboard into intents (move, jump, go in, leave); touch comes later |
+| `src/input` | Turns the keyboard and the on-screen stick and buttons into intents (move, jump, go in, leave), merged into one source for the town |
 | `src/city` | The 3D town: Three.js for drawing, Rapier for physics |
 | `src/buildings` | One folder per building, plus the list of buildings in `registry.ts` |
 | `src/services` | Voice, sound, camera, body tracking, storage, device detection |
 
-A building is a Vue component that emits `finished` with `{ stars }`. To add one, write the component and add an entry to `src/buildings/registry.ts` with its door position, picture, spoken name, whether it earns or costs Stars (`kind`, `cost`) and what it needs from the device (camera, touch, keyboard). The town shows a door as closed when the device can't serve it.
+A building is a Vue component that emits `finished` with `{ stars }`. To add one, write the component and add an entry to `src/buildings/registry.ts` with its door position, picture, spoken name, whether it earns or costs Stars (`kind`, `cost`) and what it needs from the device (camera, touch, keyboard). The town shows a door as closed when the device can't serve it. A building also tells `src/buildings/leave.ts` how it is left (`onLeaveRequest(leave)`), so the on-screen leave button works in it.
 
 In development mode, pressing L in the Yoga Studio prints the tracked body to the browser console, which is how real poses can be turned into test data.

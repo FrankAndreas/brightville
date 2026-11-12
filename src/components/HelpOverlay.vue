@@ -4,11 +4,19 @@ import { speak, stopSpeaking } from '@/services/tts'
 
 // The controls as pictures, read aloud. The few words are for a grown-up
 // looking over the shoulder; nothing here needs reading.
+const props = defineProps<{
+  /** Fingers only: show the on-screen controls instead of the keys */
+  touch?: boolean
+}>()
 const emit = defineEmits<{ close: [] }>()
 
 const SPOKEN =
   'Mit den Pfeiltasten läufst du. Mit der Leertaste springst du. ' +
   'Mit Enter gehst du durch die leuchtende Tür. Mit Escape gehst du wieder hinaus.'
+
+const SPOKEN_TOUCH =
+  'Zieh mit dem Finger, dann läufst du. Tipp auf den Pfeil, dann springst du. ' +
+  'Tipp auf das Bild an der leuchtenden Tür, dann gehst du hinein. Mit der Tür oben links gehst du wieder hinaus.'
 
 const close = () => emit('close')
 
@@ -20,7 +28,7 @@ function onKey(e: KeyboardEvent) {
 }
 
 onMounted(() => {
-  void speak(SPOKEN)
+  void speak(props.touch ? SPOKEN_TOUCH : SPOKEN)
   window.addEventListener('keydown', onKey)
 })
 onBeforeUnmount(() => {
@@ -33,7 +41,11 @@ onBeforeUnmount(() => {
   <div class="help" data-test="help" @pointerdown="close">
     <div class="card">
       <div class="row" data-test="help-row">
-        <svg class="keys" viewBox="0 0 150 100" aria-hidden="true">
+        <svg v-if="touch" class="keys" data-test="help-touch" viewBox="0 0 150 100" aria-hidden="true">
+          <circle cx="75" cy="50" r="42" class="pad" /><circle cx="92" cy="40" r="18" class="thumb" />
+          <path d="M75 50 L92 40" class="dash" />
+        </svg>
+        <svg v-else class="keys" data-test="help-keys" viewBox="0 0 150 100" aria-hidden="true">
           <g class="cap"><rect x="52" y="4" width="46" height="42" rx="9" /><rect x="4" y="52" width="46" height="42" rx="9" /><rect x="52" y="52" width="46" height="42" rx="9" /><rect x="100" y="52" width="46" height="42" rx="9" /></g>
           <g class="glyph"><path d="M75 34 V16 M67 24 L75 16 L83 24" /><path d="M75 64 V82 M67 74 L75 82 L83 74" /><path d="M36 73 H18 M26 65 L18 73 L26 81" /><path d="M114 73 H132 M124 65 L132 73 L124 81" /></g>
         </svg>
@@ -47,7 +59,10 @@ onBeforeUnmount(() => {
       </div>
 
       <div class="row" data-test="help-row">
-        <svg class="keys" viewBox="0 0 150 100" aria-hidden="true">
+        <svg v-if="touch" class="keys" data-test="help-touch" viewBox="0 0 150 100" aria-hidden="true">
+          <circle cx="75" cy="50" r="40" class="button" /><path d="M75 72 V32 M58 47 L75 30 L92 47" class="glyph-line" />
+        </svg>
+        <svg v-else class="keys" data-test="help-keys" viewBox="0 0 150 100" aria-hidden="true">
           <g class="cap"><rect x="6" y="30" width="138" height="42" rx="10" /></g>
           <g class="glyph"><path d="M50 46 V56 H100 V46" /></g>
         </svg>
@@ -60,7 +75,12 @@ onBeforeUnmount(() => {
       </div>
 
       <div class="row" data-test="help-row">
-        <svg class="keys" viewBox="0 0 150 100" aria-hidden="true">
+        <svg v-if="touch" class="keys" data-test="help-touch" viewBox="0 0 150 100" aria-hidden="true">
+          <rect x="20" y="18" width="110" height="64" rx="20" class="pad" />
+          <circle cx="75" cy="46" r="17" class="ripple" /><circle cx="75" cy="46" r="6" class="eye" />
+          <path d="M75 46 v30" class="dash" />
+        </svg>
+        <svg v-else class="keys" data-test="help-keys" viewBox="0 0 150 100" aria-hidden="true">
           <g class="cap"><rect x="30" y="18" width="90" height="64" rx="12" /></g>
           <g class="glyph"><path d="M98 34 v18 H56 M68 40 L54 52 L68 64" /></g>
         </svg>
@@ -73,7 +93,11 @@ onBeforeUnmount(() => {
       </div>
 
       <div class="row" data-test="help-row">
-        <svg class="keys" viewBox="0 0 150 100" aria-hidden="true">
+        <svg v-if="touch" class="keys" data-test="help-touch" viewBox="0 0 150 100" aria-hidden="true">
+          <circle cx="75" cy="50" r="40" class="pad" />
+          <path d="M72 28 H96 V72 H72" class="frame" /><path d="M82 50 H50 M62 38 L50 50 L62 62" class="dash" />
+        </svg>
+        <svg v-else class="keys" data-test="help-keys" viewBox="0 0 150 100" aria-hidden="true">
           <g class="cap"><rect x="42" y="24" width="66" height="52" rx="10" /></g>
           <text x="75" y="58" class="label">Esc</text>
         </svg>
@@ -114,6 +138,12 @@ onBeforeUnmount(() => {
 .cap rect { fill: #fff; stroke: #6b4a00; stroke-width: 4; filter: drop-shadow(0 5px 0 #c9a800); }
 .glyph path, .dash { fill: none; stroke: #6b4a00; stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; }
 .label { font: 800 24px system-ui, sans-serif; fill: #6b4a00; text-anchor: middle; }
+.pad { fill: #eef6ff; stroke: #b9d6ee; stroke-width: 4; }
+.thumb { fill: #fff; stroke: #6b4a00; stroke-width: 4; }
+.button { fill: #ffd93d; stroke: #e0a800; stroke-width: 4; }
+.glyph-line, .frame { fill: none; stroke: #6b4a00; stroke-width: 8; stroke-linecap: round; stroke-linejoin: round; }
+.frame { stroke: #b9a27a; }
+.ripple { fill: #ffe89a; stroke: #ffd93d; stroke-width: 4; }
 .blob { fill: #ff9a3c; }
 .foot { fill: #f07f1b; }
 .eye { fill: #222; }
