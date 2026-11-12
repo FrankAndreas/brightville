@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { defineComponent, h, nextTick } from 'vue'
@@ -12,7 +12,8 @@ import { usePlayerStore } from './stores/player'
 vi.mock('./city/city', () => ({ createCity: vi.fn() }))
 vi.mock('./services/sound', () => ({ unlockAudio: vi.fn(), playBeat: vi.fn() }))
 vi.mock('./services/tts', () => ({ speak: vi.fn(() => Promise.resolve()), stopSpeaking: vi.fn() }))
-vi.mock('./services/device', () => ({ detectDevice: () => ({ camera: true, touch: false, keyboard: true }) }))
+const device = vi.hoisted(() => ({ camera: true, touch: false, keyboard: true }))
+vi.mock('./services/device', () => ({ detectDevice: () => ({ ...device }) }))
 
 const city = { pause: vi.fn(), resume: vi.fn(), dispose: vi.fn(), setDoors: vi.fn() }
 let cityOptions: CityOptions
@@ -395,6 +396,52 @@ describe('App', () => {
       } finally {
         vi.useRealTimers()
       }
+    })
+  })
+
+  describe('touch', () => {
+    afterEach(() => Object.assign(device, { camera: true, touch: false, keyboard: true }))
+
+    it('goes in when the picture at an open door is tapped', async () => {
+      const w = await started()
+      cityOptions.onNearDoor('stub')
+      await nextTick()
+      await w.find('[data-test="door-prompt"]').trigger('pointerdown')
+      await flushPromises()
+      expect(w.find('[data-test="stub-building"]').exists()).toBe(true)
+      w.unmount()
+    })
+
+    it('charges once for a double tap at a play door', async () => {
+      const w = await started([stub, play])
+      for (const stars of [4, 4]) {
+        cityOptions.onEnter('stub')
+        await flushPromises()
+        finishWith({ stars })
+        await nextTick()
+      }
+      cityOptions.onNearDoor('play')
+      await nextTick()
+      const prompt = w.find('[data-test="door-prompt"]')
+      void prompt.trigger('pointerdown')
+      void prompt.trigger('pointerdown')
+      await flushPromises()
+      expect(usePlayerStore().stars).toBe(5)
+      w.unmount()
+    })
+
+    it('shows the stick and the jump button on a touch screen only', async () => {
+      let w = await started()
+      expect(w.find('[data-test="jump"]').exists()).toBe(false)
+      w.unmount()
+      Object.assign(device, { touch: true, keyboard: false })
+      w = await started()
+      expect(w.find('[data-test="jump"]').exists()).toBe(true)
+      expect(w.find('[data-test="door-prompt"]').exists()).toBe(false)
+      cityOptions.onNearDoor('stub')
+      await nextTick()
+      expect(w.find('[data-test="tap"]').exists()).toBe(true)
+      w.unmount()
     })
   })
 

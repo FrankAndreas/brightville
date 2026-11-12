@@ -93,4 +93,38 @@ describe('CityView', () => {
     await flushPromises()
     expect(city.dispose).toHaveBeenCalledTimes(1)
   })
+
+  describe('touch controls', () => {
+    it('are shown on a touch device and feed the town', async () => {
+      const w = mount(CityView, { props: { doors, paused: false, touch: true } })
+      await flushPromises()
+      await w.find('[data-test="jump"]').trigger('pointerdown')
+      expect(options.intents.read().jump).toBe(true)
+      expect(options.intents.read().jump).toBe(false)
+      w.unmount()
+    })
+
+    it('still take the keys', async () => {
+      const w = mount(CityView, { props: { doors, paused: false, touch: true } })
+      await flushPromises()
+      window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space' }))
+      expect(options.intents.read().jump).toBe(true)
+      w.unmount()
+    })
+
+    it('are hidden while the town is paused', async () => {
+      const w = mount(CityView, { props: { doors, paused: false, touch: true } })
+      await flushPromises()
+      await w.setProps({ paused: true })
+      expect(w.find('[data-test="jump"]').exists()).toBe(false)
+      w.unmount()
+    })
+
+    it('are absent without a touch screen', async () => {
+      const w = mount(CityView, { props: { doors, paused: false } })
+      await flushPromises()
+      expect(w.find('[data-test="jump"]').exists()).toBe(false)
+      w.unmount()
+    })
+  })
 })

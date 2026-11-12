@@ -149,7 +149,7 @@ onBeforeUnmount(() => {
 <template>
   <StartGate v-if="!started" @start="start" />
   <main v-else class="game" data-test="game">
-    <CityView :doors="doors" :paused="inside !== null || helpOpen" @near-door="onNearDoor" @enter="onEnter" />
+    <CityView :doors="doors" :paused="inside !== null || helpOpen" :touch="device.touch" @near-door="onNearDoor" @enter="onEnter" />
     <div class="hud">
       <StarCounter />
       <GoalBar :visits="player.visitsToday" :goal="DAILY_GOAL" :prize="prize" />
@@ -157,6 +157,7 @@ onBeforeUnmount(() => {
     <DoorPrompt
       v-if="near && !inside && !helpOpen && near.id !== restingId"
       :icon="near.icon" :state="stateFor(near)" :cost="near.cost" :visits="player.visitsToday" :goal="DAILY_GOAL"
+      :touch="device.touch && !device.keyboard" @enter="onEnter(near.id)"
     />
     <Confetti v-if="celebrating && !inside" />
     <button v-if="inTown && !helpOpen" class="help-button" data-test="help-button" aria-label="Hilfe" @pointerdown="helpOpen = true">?</button>
