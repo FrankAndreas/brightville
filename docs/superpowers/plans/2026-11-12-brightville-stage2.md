@@ -8,7 +8,7 @@
 
 **Tech Stack:** unchanged (TypeScript, Vite, Vue 3, Pinia, Vitest, Three.js, Rapier).
 
-**Spec:** `docs/superpowers/specs/2026-11-13-brightville-stage2-design.md`
+**Spec:** `docs/superpowers/specs/2026-11-12-brightville-stage2-design.md`
 
 ## Global Constraints
 

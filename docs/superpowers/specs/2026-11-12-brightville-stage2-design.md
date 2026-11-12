@@ -1,6 +1,6 @@
 # Brightville Stage 2 – School, Arcade and the Daily Goal
 
-Nov 13, 2026 · Andreas Frank
+Nov 12, 2026 · Andreas Frank
 
 Stage 2 of the strategy in `2026-11-12-brightville-stage1-design.md`: the first two games absorbed from Spielzeugkiste and the full loop "learn first, play later".
 Andreas asked to continue with the plan; every decision below that the strategy did not already fix is marked **(call)** and is Claude's.
