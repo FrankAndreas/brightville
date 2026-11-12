@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <path data-region="hill" d="M0,350 Q200,320 400,350 L400,400 L0,400 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <rect data-region="wall" x="110" y="190" width="180" height="150" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <rect data-region="tower-left" x="60" y="150" width="60" height="190" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <rect data-region="tower-right" x="280" y="150" width="60" height="190" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <path data-region="roof-left" d="M52,152 L90,70 L128,152 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <path data-region="roof-right" d="M272,152 L310,70 L348,152 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <rect data-region="tower-middle" x="170" y="120" width="60" height="72" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <path data-region="roof-middle" d="M162,122 L200,40 L238,122 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <path data-region="flag-left" d="M90,70 L90,40 L115,48 L90,56" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="flag-middle" d="M200,40 L200,12 L225,20 L200,28" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="flag-right" d="M310,70 L310,40 L335,48 L310,56" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="door" d="M175,340 L175,280 Q200,250 225,280 L225,340 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <path data-region="window-left" d="M78,230 L78,205 Q90,190 102,205 L102,230 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="window-right" d="M298,230 L298,205 Q310,190 322,205 L322,230 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <circle data-region="window-middle" cx="200" cy="155" r="16" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <rect x="120" y="178" width="16" height="14" fill="none" stroke="#2c1a0a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="150" y="178" width="16" height="14" fill="none" stroke="#2c1a0a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="180" y="178" width="16" height="14" fill="none" stroke="#2c1a0a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="210" y="178" width="16" height="14" fill="none" stroke="#2c1a0a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="240" y="178" width="16" height="14" fill="none" stroke="#2c1a0a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="270" y="178" width="16" height="14" fill="none" stroke="#2c1a0a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="200" y1="262" x2="200" y2="340" fill="none" stroke="#2c1a0a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

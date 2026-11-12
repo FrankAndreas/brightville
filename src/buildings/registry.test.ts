@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { defineComponent } from 'vue'
+import { footprint, type Footprint } from '@/city/doors'
 import { BUILDINGS, canServe, toDoors } from './registry'
 import type { BuildingDef } from './types'
 
@@ -21,8 +22,8 @@ describe('building registry', () => {
 
   it('turns buildings into doors, closed when the device cannot serve them', () => {
     expect(toDoors([yoga, write], { camera: false, touch: true, keyboard: false }, false, 0)).toEqual([
-      { id: 'yoga', x: 0, z: -14, open: false, locked: false, icon: '🧘' },
-      { id: 'write', x: 5, z: 5, open: true, locked: false, icon: '✏️' },
+      { id: 'yoga', x: 0, z: -14, side: 'back', open: false, locked: false, icon: '🧘' },
+      { id: 'write', x: 5, z: 5, side: 'back', open: true, locked: false, icon: '✏️' },
     ])
   })
 
@@ -45,10 +46,25 @@ describe('building registry', () => {
     expect(school).toMatchObject({ spokenName: 'Schule', icon: '🔢', kind: 'earn', needs: [], door: { x: -15, z: -14 } })
   })
 
-  it('lists the arcade as a play building that costs 3 stars', () => {
+  it('lists the arcade as a play building on the right side that costs 3 stars', () => {
     const arcade = BUILDINGS.find(b => b.id === 'arcade')
-    expect(arcade).toMatchObject({ spokenName: 'Spielhalle', icon: '🃏', kind: 'play', cost: 3, needs: [], door: { x: 15, z: -14 } })
+    expect(arcade).toMatchObject({ spokenName: 'Spielhalle', icon: '🃏', kind: 'play', cost: 3, needs: [], door: { side: 'right' } })
     expect(BUILDINGS.filter(b => b.kind === 'play').every(b => (b.cost ?? 0) > 0)).toBe(true)
+  })
+
+  it('lists Ausmalen and Malen as free buildings on the left side that need nothing', () => {
+    for (const [id, spokenName, icon] of [['ausmalen', 'Ausmalen', '🎨'], ['malen', 'Malen', '🖌️']]) {
+      const b = BUILDINGS.find(x => x.id === id)
+      expect(b).toMatchObject({ spokenName, icon, kind: 'free', needs: [], door: { side: 'left' } })
+      expect(b?.preload).toBeTypeOf('function')
+    }
+  })
+
+  it('puts learning at the back, making on the left and playing on the right', () => {
+    for (const b of BUILDINGS) {
+      const side = b.door.side ?? 'back'
+      expect(side).toBe({ earn: 'back', free: 'left', play: 'right' }[b.kind])
+    }
   })
 
   it('lists the writing building, which earns and needs a touch screen', () => {
@@ -60,13 +76,30 @@ describe('building registry', () => {
     expect(canServe(schreiben!, { ...device, touch: true })).toBe(true)
   })
 
-  it('keeps every door building (8 m wide) inside the wall of the 40 m square', () => {
-    for (const b of BUILDINGS) expect(Math.abs(b.door.x) + 4).toBeLessThanOrEqual(19.5)
+  it('keeps every door building up to the wall of the 40 m square', () => {
+    for (const b of BUILDINGS) {
+      const f = footprint(b.door)
+      expect(Math.max(-f.minX, f.maxX, -f.minZ, f.maxZ), b.id).toBeLessThanOrEqual(20)
+    }
   })
 
-  it('keeps the door buildings from overlapping', () => {
-    const xs = BUILDINGS.map(b => b.door.x).sort((a, b) => a - b)
-    for (let i = 1; i < xs.length; i++) expect(xs[i] - xs[i - 1]).toBeGreaterThanOrEqual(9)
+  it('keeps the door buildings from overlapping, with room to walk between them', () => {
+    const gap = (a: Footprint, b: Footprint) => Math.max(a.minX - b.maxX, b.minX - a.maxX, a.minZ - b.maxZ, b.minZ - a.maxZ)
+    for (const a of BUILDINGS) {
+      for (const b of BUILDINGS) {
+        if (a !== b) expect(gap(footprint(a.door), footprint(b.door)), `${a.id} / ${b.id}`).toBeGreaterThanOrEqual(1)
+      }
+    }
+  })
+
+  it('keeps every door ring clear of every house', () => {
+    for (const a of BUILDINGS) {
+      for (const b of BUILDINGS) {
+        const f = footprint(b.door)
+        const inside = a.door.x > f.minX - 1 && a.door.x < f.maxX + 1 && a.door.z > f.minZ - 1 && a.door.z < f.maxZ + 1
+        if (a !== b) expect(inside, `${a.id} in front of ${b.id}`).toBe(false)
+      }
+    }
   })
 
   it('has unique ids', () => {
@@ -82,7 +115,7 @@ describe('the buildings file the server reads', () => {
       const s = shared.find(x => x.id === b.id)!
       expect(s.kind).toBe(b.kind)
       if (b.kind === 'play') expect(s.cost).toBe(b.cost)
-      else expect(s.maxStars).toBeGreaterThan(0)
+      if (b.kind === 'earn') expect(s.maxStars).toBeGreaterThan(0)
     }
   })
 })

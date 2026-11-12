@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <rect data-region="road" x="0" y="330" width="400" height="70" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <rect data-region="body" x="40" y="180" width="230" height="110" rx="8" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <path data-region="cab" d="M270,290 L270,150 L325,150 L365,215 L365,290 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <path data-region="window" d="M282,165 L320,165 L350,212 L282,212 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <rect data-region="ladder" x="55" y="150" width="200" height="22" rx="4" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <line x1="75" y1="150" x2="75" y2="172" fill="none" stroke="#2c1a0a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="100" y1="150" x2="100" y2="172" fill="none" stroke="#2c1a0a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="125" y1="150" x2="125" y2="172" fill="none" stroke="#2c1a0a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="150" y1="150" x2="150" y2="172" fill="none" stroke="#2c1a0a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="175" y1="150" x2="175" y2="172" fill="none" stroke="#2c1a0a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="200" y1="150" x2="200" y2="172" fill="none" stroke="#2c1a0a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="225" y1="150" x2="225" y2="172" fill="none" stroke="#2c1a0a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect data-region="light" x="290" y="132" width="26" height="18" rx="5" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <rect data-region="door" x="280" y="222" width="40" height="55" rx="4" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <rect data-region="stripe" x="40" y="245" width="230" height="16" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <rect data-region="box-1" x="60" y="196" width="60" height="40" rx="4" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <rect data-region="box-2" x="135" y="196" width="60" height="40" rx="4" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <circle data-region="hose" cx="232" cy="216" r="20" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <circle data-region="wheel-1" cx="95" cy="300" r="32" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <circle data-region="hubcap-1" cx="95" cy="300" r="12" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <circle data-region="wheel-2" cx="215" cy="300" r="32" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <circle data-region="hubcap-2" cx="215" cy="300" r="12" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <circle data-region="wheel-3" cx="320" cy="300" r="32" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <circle data-region="hubcap-3" cx="320" cy="300" r="12" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <rect data-region="bumper" x="355" y="270" width="22" height="20" rx="4" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+</svg>

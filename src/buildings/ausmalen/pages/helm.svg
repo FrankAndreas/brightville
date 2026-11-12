@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <path data-region="brim" d="M50,270 Q200,330 350,270 L350,295 Q200,355 50,295 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <path data-region="shell" d="M80,275 C70,150 130,80 200,80 C270,80 330,150 320,275 Q200,310 80,275 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <path data-region="comb" d="M185,82 Q200,70 215,82 L218,285 Q200,292 182,285 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <polygon data-region="badge" points="200.0,150.0 212.9,172.2 238.0,177.6 220.9,196.8 223.5,222.4 200.0,212.0 176.5,222.4 179.1,196.8 162.0,177.6 187.1,172.2" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <circle data-region="badge-middle" cx="200" cy="193" r="16" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="visor" d="M110,240 Q200,265 290,240 L285,262 Q200,288 115,262 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="strap-left" d="M70,295 L95,355 L110,350 L90,292 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="strap-right" d="M330,295 L305,355 L290,350 L310,292 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <rect data-region="buckle" x="180" y="345" width="40" height="22" rx="4" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="flame-left" d="M120,170 C100,150 120,125 125,110 C135,130 150,145 130,172 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="flame-right" d="M280,170 C300,150 280,125 275,110 C265,130 250,145 270,172 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+</svg>

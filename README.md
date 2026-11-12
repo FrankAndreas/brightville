@@ -3,14 +3,18 @@
 A small, friendly town for a kindergarten-age child: walk a wobbly character around, go into buildings, and earn Stars there by learning and moving.
 Everything the child sees is pictures and a German voice; no reading is needed.
 
-The town square has a trampoline, balls to push and four buildings:
+The town square has a trampoline, balls to push and its buildings: learning at the back, making things on the left, playing on the right.
 
 | Building | What happens inside | Stars |
 |---|---|---|
 | 🔢 School | Five tasks: counting, a die, first sums up to 9 | +1 per task, +5 for all five |
 | ✏️ Schreiben | Two letters or digits, each traced three times with less help (touch screen only) | +1 per tracing, +4 for all six |
 | 🧘 Yoga Studio | The camera checks three poses | +3 per pose held |
+| 🎨 Ausmalen | Twenty coloring pages: pick one, tap its parts to fill them | free |
+| 🖌️ Malen | Free drawing; each child's paintings stay on the device | free |
 | 🃏 Arcade | Memory with six pairs of animals | costs 3 per round |
+
+**Free** buildings are always open: before the day's learning, with no Stars, and after the play time. They neither give nor cost Stars and don't count as play time.
 
 **Learn first, play later:** the Arcade door stays locked until today's earning visits are done (School, Schreiben or Yoga, in any mix; two unless a parent set another number). The slots next to the Star counter show how far the child is. A new day starts the slots over; Stars are kept.
 When a parent has set a play time per day, the Arcade door shows a moon once it is used up.
@@ -25,6 +29,7 @@ the plan for stage 1 is in [docs/superpowers/plans/2026-11-12-brightville-stage1
 Stage 2 (School, Arcade, daily goal) has its own [design](docs/superpowers/specs/2026-11-12-brightville-stage2-design.md) and [plan](docs/superpowers/plans/2026-11-12-brightville-stage2.md).
 Stage 3 (iPad and NAS) has a [design](docs/superpowers/specs/2026-11-12-brightville-stage3-design.md) and a [plan for its first part](docs/superpowers/plans/2026-11-12-brightville-stage3-part1.md).
 Stage 4 (family login, server, parents) has a [design](docs/superpowers/specs/2026-11-12-brightville-stage4-design.md).
+Stage 5 (the rest of Spielzeugkiste) has a [design](docs/superpowers/specs/2026-11-12-brightville-stage5-design.md).
 
 ## Run it
 
@@ -85,6 +90,15 @@ A wrong answer only fades its button and the objects are counted together; the t
 
 Turn cards by clicking, or with the arrow keys and Enter. Esc leaves; the 3 Stars are not given back.
 
+## Ausmalen
+
+A tap on a picture opens it; pick a colour at the bottom, then tap a part of the picture. ↩️ takes the last fill back. Esc or the leave button goes from a picture back to the wall, and from the wall back to the town. The pages come from Spielzeugkiste and are not kept.
+
+## Malen
+
+➕ starts a new sheet; a tap on a painting paints further on it. Brush, pencil, eraser, six shapes (dragged from corner to corner), three sizes, twelve colours, ↩️ and 🗑.
+Leaving the sheet (✅, Esc or the leave button) keeps it. Each child sees only their own paintings, the newest 20, kept in this browser (IndexedDB), not on the server. A resting hand is ignored, as in Schreiben; the mouse works too.
+
 ## Schreiben
 
 Capital letters, Ä Ö Ü and the digits in the Deutschschweizer Basisschrift, with the stroke order Swiss schools teach. The paths and the tracing rules come from Spielzeugkiste.
@@ -122,6 +136,6 @@ The tracking model (`public/mediapipe/pose_landmarker_lite.task`, from Google's 
 | `backend/` | The server: FastAPI and SQLite. The family hub's login (`hub.py`, `auth.py`) or the no-hub picking (`local.py`), the rules that touch Stars (`game.py`), the people (`people.py`). Tests in `tests/` |
 | `shared/buildings.json` | What each building is (earns or costs, how much), read by the server; a test checks the town agrees |
 
-A building is a Vue component that emits `finished` with `{ stars }`. To add one, write the component and add an entry to `src/buildings/registry.ts` with its door position, picture, spoken name, whether it earns or costs Stars (`kind`, `cost`) and what it needs from the device (camera, touch, keyboard). The town shows a door as closed when the device can't serve it. A building also tells `src/buildings/leave.ts` how it is left (`onLeaveRequest(leave)`), so the on-screen leave button works in it.
+A building is a Vue component that emits `finished` with `{ stars }`. To add one, write the component and add an entry to `src/buildings/registry.ts` with its door position, picture, spoken name, whether it earns Stars, costs them or is free (`kind`, `cost`), which side of the square it stands on (`door.side`) and what it needs from the device (camera, touch, keyboard). The town shows a door as closed when the device can't serve it. A building also tells `src/buildings/leave.ts` how it is left (`onLeaveRequest(leave)`), so the on-screen leave button works in it.
 
 In development mode, pressing L in the Yoga Studio prints the tracked body to the browser console, which is how real poses can be turned into test data.

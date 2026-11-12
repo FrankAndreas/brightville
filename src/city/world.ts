@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import type RAPIER from '@dimforge/rapier3d-compat'
-import type { DoorDef } from './doors'
+import { HOUSE_DEPTH, HOUSE_WIDTH, facingAngle, footprint, type DoorDef } from './doors'
 
 type Rapier = typeof RAPIER
 
@@ -20,8 +20,10 @@ const COLORS = {
   houses: [0xffc8dd, 0xbde0fe, 0xfde4a8],
   roofs: [0xff8fab, 0x8ecae6, 0xf4a261],
   // One wall and roof colour per door building, in the order of the doors
-  // In door order: School, Schreiben, Yoga, Arcade
-  buildings: [[0xd9c8ff, 0xa58bf0], [0xfde4a8, 0xf4a261], [0xbde0fe, 0x8ecae6], [0xffc8dd, 0xff8fab]],
+  buildings: [
+    [0xd9c8ff, 0xa58bf0], [0xfde4a8, 0xf4a261], [0xbde0fe, 0x8ecae6], [0xc8f0d0, 0x6bcb77],
+    [0xfff1b8, 0xffb703], [0xcdeeea, 0x26a69a], [0xffc8dd, 0xff8fab], [0xe5d4ff, 0x9b59b6], [0xffd6e8, 0xff69b4],
+  ],
   leafOpen: 0x6b4a2b,
   leafClosed: 0x8a8a8a,
   doorOpen: 0xffd93d,
@@ -46,12 +48,14 @@ function staticBox(R: Rapier, world: RAPIER.World, x: number, y: number, z: numb
   world.createCollider(R.ColliderDesc.cuboid(w / 2, h / 2, d / 2).setTranslation(x, y, z))
 }
 
+/** A house of w × d (along x and z before turning) and h high, turned by `angle` about its middle. */
 function house(
   R: Rapier, world: RAPIER.World, scene: THREE.Scene,
-  x: number, z: number, w: number, h: number, d: number, color: number, roofColor: number,
+  x: number, z: number, w: number, h: number, d: number, color: number, roofColor: number, angle = 0,
 ): THREE.Group {
   const group = new THREE.Group()
   group.position.set(x, 0, z)
+  group.rotation.y = angle
   const walls = box(w, h, d, color)
   walls.position.y = h / 2
   // A four-sided roof fitted to the walls with a small overhang
@@ -67,7 +71,9 @@ function house(
   roof.scale.set(w * 0.78, 1, d * 0.78)
   group.add(walls, roof)
   scene.add(group)
-  staticBox(R, world, x, h / 2, z, w, h, d)
+  // Only quarter turns: a turned house swaps its width and depth
+  const turned = Math.abs(Math.sin(angle)) > 0.5
+  staticBox(R, world, x, h / 2, z, turned ? d : w, h, turned ? w : d)
   return group
 }
 
@@ -100,10 +106,14 @@ function sign(icon: string): THREE.Mesh {
 
 /** The building behind a door: a larger house with a sign and a door that glows when open. */
 function doorBuilding(R: Rapier, world: RAPIER.World, scene: THREE.Scene, door: DoorDef, index: number): DoorVisual {
-  const depth = 5
-  const frontZ = door.z - 1
+  const depth = HOUSE_DEPTH
+  const side = door.side ?? 'back'
+  const area = footprint(door)
   const [wall, roofColor] = COLORS.buildings[index % COLORS.buildings.length]
-  const group = house(R, world, scene, door.x, frontZ - depth / 2, 8, 5, depth, wall, roofColor)
+  const group = house(
+    R, world, scene, (area.minX + area.maxX) / 2, (area.minZ + area.maxZ) / 2,
+    HOUSE_WIDTH, 5, depth, wall, roofColor, facingAngle(side),
+  )
 
   const frame = box(2.2, 2.9, 0.2, COLORS.doorOpen)
   frame.position.set(0, 1.45, depth / 2 + 0.05)
@@ -111,16 +121,27 @@ function doorBuilding(R: Rapier, world: RAPIER.World, scene: THREE.Scene, door: 
   leaf.position.set(0, 1.25, depth / 2 + 0.07)
   group.add(frame, leaf)
 
-  if (door.icon) {
-    const board = sign(door.icon)
+  // The camera always looks from behind, so a door on a side is seen from its edge:
+  // side houses hang their sign out from the wall, facing the camera, like a shop sign
+  const board = new THREE.Group()
+  if (side === 'back') {
     board.position.set(0, 3.95, depth / 2 + 0.06)
     group.add(board)
+  } else {
+    const out = side === 'left' ? 1 : -1
+    const wallX = side === 'left' ? area.maxX : area.minX
+    const bracket = box(1.5, 0.12, 0.12, 0x6b4a2b)
+    bracket.position.set(wallX + out * 0.75, 4.15, door.z - 1.6)
+    scene.add(bracket)
+    board.position.set(wallX + out * 1.2, 3.25, door.z - 1.6)
+    scene.add(board)
   }
+  if (door.icon) board.add(sign(door.icon))
   const lock = sign('🔒')
   // A badge on the corner of the sign, so the door itself stays readable
   lock.scale.setScalar(0.6)
-  lock.position.set(0.85, 3.3, depth / 2 + 0.12)
-  group.add(lock)
+  lock.position.set(0.85, -0.65, 0.06)
+  board.add(lock)
 
   const ringMaterial = new THREE.MeshBasicMaterial({ color: COLORS.doorOpen, transparent: true })
   const ring = new THREE.Mesh(new THREE.RingGeometry(0.9, 1.25, 40), ringMaterial)
@@ -212,10 +233,9 @@ export function buildTown(R: Rapier, world: RAPIER.World, doors: DoorDef[]): Tow
     staticBox(R, world, x, BARRIER_HEIGHT / 2, z, w, BARRIER_HEIGHT, d)
   }
 
-  // Scenery
-  // The far side belongs to the door buildings
-  house(R, world, scene, 15.5, 9, 5, 3.6, 6, COLORS.houses[1], COLORS.roofs[1])
-  house(R, world, scene, -15.5, 7, 5, 3.2, 6, COLORS.houses[2], COLORS.roofs[2])
+  // The near corners, where no door building stands
+  house(R, world, scene, -15.5, 15.5, 5, 3.2, 5, COLORS.houses[2], COLORS.roofs[2])
+  house(R, world, scene, 15.5, 16.5, 5, 3.6, 4, COLORS.houses[1], COLORS.roofs[1])
 
   return { scene, doorVisuals: doors.map((door, i) => doorBuilding(R, world, scene, door, i)) }
 }

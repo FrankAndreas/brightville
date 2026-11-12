@@ -1,0 +1,12 @@
+<svg id="coloring-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 280" width="300" height="280">
+  <ellipse data-region="body"      cx="155" cy="170" rx="100" ry="80"  fill="#f5f0e8" stroke="#333" stroke-width="4"/>
+  <ellipse data-region="head"      cx="80"  cy="120" rx="60"  ry="55"  fill="#f5f0e8" stroke="#333" stroke-width="4"/>
+  <ellipse data-region="ear"       cx="30"  cy="110" rx="30"  ry="40"  fill="#f5f0e8" stroke="#333" stroke-width="4"/>
+  <path   data-region="trunk"     d="M80 155 Q55 175 50 200 Q45 230 65 235 Q85 240 88 210 Q90 185 100 165" fill="#f5f0e8" stroke="#333" stroke-width="4"/>
+  <rect   data-region="leg-fl"    x="90"  y="230" width="35" height="45" rx="12" fill="#f5f0e8" stroke="#333" stroke-width="4"/>
+  <rect   data-region="leg-fr"    x="140" y="230" width="35" height="45" rx="12" fill="#f5f0e8" stroke="#333" stroke-width="4"/>
+  <rect   data-region="leg-rl"    x="185" y="230" width="35" height="45" rx="12" fill="#f5f0e8" stroke="#333" stroke-width="4"/>
+  <ellipse data-region="eye"      cx="65"  cy="100" rx="10"  ry="10"  fill="#f5f0e8" stroke="#333" stroke-width="3"/>
+  <ellipse                        cx="65"  cy="100" rx="5"   ry="5"   fill="#333"/>
+  <path   data-region="tusk"     d="M88 148 Q70 160 60 175 Q55 188 70 190 Q85 192 90 178 Q95 165 88 148Z" fill="#f5f0e8" stroke="#333" stroke-width="3"/>
+</svg>

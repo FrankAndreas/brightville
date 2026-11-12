@@ -98,6 +98,14 @@ def test_only_play_buildings_sell_rounds(mia):
     assert play(mia, "p", "castle").status_code == 404
 
 
+def test_a_free_building_neither_earns_nor_sells(mia):
+    for building in ("ausmalen", "malen"):
+        assert visit(mia, 5, f"v-{building}", building).json()["detail"]["code"] == "wrong_kind"
+        assert play(mia, f"p-{building}", building).json()["detail"]["code"] == "wrong_kind"
+    assert mia.get("/api/state").json()["stars"] == 0
+    assert mia.get("/api/state").json()["visits"] == 0
+
+
 def test_play_time_adds_up_and_ends_play_when_the_limit_is_reached(mia, papa):
     visit(mia, 10, "v1")
     visit(mia, 10, "v2")

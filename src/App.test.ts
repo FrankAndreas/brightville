@@ -104,8 +104,8 @@ describe('App', () => {
   it('gives the town one door per building, closed when the device cannot serve it', async () => {
     const w = await started()
     expect(cityOptions.doors).toEqual([
-      { id: 'stub', x: 2, z: 3, open: true, locked: false, icon: '🤸' },
-      { id: 'touchy', x: 8, z: 8, open: false, locked: false, icon: '🤸' },
+      { id: 'stub', x: 2, z: 3, side: 'back', open: true, locked: false, icon: '🤸' },
+      { id: 'touchy', x: 8, z: 8, side: 'back', open: false, locked: false, icon: '🤸' },
     ])
     w.unmount()
   })
@@ -418,6 +418,33 @@ describe('App', () => {
       expect(w.find('[data-test="stub-building"]').exists()).toBe(false)
       expect(w.find('[data-test="stars"]').text()).toBe('10')
       w.unmount()
+    })
+
+    it('opens a free building before the goal, with no Stars and after the play time, and asks the server nothing', async () => {
+      vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] })
+      try {
+        const free: BuildingDef = { ...stub, id: 'free', spokenName: 'Malen', kind: 'free', door: { x: -8, z: -8 } }
+        Object.assign(api.state_, { stars: 0, visits: 0, play_minutes: 10, play_seconds: 600 })
+        const w = await started([stub, play, free])
+        const freeDoor = () => ((city.setDoors.mock.calls.at(-1)?.[0] ?? cityOptions.doors) as { id: string; open: boolean }[])
+          .find(d => d.id === 'free')
+        expect(freeDoor()).toMatchObject({ open: true })
+        cityOptions.onNearDoor('free')
+        expect(speak).toHaveBeenLastCalledWith('Malen')
+        api.calls.length = 0
+        cityOptions.onEnter('free')
+        await flushPromises()
+        expect(w.find('[data-test="stub-building"]').exists()).toBe(true)
+        vi.advanceTimersByTime(65_000)
+        finishWith({ stars: 7 })
+        await flushPromises()
+        expect(w.find('[data-test="stub-building"]').exists()).toBe(false)
+        expect(api.calls.filter(c => /^(play|visit)/.test(c))).toEqual([])
+        expect(api.state_).toMatchObject({ stars: 0, visits: 0, play_seconds: 600 })
+        w.unmount()
+      } finally {
+        vi.useRealTimers()
+      }
     })
 
     it('counts the time spent in a play building', async () => {

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { stepSpring, type Spring } from './spring'
 import { WALK_SPEED, JUMP_SPEED, desiredVelocity } from './movement'
 import { TUMBLE_MS, shouldTumble } from './tumble'
-import { DOOR_RADIUS, nearestDoor, type DoorDef } from './doors'
+import { DOOR_RADIUS, facingAngle, footprint, nearestDoor, type DoorDef } from './doors'
 import { MAX_FRAME_S, clampFrame } from './frame'
 
 describe('stepSpring', () => {
@@ -73,6 +73,31 @@ describe('nearestDoor', () => {
 
   it('returns a closed door too', () => {
     expect(nearestDoor({ x: 4, z: 0 }, [a, b])).toBe(b)
+  })
+})
+
+describe('footprint', () => {
+  it('puts a back building (8 wide, 5 deep) behind its door, one metre back', () => {
+    expect(footprint({ x: 5, z: -14 })).toEqual({ minX: 1, maxX: 9, minZ: -20, maxZ: -15 })
+    expect(footprint({ x: 5, z: -14, side: 'back' })).toEqual({ minX: 1, maxX: 9, minZ: -20, maxZ: -15 })
+  })
+
+  it('turns a side building so its door faces the middle', () => {
+    expect(footprint({ x: -13, z: 4, side: 'left' })).toEqual({ minX: -19, maxX: -14, minZ: 0, maxZ: 8 })
+    expect(footprint({ x: 13, z: 4, side: 'right' })).toEqual({ minX: 14, maxX: 19, minZ: 0, maxZ: 8 })
+  })
+})
+
+describe('facingAngle', () => {
+  it('turns a house built facing +z to face the middle of the square', () => {
+    const faces = (side: 'back' | 'left' | 'right') => {
+      const a = facingAngle(side)
+      // Where the house's front (+z before turning) points afterwards
+      return { x: Math.round(Math.sin(a)), z: Math.round(Math.cos(a)) }
+    }
+    expect(faces('back')).toEqual({ x: 0, z: 1 })
+    expect(faces('left')).toEqual({ x: 1, z: 0 })
+    expect(faces('right')).toEqual({ x: -1, z: 0 })
   })
 })
 

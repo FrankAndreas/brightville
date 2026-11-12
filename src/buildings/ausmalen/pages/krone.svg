@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <path data-region="cushion" d="M60,320 C60,290 340,290 340,320 C345,350 55,350 60,320 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <path data-region="crown" d="M90,290 L80,130 L140,200 L200,100 L260,200 L320,130 L310,290 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <rect data-region="band" x="88" y="250" width="224" height="40" rx="6" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <circle data-region="ball-left" cx="80" cy="122" r="14" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <circle data-region="ball-middle" cx="200" cy="90" r="16" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <circle data-region="ball-right" cx="320" cy="122" r="14" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <ellipse data-region="gem-left" cx="135" cy="270" rx="16" ry="11" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="gem-middle" d="M200,252 L216,270 L200,288 L184,270 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <ellipse data-region="gem-right" cx="265" cy="270" rx="16" ry="11" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="gem-top" d="M200,170 L222,200 L200,230 L178,200 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="heart-left" d="M130,231.7 C111.8,220 118.3,205.7 130,215.45 C141.7,205.7 148.2,220 130,231.7 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="heart-right" d="M270,231.7 C251.8,220 258.3,205.7 270,215.45 C281.7,205.7 288.2,220 270,231.7 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="tassel-left" d="M70,330 L60,370 L80,370 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="tassel-right" d="M330,330 L320,370 L340,370 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+</svg>

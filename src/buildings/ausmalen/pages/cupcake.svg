@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <ellipse data-region="plate" cx="200" cy="355" rx="150" ry="22" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <path data-region="cup" d="M110,230 L290,230 L265,345 L135,345 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <line x1="150" y1="232" x2="139.5" y2="343" fill="none" stroke="#2c1a0a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="180" y1="232" x2="171.0" y2="343" fill="none" stroke="#2c1a0a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="210" y1="232" x2="202.5" y2="343" fill="none" stroke="#2c1a0a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="240" y1="232" x2="234.0" y2="343" fill="none" stroke="#2c1a0a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path data-region="cream-bottom" d="M95,232 C80,200 120,180 140,195 C150,170 250,170 260,195 C280,180 320,200 305,232 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <path data-region="cream-middle" d="M125,190 C115,160 150,140 170,152 C180,130 230,130 238,152 C258,140 290,160 275,190 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <path data-region="cream-top" d="M160,150 C150,120 180,100 200,110 C220,100 250,120 240,150 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <circle data-region="cherry" cx="200" cy="92" r="20" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M200,72 Q205,50 225,40" fill="none" stroke="#2c1a0a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect data-region="sprinkle-1" x="140" y="200" width="16" height="7" rx="3" transform="rotate(-25 148 203)" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="2" stroke-linejoin="round"/>
+  <rect data-region="sprinkle-2" x="235" y="205" width="16" height="7" rx="3" transform="rotate(20 243 208)" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="2" stroke-linejoin="round"/>
+  <rect data-region="sprinkle-3" x="190" y="165" width="16" height="7" rx="3" transform="rotate(10 198 168)" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="2" stroke-linejoin="round"/>
+  <rect data-region="candle" x="292" y="60" width="22" height="70" rx="4" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="flame" d="M303,58 C290,45 300,30 303,20 C308,32 318,45 303,58 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <polygon data-region="star" points="80.0,50.0 87.9,69.1 108.5,70.7 92.8,84.2 97.6,104.3 80.0,93.5 62.4,104.3 67.2,84.2 51.5,70.7 72.1,69.1" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+</svg>

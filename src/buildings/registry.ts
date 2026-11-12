@@ -9,8 +9,13 @@ const school = () => import('./school/School.vue')
 const schreiben = () => import('./schreiben/Schreiben.vue')
 const yoga = () => import('./yoga/YogaStudio.vue')
 const arcade = () => import('./arcade/Arcade.vue')
+const ausmalen = () => import('./ausmalen/Ausmalen.vue')
+const malen = () => import('./malen/Malen.vue')
 
-/** Every building in the town */
+/**
+ * Every building in the town: learning at the back, making things on the left, playing on the right.
+ * A door's x and z are the spot in front of it; its house stands behind that, facing the middle.
+ */
 export const BUILDINGS: BuildingDef[] = [
   {
     id: 'school', spokenName: 'Schule', icon: '🔢', kind: 'earn', needs: [], door: { x: -15, z: -14 },
@@ -26,7 +31,15 @@ export const BUILDINGS: BuildingDef[] = [
     component: defineAsyncComponent(yoga), preload: yoga,
   },
   {
-    id: 'arcade', spokenName: 'Spielhalle', icon: '🃏', kind: 'play', cost: 3, needs: [], door: { x: 15, z: -14 },
+    id: 'ausmalen', spokenName: 'Ausmalen', icon: '🎨', kind: 'free', needs: [], door: { x: -13, z: -6, side: 'left' },
+    component: defineAsyncComponent(ausmalen), preload: ausmalen,
+  },
+  {
+    id: 'malen', spokenName: 'Malen', icon: '🖌️', kind: 'free', needs: [], door: { x: -13, z: 4, side: 'left' },
+    component: defineAsyncComponent(malen), preload: malen,
+  },
+  {
+    id: 'arcade', spokenName: 'Spielhalle', icon: '🃏', kind: 'play', cost: 3, needs: [], door: { x: 13, z: -8, side: 'right' },
     component: defineAsyncComponent(arcade), preload: arcade,
   },
 ]
@@ -48,6 +61,9 @@ export function toDoors(
 ): DoorDef[] {
   return buildings.map(b => {
     const state = stateOf(b, device, goalReached, stars, timeUp)
-    return { id: b.id, x: b.door.x, z: b.door.z, open: state === 'open', locked: state === 'locked', icon: b.icon }
+    return {
+      id: b.id, x: b.door.x, z: b.door.z, side: b.door.side ?? 'back',
+      open: state === 'open', locked: state === 'locked', icon: b.icon,
+    }
   })
 }

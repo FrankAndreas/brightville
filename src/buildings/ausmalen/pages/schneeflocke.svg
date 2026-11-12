@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <polygon data-region="middle" points="200.0,160.0 212.0,179.2 234.6,180.0 224.0,200.0 234.6,220.0 212.0,220.8 200.0,240.0 188.0,220.8 165.4,220.0 176.0,200.0 165.4,180.0 188.0,179.2" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <path data-region="arm-1" d="M188,160 L188,70 L200,55 L212,70 L212,160 Z" transform="rotate(0 200 200)" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="branch-left-1" d="M190,110 L160,85 L168,77 L194,100 Z" transform="rotate(0 200 200)" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="branch-right-1" d="M210,110 L240,85 L232,77 L206,100 Z" transform="rotate(0 200 200)" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <circle data-region="tip-1" cx="200" cy="45" r="10" transform="rotate(0 200 200)" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="arm-2" d="M188,160 L188,70 L200,55 L212,70 L212,160 Z" transform="rotate(60 200 200)" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="branch-left-2" d="M190,110 L160,85 L168,77 L194,100 Z" transform="rotate(60 200 200)" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="branch-right-2" d="M210,110 L240,85 L232,77 L206,100 Z" transform="rotate(60 200 200)" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <circle data-region="tip-2" cx="200" cy="45" r="10" transform="rotate(60 200 200)" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="arm-3" d="M188,160 L188,70 L200,55 L212,70 L212,160 Z" transform="rotate(120 200 200)" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="branch-left-3" d="M190,110 L160,85 L168,77 L194,100 Z" transform="rotate(120 200 200)" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="branch-right-3" d="M210,110 L240,85 L232,77 L206,100 Z" transform="rotate(120 200 200)" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <circle data-region="tip-3" cx="200" cy="45" r="10" transform="rotate(120 200 200)" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="arm-4" d="M188,160 L188,70 L200,55 L212,70 L212,160 Z" transform="rotate(180 200 200)" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="branch-left-4" d="M190,110 L160,85 L168,77 L194,100 Z" transform="rotate(180 200 200)" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="branch-right-4" d="M210,110 L240,85 L232,77 L206,100 Z" transform="rotate(180 200 200)" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <circle data-region="tip-4" cx="200" cy="45" r="10" transform="rotate(180 200 200)" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="arm-5" d="M188,160 L188,70 L200,55 L212,70 L212,160 Z" transform="rotate(240 200 200)" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="branch-left-5" d="M190,110 L160,85 L168,77 L194,100 Z" transform="rotate(240 200 200)" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="branch-right-5" d="M210,110 L240,85 L232,77 L206,100 Z" transform="rotate(240 200 200)" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <circle data-region="tip-5" cx="200" cy="45" r="10" transform="rotate(240 200 200)" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="arm-6" d="M188,160 L188,70 L200,55 L212,70 L212,160 Z" transform="rotate(300 200 200)" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="branch-left-6" d="M190,110 L160,85 L168,77 L194,100 Z" transform="rotate(300 200 200)" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="branch-right-6" d="M210,110 L240,85 L232,77 L206,100 Z" transform="rotate(300 200 200)" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <circle data-region="tip-6" cx="200" cy="45" r="10" transform="rotate(300 200 200)" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <circle data-region="centre" cx="200" cy="200" r="16" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+</svg>

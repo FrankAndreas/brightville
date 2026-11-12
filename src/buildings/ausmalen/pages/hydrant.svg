@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <rect data-region="ground" x="0" y="350" width="400" height="50" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <rect data-region="base" x="130" y="320" width="140" height="32" rx="6" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <path data-region="body" d="M150,322 L150,150 Q150,130 170,130 L230,130 Q250,130 250,150 L250,322 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <path data-region="cap" d="M145,132 Q145,80 200,78 Q255,80 255,132 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <rect data-region="top-nut" x="188" y="56" width="24" height="24" rx="4" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <rect data-region="ring" x="140" y="180" width="120" height="20" rx="6" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <rect data-region="outlet-left" x="100" y="220" width="52" height="44" rx="8" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <rect data-region="outlet-right" x="248" y="220" width="52" height="44" rx="8" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <circle data-region="outlet-left-cap" cx="104" cy="242" r="16" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <circle data-region="outlet-right-cap" cx="296" cy="242" r="16" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <circle data-region="front-cap" cx="200" cy="255" r="24" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="drop-1" d="M60,150 C45,175 75,175 60,150 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="drop-2" d="M340,170 C325,195 355,195 340,170 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="drop-3" d="M75,250 C60,275 90,275 75,250 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+</svg>
