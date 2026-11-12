@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { defineComponent } from 'vue'
 import { footprint, type Footprint } from '@/city/doors'
-import { TRAMPOLINE } from '@/city/props'
+import { BLOCKS, TRAMPOLINES } from '@/city/props'
 import { HALF_SIZE } from '@/city/world'
 import { BUILDINGS, canServe, toDoors } from './registry'
 import type { BuildingDef } from './types'
@@ -68,6 +68,15 @@ describe('building registry', () => {
     expect(b?.preload).toBeTypeOf('function')
   })
 
+  it('lists the Bibliothek and the Farblabor at the back as earning buildings that need nothing', () => {
+    expect(BUILDINGS.find(x => x.id === 'bibliothek')).toMatchObject({
+      spokenName: 'Bibliothek', icon: '📚', kind: 'earn', needs: [], door: { x: 15, z: -24 },
+    })
+    expect(BUILDINGS.find(x => x.id === 'farblabor')).toMatchObject({
+      spokenName: 'Farblabor', icon: '🧪', kind: 'earn', needs: [], door: { x: 25, z: -24 },
+    })
+  })
+
   it('lists Schlange and Bonbonjagd on the right as play buildings for 3 Stars that need nothing', () => {
     for (const [id, spokenName, icon] of [['schlange', 'Schlange', '🐍'], ['bonbonjagd', 'Bonbonjagd', '🍬']]) {
       const b = BUILDINGS.find(x => x.id === id)
@@ -117,11 +126,32 @@ describe('building registry', () => {
     }
   })
 
-  it('keeps the trampoline well away from every door, so nobody bounces off at a door', () => {
-    for (const b of BUILDINGS) {
-      const gap = Math.hypot(b.door.x - TRAMPOLINE.x, b.door.z - TRAMPOLINE.z) - TRAMPOLINE.radius
-      expect(gap, b.id).toBeGreaterThanOrEqual(4)
+  it('keeps every trampoline well away from every door, so nobody bounces off at a door', () => {
+    for (const t of TRAMPOLINES) {
+      for (const b of BUILDINGS) {
+        const gap = Math.hypot(b.door.x - t.x, b.door.z - t.z) - t.radius
+        expect(gap, `${b.id} / trampoline at ${t.x},${t.z}`).toBeGreaterThanOrEqual(4)
+      }
     }
+  })
+
+  it('keeps the playground inside the square, off the houses and clear of the doors', () => {
+    const blocks: Footprint[] = BLOCKS.map(b => ({ minX: b.x - b.w / 2, maxX: b.x + b.w / 2, minZ: b.z - b.d / 2, maxZ: b.z + b.d / 2 }))
+    const pads: Footprint[] = TRAMPOLINES.map(t => ({ minX: t.x - t.radius, maxX: t.x + t.radius, minZ: t.z - t.radius, maxZ: t.z + t.radius }))
+    const gap = (a: Footprint, b: Footprint) => Math.max(a.minX - b.maxX, b.minX - a.maxX, a.minZ - b.maxZ, b.minZ - a.maxZ)
+    for (const thing of [...blocks, ...pads]) {
+      expect(Math.max(-thing.minX, thing.maxX, -thing.minZ, thing.maxZ)).toBeLessThanOrEqual(HALF_SIZE - 1)
+      for (const b of BUILDINGS) {
+        expect(gap(thing, footprint(b.door)), b.id).toBeGreaterThanOrEqual(2)
+        const ring = { minX: b.door.x, maxX: b.door.x, minZ: b.door.z, maxZ: b.door.z }
+        expect(gap(thing, ring), `${b.id} door`).toBeGreaterThanOrEqual(4)
+      }
+    }
+    // Nothing stands on the plaza, where the character starts
+    for (const thing of [...blocks, ...pads]) expect(gap(thing, { minX: -2, maxX: 2, minZ: 3, maxZ: 7 })).toBeGreaterThan(1)
+    // ...or on top of each other, except the steps that lead up to the platform
+    const all = [...blocks.filter((_, i) => BLOCKS[i].kind === 'hurdle'), ...pads]
+    for (const a of all) for (const b of all) if (a !== b) expect(gap(a, b)).toBeGreaterThan(1)
   })
 
   it('leaves room to walk up to every door: 3 m to any other house', () => {

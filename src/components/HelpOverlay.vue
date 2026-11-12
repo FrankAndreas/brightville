@@ -12,11 +12,13 @@ const emit = defineEmits<{ close: [] }>()
 
 const SPOKEN =
   'Mit den Pfeiltasten läufst du. Mit der Leertaste springst du. ' +
-  'Mit Enter gehst du durch die leuchtende Tür. Mit Escape gehst du wieder hinaus.'
+  'Mit Enter gehst du durch die leuchtende Tür. Mit Escape gehst du wieder hinaus. ' +
+  'Mit J und L drehst du dich. Mit K schaust du nach hinten.'
 
 const SPOKEN_TOUCH =
   'Zieh mit dem Finger, dann läufst du. Tipp auf den Pfeil, dann springst du. ' +
-  'Tipp auf das Bild an der leuchtenden Tür, dann gehst du hinein. Mit der Tür oben links gehst du wieder hinaus.'
+  'Tipp auf das Bild an der leuchtenden Tür, dann gehst du hinein. Mit der Tür oben links gehst du wieder hinaus. ' +
+  'Halte einen runden Pfeil, dann drehst du dich.'
 
 const close = () => emit('close')
 
@@ -108,6 +110,25 @@ onBeforeUnmount(() => {
         </svg>
         <span class="word">Hinausgehen</span>
       </div>
+
+      <div class="row wide" data-test="help-row">
+        <svg v-if="touch" class="keys" data-test="help-touch" viewBox="0 0 150 100" aria-hidden="true">
+          <circle cx="45" cy="50" r="34" class="pad" /><circle cx="105" cy="50" r="34" class="pad" />
+          <path d="M57 38 A16 16 0 1 0 61 56 M57 26 V38 H45" class="dash" />
+          <path d="M93 38 A16 16 0 1 1 89 56 M93 26 V38 H105" class="dash" />
+        </svg>
+        <svg v-else class="keys" data-test="help-keys" viewBox="0 0 150 100" aria-hidden="true">
+          <g class="cap"><rect x="52" y="4" width="46" height="42" rx="9" /><rect x="4" y="52" width="46" height="42" rx="9" /><rect x="52" y="52" width="46" height="42" rx="9" /><rect x="100" y="52" width="46" height="42" rx="9" /></g>
+          <text x="75" y="34" class="label">I</text><text x="27" y="82" class="label">J</text>
+          <text x="75" y="82" class="label">K</text><text x="123" y="82" class="label">L</text>
+        </svg>
+        <svg class="what" viewBox="0 0 100 100" aria-hidden="true">
+          <ellipse cx="50" cy="50" rx="22" ry="28" class="blob" />
+          <circle cx="58" cy="42" r="4" class="eye" /><circle cx="44" cy="42" r="4" class="eye" />
+          <path d="M18 70 A36 18 0 0 0 82 70 M74 60 L82 70 L70 76" class="dash" />
+        </svg>
+        <span class="word">Umdrehen</span>
+      </div>
     </div>
   </div>
 </template>
@@ -131,6 +152,7 @@ onBeforeUnmount(() => {
   background: #fffdf5;
   box-shadow: 0 10px 0 rgb(0 0 0 / 15%);
 }
+.row.wide { grid-column: 1 / -1; }
 .row { display: grid; grid-template-columns: auto auto; grid-template-rows: auto auto; align-items: center; justify-items: center; gap: 4px 18px; }
 .keys { width: min(17vw, 190px); }
 .what { width: min(11vw, 120px); }

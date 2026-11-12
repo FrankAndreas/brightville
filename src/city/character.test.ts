@@ -3,7 +3,7 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import RAPIER from '@dimforge/rapier3d-compat'
 import * as THREE from 'three'
 import { createCharacter, type CharacterFrame } from './character'
-import { TRAMPOLINE, buildProps } from './props'
+import { BLOCKS, TRAMPOLINE, TRAMPOLINES, buildProps } from './props'
 import { GRAVITY, HALF_SIZE, buildTown } from './world'
 
 // The real physics engine, without any drawing
@@ -14,7 +14,7 @@ function setup(start = { x: 0, z: 5 }) {
   const world = new RAPIER.World({ x: 0, y: -GRAVITY, z: 0 })
   buildTown(RAPIER, world, [])
   buildProps(RAPIER, world, new THREE.Scene())
-  const character = createCharacter(RAPIER, world, start, TRAMPOLINE)
+  const character = createCharacter(RAPIER, world, start, TRAMPOLINES)
   const run = (seconds: number, intents = still, dt = DT): CharacterFrame[] => {
     const frames: CharacterFrame[] = []
     for (let t = 0; t < seconds; t += dt) {
@@ -119,6 +119,44 @@ describe('character', () => {
     expect(Math.abs(end.x)).toBeLessThan(HALF_SIZE)
     const later = run(1, { ...still, moveZ: 1 }).at(-1)!
     expect(later.z - end.z).toBeGreaterThan(2)
+  })
+
+  it('is thrown higher by the big trampoline than by the small one', () => {
+    const peak = (t: (typeof TRAMPOLINES)[number]) => {
+      const { run } = setup({ x: t.x, z: t.z })
+      return Math.max(...run(4).map(f => f.y))
+    }
+    const sizes = [...TRAMPOLINES].sort((a, b) => a.height - b.height)
+    const low = peak(sizes[0])
+    const high = peak(sizes[sizes.length - 1])
+    expect(high).toBeGreaterThan(6)
+    expect(low).toBeLessThan(4)
+  })
+
+  it('climbs the staircase to the platform by jumping from step to step', () => {
+    const steps = BLOCKS.filter(b => b.kind === 'step').sort((a, b) => a.h - b.h)
+    const top = BLOCKS.find(b => b.kind === 'platform')!
+    const first = steps[0]
+    // Lined up along x, in front of the first step
+    const { run } = setup({ x: first.x - first.w, z: first.z })
+    settle(run)
+    let best = 0
+    for (let i = 0; i < 40; i++) {
+      run(DT, { ...still, moveX: 1, jump: true })
+      const f = run(0.45, { ...still, moveX: 0.6 }).at(-1)!
+      best = Math.max(best, f.y)
+      if (f.x > top.x - top.w / 2 + 0.5) break
+    }
+    // Standing on the platform: its height plus half the body
+    expect(best).toBeGreaterThan(top.h + 0.4)
+  })
+
+  it('cannot walk through a hurdle without jumping', () => {
+    const hurdle = BLOCKS.find(b => b.kind === 'hurdle')!
+    const { run } = setup({ x: hurdle.x, z: hurdle.z - 2 })
+    settle(run)
+    const f = run(2, { ...still, moveZ: 1 }).at(-1)!
+    expect(f.z).toBeLessThan(hurdle.z)
   })
 
   it('ignores the keys while tumbling', () => {

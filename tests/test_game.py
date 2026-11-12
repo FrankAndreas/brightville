@@ -207,3 +207,8 @@ def test_a_connection_opened_in_one_worker_thread_works_in_another():
     worker.join()
     opening.close()
     assert errors == []
+
+
+def test_the_library_and_the_colour_lab_earn_up_to_what_they_give(mia):
+    assert visit(mia, 50, "b1", "bibliothek").json()["state"]["stars"] == 9
+    assert visit(mia, 50, "f1", "farblabor").json()["state"]["stars"] == 19

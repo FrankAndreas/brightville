@@ -720,7 +720,7 @@ describe('App', () => {
       const w = await startedWithHelp()
       const help = w.find('[data-test="help"]')
       expect(help.exists()).toBe(true)
-      expect(help.findAll('[data-test="help-row"]')).toHaveLength(4)
+      expect(help.findAll('[data-test="help-row"]')).toHaveLength(5)
       expect(vi.mocked(speak).mock.calls[0][0]).toContain('Pfeiltasten')
       expect(city.pause).toHaveBeenCalledTimes(1)
       w.unmount()

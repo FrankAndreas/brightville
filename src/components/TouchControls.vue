@@ -67,6 +67,20 @@ onBeforeUnmount(() => {
       <circle cx="50" cy="50" r="20" class="dot" />
       <path d="M50 14 l-7 9 h14 z M50 86 l-7 -9 h14 z M14 50 l9 -7 v14 z M86 50 l-9 -7 v14 z" class="tips" />
     </svg>
+    <button
+      class="turn left" data-test="turn-left" aria-label="Nach links drehen"
+      @pointerdown.prevent="source.setTurn(-1)" @pointerup="source.setTurn(0)" @pointercancel="source.setTurn(0)"
+      @pointerleave="source.setTurn(0)"
+    >
+      <svg viewBox="0 0 100 100" aria-hidden="true"><path d="M70 30 A28 28 0 1 0 78 58 M70 14 V32 H52" /></svg>
+    </button>
+    <button
+      class="turn right" data-test="turn-right" aria-label="Nach rechts drehen"
+      @pointerdown.prevent="source.setTurn(1)" @pointerup="source.setTurn(0)" @pointercancel="source.setTurn(0)"
+      @pointerleave="source.setTurn(0)"
+    >
+      <svg viewBox="0 0 100 100" aria-hidden="true"><path d="M30 30 A28 28 0 1 1 22 58 M30 14 V32 H48" /></svg>
+    </button>
     <button class="jump" data-test="jump" aria-label="Springen" @pointerdown.prevent="source.press('jump')">
       <svg viewBox="0 0 100 100" aria-hidden="true"><path d="M50 78 V26 M28 46 L50 24 L72 46" /></svg>
     </button>
@@ -115,4 +129,23 @@ onBeforeUnmount(() => {
 .jump:active { transform: translateY(6px); box-shadow: 0 2px 0 #e0a800; }
 .jump svg { width: 70%; }
 .jump path { fill: none; stroke: #6b4a00; stroke-width: 12; stroke-linecap: round; stroke-linejoin: round; }
+/* Above the jump button, small enough not to be hit by a jumping thumb */
+.turn {
+  position: absolute;
+  bottom: calc(190px + env(safe-area-inset-bottom));
+  width: 78px;
+  height: 78px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 5px 0 rgba(0, 0, 0, 0.15);
+  pointer-events: auto;
+  touch-action: none;
+  cursor: pointer;
+}
+.turn.left { right: calc(114px + env(safe-area-inset-right)); }
+.turn.right { right: calc(24px + env(safe-area-inset-right)); }
+.turn:active { transform: translateY(4px); }
+.turn svg { width: 64%; }
+.turn path { fill: none; stroke: #4d6fa8; stroke-width: 10; stroke-linecap: round; stroke-linejoin: round; }
 </style>

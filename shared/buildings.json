@@ -3,6 +3,8 @@
   { "id": "schreiben", "kind": "earn", "maxStars": 10 },
   { "id": "yoga", "kind": "earn", "maxStars": 9 },
   { "id": "unterschiede", "kind": "earn", "maxStars": 10 },
+  { "id": "bibliothek", "kind": "earn", "maxStars": 9 },
+  { "id": "farblabor", "kind": "earn", "maxStars": 10 },
   { "id": "ausmalen", "kind": "free" },
   { "id": "malen", "kind": "free" },
   { "id": "arcade", "kind": "play", "cost": 3 },

@@ -11,7 +11,7 @@ describe('keyboardIntents', () => {
   afterEach(() => source.dispose())
 
   it('is at rest with no keys', () => {
-    expect(source.read()).toEqual({ moveX: 0, moveZ: 0, jump: false, interact: false, leave: false })
+    expect(source.read()).toEqual({ moveX: 0, moveZ: 0, jump: false, interact: false, leave: false, turn: 0, turnAround: false, lookHome: false })
   })
 
   it('maps arrows and WASD to a move vector', () => {
@@ -99,5 +99,23 @@ describe('keyboardIntents', () => {
     down('ArrowLeft')
     down('Space')
     expect(source.read()).toMatchObject({ moveX: 0, jump: false })
+  })
+
+  it('turns the view with J and L while held, turns around with K and looks back with I, once per press', () => {
+    const k = keyboardIntents()
+    down('KeyJ')
+    expect(k.read().turn).toBe(-1)
+    up('KeyJ')
+    down('KeyL')
+    expect(k.read().turn).toBe(1)
+    down('KeyJ')
+    expect(k.read().turn).toBe(0)
+    up('KeyJ')
+    up('KeyL')
+    down('KeyK')
+    down('KeyI')
+    expect(k.read()).toMatchObject({ turn: 0, turnAround: true, lookHome: true })
+    expect(k.read()).toMatchObject({ turnAround: false, lookHome: false })
+    k.dispose()
   })
 })

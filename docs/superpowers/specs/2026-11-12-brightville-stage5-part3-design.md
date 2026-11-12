@@ -52,7 +52,7 @@ Before the first direction, three big buttons choose the speed: 🐢 langsam, �
 | Building | What happens inside | Stars |
 |---|---|---|
 | 📚 Bibliothek | The voice reads a short story, scene by scene with pictures; then three questions, answered by tapping a picture | +3 per question, at most 9 |
-| 🎨🧪 Farblabor | Two paint pots pour into a bowl: "Rot und Gelb – was gibt das?"; five mixes, answered by tapping a colour | +2 per mix, at most 10 |
+| 🧪 Farblabor | Two paint pots pour into a bowl: "Rot und Gelb – was gibt das?"; five mixes, answered by tapping a colour | +2 per mix, at most 10 |
 
 A wrong answer fades its button and the question stays, as in the School. Four stories and six colour mixes to start with, written for Brightville.
 
