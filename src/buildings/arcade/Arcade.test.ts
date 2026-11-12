@@ -3,6 +3,7 @@ import { mount, type VueWrapper } from '@vue/test-utils'
 import type { Card } from '@/core/memory'
 import { playBeat } from '@/services/sound'
 import { speak } from '@/services/tts'
+import { requestLeave } from '../leave'
 import Arcade from './Arcade.vue'
 import { ANIMALS, COLUMNS, PAIRS_PER_ROUND } from './cards'
 
@@ -147,6 +148,25 @@ describe('Arcade', () => {
     await run(5000)
     expect(w.emitted('finished')).toHaveLength(1)
     w.unmount()
+  })
+
+  it('leaves by the button like by Escape, and only once', async () => {
+    const w = await open()
+    await click(w, 0)
+    await click(w, 2)
+    requestLeave()
+    requestLeave()
+    await run(10)
+    expect(w.emitted('finished')).toEqual([[{ stars: 0 }]])
+    expect(vi.getTimerCount()).toBe(0)
+    w.unmount()
+  })
+
+  it('no longer answers the button after it has gone', async () => {
+    const w = await open()
+    w.unmount()
+    requestLeave()
+    expect(w.emitted('finished')).toBeUndefined()
   })
 
   it('clears its timers when the screen goes away', async () => {

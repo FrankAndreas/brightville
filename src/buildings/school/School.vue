@@ -4,6 +4,7 @@ import Confetti from '@/components/Confetti.vue'
 import { buildSession, dicePips, looseLayout, numberWord, seededRandom, type Task, type Thing } from '@/core/numbers'
 import { playBeat } from '@/services/sound'
 import { speak, stopSpeaking } from '@/services/tts'
+import { onLeaveRequest } from '../leave'
 import type { BuildingResult } from '../types'
 import { createSchoolFlow, type SchoolEffect } from './flow'
 import { THINGS } from './things'
@@ -111,12 +112,16 @@ function moveFocus(by: number) {
   void speak(numberWord(choices[i]))
 }
 
+/** Takes back this building's answer to the leave button */
+let stopLeaveRequests = () => {}
+
 function shutDown() {
   if (closed) return
   closed = true
   for (const id of timers) clearTimeout(id)
   timers.clear()
   window.removeEventListener('keydown', onKey)
+  stopLeaveRequests()
   stopSpeaking()
 }
 
@@ -155,6 +160,7 @@ const groups = computed(() => {
 
 onMounted(() => {
   window.addEventListener('keydown', onKey)
+  stopLeaveRequests = onLeaveRequest(leave)
   run(flow.start())
 })
 onBeforeUnmount(shutDown)

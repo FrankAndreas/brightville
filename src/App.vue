@@ -7,6 +7,7 @@ import Confetti from '@/components/Confetti.vue'
 import DoorPrompt from '@/components/DoorPrompt.vue'
 import GoalBar from '@/components/GoalBar.vue'
 import HelpOverlay from '@/components/HelpOverlay.vue'
+import LeaveButton from '@/components/LeaveButton.vue'
 import StarCounter from '@/components/StarCounter.vue'
 import StartGate from '@/components/StartGate.vue'
 import { DAILY_GOAL } from '@/core/daily'
@@ -164,6 +165,7 @@ onBeforeUnmount(() => {
     <HelpOverlay v-if="helpOpen && inTown" @close="helpOpen = false" />
     <section v-if="inside" class="building">
       <component :is="inside.component" @finished="onFinished" />
+      <LeaveButton />
     </section>
   </main>
 </template>

@@ -7,6 +7,7 @@ import { CameraError, closeCamera, onCameraLost, openCamera } from '@/services/c
 import { createPoseTracker } from '@/services/poseTracker'
 import { playBeat } from '@/services/sound'
 import { speak } from '@/services/tts'
+import { requestLeave } from '../leave'
 import YogaStudio from './YogaStudio.vue'
 
 vi.mock('@/services/camera', async importOriginal => ({
@@ -143,6 +144,28 @@ describe('YogaStudio', () => {
     press('Escape')
     await run(50)
     expect(w.emitted('finished')).toEqual([[{ stars: 3 }]])
+    w.unmount()
+  })
+
+  it('leaves by the button mid-pose with the stars earned so far', async () => {
+    const w = await calibrated()
+    await holdPose('stern')
+    requestLeave()
+    requestLeave()
+    expect(w.emitted('finished')).toEqual([[{ stars: 3 }]])
+    expect(closeCamera).toHaveBeenCalledWith(stream)
+    w.unmount()
+  })
+
+  it('leaves the no-camera screen on a tap, but not in the first second', async () => {
+    vi.mocked(openCamera).mockRejectedValue(new CameraError('denied'))
+    const w = await open()
+    await w.find('[data-test="no-camera"]').trigger('pointerdown')
+    await run(50)
+    expect(w.emitted('finished')).toBeUndefined()
+    await run(1000)
+    await w.find('[data-test="no-camera"]').trigger('pointerdown')
+    expect(w.emitted('finished')).toEqual([[{ stars: 0 }]])
     w.unmount()
   })
 

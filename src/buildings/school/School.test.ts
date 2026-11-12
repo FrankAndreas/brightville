@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount, type VueWrapper } from '@vue/test-utils'
 import { playBeat } from '@/services/sound'
 import { speak } from '@/services/tts'
+import { requestLeave } from '../leave'
 import School from './School.vue'
 import { TEST_TASKS, TEST_THINGS } from './testTasks'
 
@@ -235,6 +236,18 @@ describe('School', () => {
     expect(w.emitted('finished')).toBeUndefined()
     await run(3100)
     expect(w.emitted('finished')).toEqual([[{ stars: 10 }]])
+    w.unmount()
+  })
+
+  it('leaves by the button during a cheer with the stars so far', async () => {
+    const w = await open()
+    press('Digit3')
+    await run(10)
+    requestLeave()
+    requestLeave()
+    await run(10)
+    expect(w.emitted('finished')).toEqual([[{ stars: 1 }]])
+    expect(vi.getTimerCount()).toBe(0)
     w.unmount()
   })
 

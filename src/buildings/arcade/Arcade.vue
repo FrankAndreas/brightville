@@ -4,6 +4,7 @@ import Confetti from '@/components/Confetti.vue'
 import { buildDeck, createMemory, pickPairs, type Card } from '@/core/memory'
 import { playBeat } from '@/services/sound'
 import { speak, stopSpeaking } from '@/services/tts'
+import { onLeaveRequest } from '../leave'
 import type { BuildingResult } from '../types'
 import { ANIMALS, COLUMNS, PAIRS_PER_ROUND } from './cards'
 
@@ -57,12 +58,16 @@ function flip(index: number) {
   }
 }
 
+/** Takes back this building's answer to the leave button */
+let stopLeaveRequests = () => {}
+
 function shutDown() {
   if (closed) return
   closed = true
   for (const id of timers) clearTimeout(id)
   timers.clear()
   window.removeEventListener('keydown', onKey)
+  stopLeaveRequests()
   stopSpeaking()
 }
 
@@ -92,7 +97,10 @@ function onKey(e: KeyboardEvent) {
 
 const isUp = (key: string) => view.open.includes(key) || view.matched.includes(key)
 
-onMounted(() => window.addEventListener('keydown', onKey))
+onMounted(() => {
+  window.addEventListener('keydown', onKey)
+  stopLeaveRequests = onLeaveRequest(leave)
+})
 onBeforeUnmount(shutDown)
 </script>
 

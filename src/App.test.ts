@@ -445,6 +445,20 @@ describe('App', () => {
     })
   })
 
+  describe('leave button', () => {
+    it('is shown only inside a building', async () => {
+      const w = await started()
+      expect(w.find('[data-test="leave"]').exists()).toBe(false)
+      cityOptions.onEnter('stub')
+      await flushPromises()
+      expect(w.find('[data-test="leave"]').exists()).toBe(true)
+      finishWith({ stars: 0 })
+      await nextTick()
+      expect(w.find('[data-test="leave"]').exists()).toBe(false)
+      w.unmount()
+    })
+  })
+
   describe('help', () => {
     it('shows the controls to a new player, reads them out and holds the town', async () => {
       const w = await startedWithHelp()
