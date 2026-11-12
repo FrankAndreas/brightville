@@ -9,13 +9,14 @@ vi.mock('./city', () => ({ createCity: vi.fn() }))
 const doors: DoorDef[] = [{ id: 'yoga', x: 0, z: -14, open: true }]
 
 describe('CityView', () => {
-  const city = { pause: vi.fn(), resume: vi.fn(), dispose: vi.fn() }
+  const city = { pause: vi.fn(), resume: vi.fn(), dispose: vi.fn(), setDoors: vi.fn() }
   let options: CityOptions
 
   beforeEach(() => {
     city.pause.mockClear()
     city.resume.mockClear()
     city.dispose.mockClear()
+    city.setDoors.mockClear()
     vi.mocked(createCity).mockReset().mockImplementation(async opts => {
       options = opts
       return city
@@ -39,6 +40,29 @@ describe('CityView', () => {
     expect(city.pause).toHaveBeenCalledTimes(1)
     await w.setProps({ paused: false })
     expect(city.resume).toHaveBeenCalledTimes(1)
+    w.unmount()
+  })
+
+  it('passes changed doors on to the town, but not the first ones again', async () => {
+    const w = mount(CityView, { props: { doors, paused: false } })
+    await flushPromises()
+    expect(city.setDoors).not.toHaveBeenCalled()
+    const changed = [{ ...doors[0], open: false, locked: true }]
+    await w.setProps({ doors: changed })
+    expect(city.setDoors).toHaveBeenCalledTimes(1)
+    expect(city.setDoors).toHaveBeenCalledWith(changed)
+    w.unmount()
+  })
+
+  it('gives the town the doors as they are once it has loaded', async () => {
+    let finish!: (c: typeof city) => void
+    vi.mocked(createCity).mockImplementation(() => new Promise(resolve => { finish = resolve }))
+    const w = mount(CityView, { props: { doors, paused: false } })
+    const changed = [{ ...doors[0], open: false }]
+    await w.setProps({ doors: changed })
+    finish(city)
+    await flushPromises()
+    expect(city.setDoors).toHaveBeenCalledWith(changed)
     w.unmount()
   })
 

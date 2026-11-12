@@ -19,8 +19,10 @@ const COLORS = {
   wall: 0xfff4d6,
   houses: [0xffc8dd, 0xbde0fe, 0xfde4a8],
   roofs: [0xff8fab, 0x8ecae6, 0xf4a261],
-  studio: 0xd9c8ff,
-  studioRoof: 0xa58bf0,
+  // One wall and roof colour per door building, in the order of the doors
+  buildings: [[0xd9c8ff, 0xa58bf0], [0xbde0fe, 0x8ecae6], [0xffc8dd, 0xff8fab], [0xfde4a8, 0xf4a261]],
+  leafOpen: 0x6b4a2b,
+  leafClosed: 0x8a8a8a,
   doorOpen: 0xffd93d,
   doorClosed: 0xb8b8b8,
 }
@@ -28,6 +30,8 @@ const COLORS = {
 export interface DoorVisual {
   /** Pulses the glowing ring of an open door */
   update(timeS: number): void
+  /** Repaints the door: glowing when open, grey when closed, with a lock when locked */
+  setState(open: boolean, locked: boolean): void
 }
 
 function box(w: number, h: number, d: number, color: number): THREE.Mesh {
@@ -94,15 +98,15 @@ function sign(icon: string): THREE.Mesh {
 }
 
 /** The building behind a door: a larger house with a sign and a door that glows when open. */
-function doorBuilding(R: Rapier, world: RAPIER.World, scene: THREE.Scene, door: DoorDef): DoorVisual {
+function doorBuilding(R: Rapier, world: RAPIER.World, scene: THREE.Scene, door: DoorDef, index: number): DoorVisual {
   const depth = 5
   const frontZ = door.z - 1
-  const group = house(R, world, scene, door.x, frontZ - depth / 2, 8, 5, depth, COLORS.studio, COLORS.studioRoof)
+  const [wall, roofColor] = COLORS.buildings[index % COLORS.buildings.length]
+  const group = house(R, world, scene, door.x, frontZ - depth / 2, 8, 5, depth, wall, roofColor)
 
-  const color = door.open ? COLORS.doorOpen : COLORS.doorClosed
-  const frame = box(2.2, 2.9, 0.2, color)
+  const frame = box(2.2, 2.9, 0.2, COLORS.doorOpen)
   frame.position.set(0, 1.45, depth / 2 + 0.05)
-  const leaf = box(1.7, 2.5, 0.22, door.open ? 0x6b4a2b : 0x8a8a8a)
+  const leaf = box(1.7, 2.5, 0.22, COLORS.leafOpen)
   leaf.position.set(0, 1.25, depth / 2 + 0.07)
   group.add(frame, leaf)
 
@@ -111,18 +115,36 @@ function doorBuilding(R: Rapier, world: RAPIER.World, scene: THREE.Scene, door: 
     board.position.set(0, 3.95, depth / 2 + 0.06)
     group.add(board)
   }
+  const lock = sign('🔒')
+  // A badge on the corner of the sign, so the door itself stays readable
+  lock.scale.setScalar(0.6)
+  lock.position.set(0.85, 3.3, depth / 2 + 0.12)
+  group.add(lock)
 
-  const ring = new THREE.Mesh(
-    new THREE.RingGeometry(0.9, 1.25, 40),
-    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: door.open ? 0.9 : 0.5 }),
-  )
+  const ringMaterial = new THREE.MeshBasicMaterial({ color: COLORS.doorOpen, transparent: true })
+  const ring = new THREE.Mesh(new THREE.RingGeometry(0.9, 1.25, 40), ringMaterial)
   ring.rotation.x = -Math.PI / 2
   ring.position.set(door.x, 0.03, door.z)
   scene.add(ring)
 
+  let isOpen = true
+  const paint = (mesh: THREE.Mesh, color: number) => (mesh.material as THREE.MeshStandardMaterial).color.setHex(color)
+
+  function setState(open: boolean, locked: boolean) {
+    isOpen = open
+    paint(frame, open ? COLORS.doorOpen : COLORS.doorClosed)
+    paint(leaf, open ? COLORS.leafOpen : COLORS.leafClosed)
+    ringMaterial.color.setHex(open ? COLORS.doorOpen : COLORS.doorClosed)
+    ringMaterial.opacity = open ? 0.9 : 0.5
+    lock.visible = locked
+    if (!open) ring.scale.set(1, 1, 1)
+  }
+  setState(door.open, door.locked ?? false)
+
   return {
+    setState,
     update(timeS) {
-      if (!door.open) return
+      if (!isOpen) return
       const pulse = 1 + Math.sin(timeS * 3) * 0.08
       ring.scale.set(pulse, pulse, 1)
     },
@@ -190,9 +212,9 @@ export function buildTown(R: Rapier, world: RAPIER.World, doors: DoorDef[]): Tow
   }
 
   // Scenery
-  house(R, world, scene, -13, -15.5, 6, 3.4, 5, COLORS.houses[0], COLORS.roofs[0])
-  house(R, world, scene, 13, -15.5, 6, 3.8, 5, COLORS.houses[1], COLORS.roofs[1])
+  // The far side belongs to the door buildings
+  house(R, world, scene, 15.5, 9, 5, 3.6, 6, COLORS.houses[1], COLORS.roofs[1])
   house(R, world, scene, -15.5, 7, 5, 3.2, 6, COLORS.houses[2], COLORS.roofs[2])
 
-  return { scene, doorVisuals: doors.map(door => doorBuilding(R, world, scene, door)) }
+  return { scene, doorVisuals: doors.map((door, i) => doorBuilding(R, world, scene, door, i)) }
 }

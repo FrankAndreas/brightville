@@ -15,21 +15,12 @@ const player = usePlayerStore()
 
 <style scoped>
 .stars {
-  position: fixed;
-  top: 16px;
-  left: 50%;
-  transform: translateX(-50%);
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 20px 6px 12px;
-  border-radius: 999px;
-  background: rgb(255 255 255 / 85%);
   font-size: 36px;
   font-weight: 800;
   color: #6b4a00;
-  pointer-events: none;
-  z-index: 5;
 }
 svg { width: 44px; height: 44px; }
 path { fill: #ffd93d; stroke: #e0a800; stroke-width: 1.2; stroke-linejoin: round; }

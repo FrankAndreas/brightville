@@ -19,6 +19,8 @@ export default tseslint.config(
       'vue/max-attributes-per-line': 'off',
       'vue/singleline-html-element-content-newline': 'off',
       'vue/html-self-closing': 'off',
+      // Would put line breaks, and so stray spaces, inside buttons that hold one emoji or digit
+      'vue/multiline-html-element-content-newline': 'off',
     },
   },
 )
