@@ -82,7 +82,17 @@ describe('Schreiben', () => {
   it('takes no writing during the cheer', async () => {
     const w = await open()
     write(w, 'I')
-    write(w, 'L')
+    await run(10)
+    // the next letter's first stroke, written before it is shown
+    const stroke = GLYPHS.L.strokes[0]
+    send(w, 'pointerdown', 5, stroke[0])
+    for (const p of stroke) send(w, 'pointermove', 5, p)
+    send(w, 'pointerup', 5, stroke[stroke.length - 1])
+    await run(CHEER)
+    expect(phase(w)).toBe('writing')
+    expect(stars(w)).toBe(1)
+    // and a pen still down from then is not the pen now
+    for (const p of stroke) send(w, 'pointermove', 5, p)
     await run(10)
     expect(stars(w)).toBe(1)
     w.unmount()
@@ -120,16 +130,49 @@ describe('Schreiben', () => {
     w.unmount()
   })
 
-  it('says nothing for a touch beside the letter or a resting hand', async () => {
+  it('says nothing for a touch beside the letter', async () => {
+    const w = await open()
+    send(w, 'pointerdown', 2, { x: 119, y: 5 })
+    send(w, 'pointerup', 2, { x: 119, y: 5 })
+    expect(said()).toHaveLength(1)
+    w.unmount()
+  })
+
+  it('does not take a resting hand for the pen, even on the start dot', async () => {
     const w = await open()
     const stroke = GLYPHS.I.strokes[0]
+    // the pen shows its size first
     send(w, 'pointerdown', 1, stroke[0])
-    send(w, 'pointerdown', 2, { x: 119, y: 5 }, 10)
-    send(w, 'pointerdown', 3, stroke[stroke.length - 1], 80)
-    for (const p of stroke) send(w, 'pointermove', 1, p)
+    send(w, 'pointerup', 1, stroke[0])
+    send(w, 'pointerdown', 3, stroke[0], 80)
+    for (const p of stroke) send(w, 'pointermove', 3, p)
     await run(10)
-    expect(said()).toHaveLength(2)
+    expect(stars(w)).toBe(0)
+    expect(said()).toHaveLength(1)
+    send(w, 'pointerup', 3, stroke[0])
+    write(w, 'I')
+    await run(10)
     expect(stars(w)).toBe(1)
+    w.unmount()
+  })
+
+  it('leaves no timer behind when the child leaves while the cheer is still spoken', async () => {
+    let endCheer = () => {}
+    vi.mocked(speak).mockImplementationOnce(() => Promise.resolve())
+    const w = await open()
+    vi.mocked(speak).mockImplementationOnce(() => new Promise<void>(resolve => { endCheer = resolve }))
+    write(w, 'I')
+    await run(10)
+    requestLeave()
+    endCheer()
+    await run(0)
+    expect(vi.getTimerCount()).toBe(0)
+    w.unmount()
+  })
+
+  it('gives nothing to write, and so no bonus, when the visit names a glyph it does not know', async () => {
+    const w = await open([{ glyph: 'I', help: 'full' }, { glyph: 'ß', help: 'full' }])
+    expect(w.emitted('finished')).toEqual([[{ stars: 0 }]])
     w.unmount()
   })
 

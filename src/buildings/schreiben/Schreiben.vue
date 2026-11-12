@@ -3,7 +3,7 @@ import { onBeforeUnmount, onMounted, ref } from 'vue'
 import Confetti from '@/components/Confetti.vue'
 import { seededRandom } from '@/core/numbers'
 import { BOX, GLYPHS, fitView, viewBox, type Glyph, type Point } from '@/core/writing/letters'
-import { buildWritingSession, starsFor, type WritingTask } from '@/core/writing/session'
+import { buildWritingSession, starsFor, type Help, type WritingTask } from '@/core/writing/session'
 import { createTracer, penDown, penMove, penUp, type MissReason, type Tracer } from '@/core/writing/tracing'
 import { playBeat } from '@/services/sound'
 import { speak, stopSpeaking } from '@/services/tts'
@@ -34,7 +34,11 @@ const HINTS: Partial<Record<MissReason, string>> = {
 }
 const capital = (text: string) => text[0].toUpperCase() + text.slice(1)
 
-const tasks = (props.tasks ?? buildWritingSession(seededRandom(Date.now()))).filter(t => GLYPHS[t.glyph])
+// A visit that names a glyph we can't draw is no visit: better straight back than a letter short
+const tasks = known(props.tasks ?? buildWritingSession(seededRandom(Date.now())))
+function known(visit: WritingTask[]): WritingTask[] {
+  return visit.every(t => GLYPHS[t.glyph]) ? visit : []
+}
 // One size for every letter of the visit
 const view = viewBox(tasks.map(t => t.glyph))
 
@@ -52,11 +56,16 @@ let tracer: Tracer | null = null
 let ink: Point[][] = []
 let fit = { scale: 1, ox: 0, oy: 0 }
 let lastHint = -Infinity
+/** How much of the letter on the board is shown */
+let help: Help = 'full'
+let sizeWatch: ResizeObserver | null = null
 let stopLeaveRequests = () => {}
 
 let closed = false
 const timers = new Set<ReturnType<typeof setTimeout>>()
 function later(fn: () => void, ms: number) {
+  // Speech that ends because the child left must not start anything new
+  if (closed) return
   const id = setTimeout(() => {
     timers.delete(id)
     if (!closed) fn()
@@ -66,6 +75,7 @@ function later(fn: () => void, ms: number) {
 
 function startTask() {
   letter = GLYPHS[tasks[written.value].glyph]
+  help = tasks[written.value].help
   glyphName.value = letter.name
   // The pen's size carries over, so a resting hand stays known
   tracer = createTracer(letter, tracer?.smallest)
@@ -99,7 +109,7 @@ function draw() {
   ctx.clearRect(0, 0, c.width, c.height)
   ctx.setTransform(fit.scale * dpr, 0, 0, fit.scale * dpr, fit.ox * dpr, fit.oy * dpr)
   drawLines(ctx, BOX, view)
-  drawLetter(ctx, { letter, tracer, help: tasks[Math.min(written.value, tasks.length - 1)].help, ink })
+  drawLetter(ctx, { letter, tracer, help, ink })
 }
 
 function toLetter(e: PointerEvent): Point {
@@ -183,6 +193,7 @@ function shutDown() {
   timers.clear()
   window.removeEventListener('keydown', onKey)
   window.removeEventListener('resize', resize)
+  sizeWatch?.disconnect()
   stopLeaveRequests()
   stopSpeaking()
 }
@@ -204,6 +215,11 @@ onMounted(() => {
   }
   window.addEventListener('keydown', onKey)
   window.addEventListener('resize', resize)
+  // The board can change size without the window doing so
+  if (typeof ResizeObserver === 'function' && area.value) {
+    sizeWatch = new ResizeObserver(resize)
+    sizeWatch.observe(area.value)
+  }
   stopLeaveRequests = onLeaveRequest(leave)
   startTask()
   resize()
