@@ -1,0 +1,6 @@
+[
+  { "id": "school", "kind": "earn", "maxStars": 10 },
+  { "id": "schreiben", "kind": "earn", "maxStars": 10 },
+  { "id": "yoga", "kind": "earn", "maxStars": 9 },
+  { "id": "arcade", "kind": "play", "cost": 3 }
+]
