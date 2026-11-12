@@ -10,6 +10,7 @@ import HelpOverlay from '@/components/HelpOverlay.vue'
 import StarCounter from '@/components/StarCounter.vue'
 import StartGate from '@/components/StartGate.vue'
 import { DAILY_GOAL } from '@/core/daily'
+import { numberWord } from '@/core/numbers'
 import { detectDevice } from '@/services/device'
 import { unlockAudio } from '@/services/sound'
 import { speak } from '@/services/tts'
@@ -23,8 +24,6 @@ const device = detectDevice()
 const doors = computed(() => toDoors(props.buildings, device, player.goalReached, player.stars))
 const stateFor = (b: BuildingDef) => stateOf(b, device, player.goalReached, player.stars)
 
-const NUMBER_WORDS = ['null', 'eins', 'zwei', 'drei', 'vier', 'fünf', 'sechs', 'sieben', 'acht', 'neun']
-const numberWord = (n: number) => NUMBER_WORDS[n] ?? String(n)
 const CELEBRATION_MS = 3000
 
 const started = ref(false)
