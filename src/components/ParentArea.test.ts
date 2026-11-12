@@ -95,4 +95,12 @@ describe('ParentArea', () => {
     await w.find('[data-test="parent-close"]').trigger('click')
     expect(w.emitted('close')).toHaveLength(1)
   })
+
+  it('has the Cinema\'s film list, and passes on when it changed', async () => {
+    const { w } = await open()
+    const list = w.findComponent({ name: 'FilmList' })
+    expect(list.exists()).toBe(true)
+    list.vm.$emit('changed')
+    expect(w.emitted('filmsChanged')).toHaveLength(1)
+  })
 })

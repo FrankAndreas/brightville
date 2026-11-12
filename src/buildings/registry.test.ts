@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { defineComponent } from 'vue'
 import { footprint, type Footprint } from '@/city/doors'
 import { TRAMPOLINE } from '@/city/props'
+import { HALF_SIZE } from '@/city/world'
 import { BUILDINGS, canServe, toDoors } from './registry'
 import type { BuildingDef } from './types'
 
@@ -38,13 +39,13 @@ describe('building registry', () => {
 
   it('lists the yoga studio and needs a camera', () => {
     const studio = BUILDINGS.find(b => b.id === 'yoga')
-    expect(studio).toMatchObject({ spokenName: 'Yoga', icon: '🧘', kind: 'earn', needs: ['camera'], door: { x: 5, z: -14 } })
+    expect(studio).toMatchObject({ spokenName: 'Yoga', icon: '🧘', kind: 'earn', needs: ['camera'], door: { x: -5, z: -24 } })
     expect(studio?.component).toBeTruthy()
   })
 
   it('lists the school, which needs nothing special', () => {
     const school = BUILDINGS.find(b => b.id === 'school')
-    expect(school).toMatchObject({ spokenName: 'Schule', icon: '🔢', kind: 'earn', needs: [], door: { x: -15, z: -14 } })
+    expect(school).toMatchObject({ spokenName: 'Schule', icon: '🔢', kind: 'earn', needs: [], door: { x: -25, z: -24 } })
   })
 
   it('lists the arcade as a play building on the right side that costs 3 stars', () => {
@@ -63,7 +64,7 @@ describe('building registry', () => {
 
   it('lists Unterschiede at the back as an earning building that needs nothing', () => {
     const b = BUILDINGS.find(x => x.id === 'unterschiede')
-    expect(b).toMatchObject({ spokenName: 'Unterschiede', icon: '🔍', kind: 'earn', needs: [], door: { x: 15, z: -14 } })
+    expect(b).toMatchObject({ spokenName: 'Unterschiede', icon: '🔍', kind: 'earn', needs: [], door: { x: 5, z: -24 } })
     expect(b?.preload).toBeTypeOf('function')
   })
 
@@ -75,6 +76,15 @@ describe('building registry', () => {
     }
   })
 
+  it('lists the Cinema on the right as a play building for 3 Stars, open only when there are films', () => {
+    const kino = BUILDINGS.find(x => x.id === 'kino')
+    expect(kino).toMatchObject({ spokenName: 'Kino', icon: '🎬', kind: 'play', cost: 3, needs: ['films'], door: { side: 'right' } })
+    const device = { camera: false, touch: false, keyboard: true }
+    expect(canServe(kino!, device)).toBe(false)
+    expect(canServe(kino!, { ...device, films: false })).toBe(false)
+    expect(canServe(kino!, { ...device, films: true })).toBe(true)
+  })
+
   it('puts learning at the back, making on the left and playing on the right', () => {
     for (const b of BUILDINGS) {
       const side = b.door.side ?? 'back'
@@ -84,17 +94,17 @@ describe('building registry', () => {
 
   it('lists the writing building, which earns and needs a touch screen', () => {
     const schreiben = BUILDINGS.find(b => b.id === 'schreiben')
-    expect(schreiben).toMatchObject({ spokenName: 'Schreiben', icon: '✏️', kind: 'earn', needs: ['touch'], door: { x: -5, z: -14 } })
+    expect(schreiben).toMatchObject({ spokenName: 'Schreiben', icon: '✏️', kind: 'earn', needs: ['touch'], door: { x: -15, z: -24 } })
     expect(schreiben?.preload).toBeTypeOf('function')
     const device = { camera: true, touch: false, keyboard: true }
     expect(canServe(schreiben!, device)).toBe(false)
     expect(canServe(schreiben!, { ...device, touch: true })).toBe(true)
   })
 
-  it('keeps every door building up to the wall of the 40 m square', () => {
+  it('keeps every door building up to the wall of the 60 m square', () => {
     for (const b of BUILDINGS) {
       const f = footprint(b.door)
-      expect(Math.max(-f.minX, f.maxX, -f.minZ, f.maxZ), b.id).toBeLessThanOrEqual(20)
+      expect(Math.max(-f.minX, f.maxX, -f.minZ, f.maxZ), b.id).toBeLessThanOrEqual(HALF_SIZE)
     }
   })
 

@@ -5,7 +5,7 @@ import { HOUSE_DEPTH, HOUSE_WIDTH, facingAngle, footprint, type DoorDef } from '
 type Rapier = typeof RAPIER
 
 /** Half the side of the square town, metres */
-export const HALF_SIZE = 20
+export const HALF_SIZE = 30
 export const GRAVITY = 10
 const WALL_HEIGHT = 1.2
 // The real barrier is much taller than the wall you see, so no trampoline
@@ -23,6 +23,7 @@ const COLORS = {
   buildings: [
     [0xd9c8ff, 0xa58bf0], [0xfde4a8, 0xf4a261], [0xbde0fe, 0x8ecae6], [0xc8f0d0, 0x6bcb77],
     [0xfff1b8, 0xffb703], [0xcdeeea, 0x26a69a], [0xffc8dd, 0xff8fab], [0xe5d4ff, 0x9b59b6], [0xffd6e8, 0xff69b4],
+    [0x3d3d5c, 0xd62828],
   ],
   leafOpen: 0x6b4a2b,
   leafClosed: 0x8a8a8a,
@@ -235,7 +236,7 @@ export function buildTown(R: Rapier, world: RAPIER.World, doors: DoorDef[]): Tow
   }
 
   // The near left corner, where no door building stands
-  house(R, world, scene, -15.5, 15.5, 5, 3.2, 5, COLORS.houses[2], COLORS.roofs[2])
+  house(R, world, scene, -25.5, 25.5, 5, 3.2, 5, COLORS.houses[2], COLORS.roofs[2])
 
   return { scene, doorVisuals: doors.map((door, i) => doorBuilding(R, world, scene, door, i)) }
 }

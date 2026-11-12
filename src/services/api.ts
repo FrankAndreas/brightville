@@ -1,4 +1,4 @@
-// The game's server (backend/): who is playing, their Stars and today's numbers, the parents' settings.
+// The game's server (backend/): who is playing, their Stars and today's numbers, the parents' settings, the films.
 
 export interface Person {
   id: number
@@ -37,6 +37,13 @@ export interface Rules {
 
 export type PlayerRow = Person & ServerState
 
+/** A film the parents chose for the Cinema */
+export interface Film {
+  id: number
+  youtube_id: string
+  title: string
+}
+
 /** Why a request failed: the server's code, or 'offline' when there was no usable answer. */
 export class ApiError extends Error {
   constructor(public status: number, public code: string, public loginUrl: string | null = null) {
@@ -56,6 +63,10 @@ export interface Api {
   players(): Promise<PlayerRow[]>
   setRules(personId: number, rules: Rules): Promise<ServerState>
   choose(personId: number): Promise<unknown>
+  films(): Promise<Film[]>
+  /** Parents only. Rejects with 'not_youtube', 'already_there' or 'too_many'. */
+  addFilm(url: string, title: string): Promise<Film>
+  removeFilm(id: number): Promise<unknown>
 }
 
 type Fetch = (url: string, init: RequestInit) => Promise<Response>
@@ -100,5 +111,8 @@ export function httpApi(fetchFn: Fetch = (url, init) => fetch(url, init), onRene
     players: () => call('GET', '/api/players'),
     setRules: (personId, rules) => call('PUT', `/api/players/${personId}`, rules),
     choose: personId => call('POST', '/api/local/choose', { id: personId }),
+    films: () => call('GET', '/api/films'),
+    addFilm: (url, title) => call('POST', '/api/films', { url, title }),
+    removeFilm: id => call('DELETE', `/api/films/${id}`),
   }
 }

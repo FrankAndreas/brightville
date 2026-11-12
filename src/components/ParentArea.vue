@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import type { Api, PlayerRow, Rules } from '@/services/api'
+import FilmList from './FilmList.vue'
 
 // The parents' page: plain German, for grown-ups who read. One card per person who may play,
-// with today's numbers and three settings.
+// with today's numbers and three settings, then the Cinema's films.
 const props = defineProps<{
   api: Api
   /** With the family hub: where to log out; the page adds its own address */
@@ -11,7 +12,7 @@ const props = defineProps<{
   /** Without a hub: hand the device to someone else */
   canSwitch?: boolean
 }>()
-const emit = defineEmits<{ close: []; saved: [id: number]; switch: [] }>()
+const emit = defineEmits<{ close: []; saved: [id: number]; switch: []; filmsChanged: [] }>()
 
 const PLAY_CHOICES: (number | null)[] = [null, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180]
 
@@ -104,6 +105,8 @@ onMounted(load)
           <span class="message" data-test="message">{{ message[row.id] }}</span>
         </div>
       </article>
+
+      <FilmList :api="api" @changed="emit('filmsChanged')" />
 
       <footer>
         <button v-if="canSwitch" data-test="switch" @click="emit('switch')">Jemand anderes spielt</button>

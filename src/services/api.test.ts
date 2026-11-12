@@ -59,4 +59,17 @@ describe('httpApi', () => {
       ['/api/playtime', 'POST'], ['/api/players', 'GET'], ['/api/players/2', 'PUT'], ['/api/local/choose', 'POST'],
     ])
   })
+
+  it('knows the film list', async () => {
+    const fetchFn = vi.fn(async () => json(200, []))
+    const api = httpApi(fetchFn)
+    await api.films()
+    await api.addFilm('https://youtu.be/dQw4w9WgXcQ', 'Lieder')
+    await api.removeFilm(4)
+    const calls = fetchFn.mock.calls.map(c => c as unknown as [string, RequestInit])
+    expect(calls.map(([url, init]) => [url, init.method])).toEqual([
+      ['/api/films', 'GET'], ['/api/films', 'POST'], ['/api/films/4', 'DELETE'],
+    ])
+    expect(JSON.parse(calls[1][1].body as string)).toEqual({ url: 'https://youtu.be/dQw4w9WgXcQ', title: 'Lieder' })
+  })
 })

@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from . import auth, game, hub, local, people
+from . import auth, films, game, hub, local, people
 from .auth import error, get_db
 from .buildings import Building, all_buildings
 from .people import Person
@@ -69,6 +69,11 @@ class RulesIn(BaseModel):
     play_minutes: Optional[int] = Field(ge=5, le=180)
     # Left out: the Stars stay as they are, with whatever was earned since the page was opened
     stars: Optional[int] = Field(default=None, ge=0, le=9999)
+
+
+class FilmIn(BaseModel):
+    url: str = Field(max_length=500)
+    title: str = Field(default="", max_length=60)
 
 
 class ChooseIn(BaseModel):
@@ -166,3 +171,23 @@ def set_rules(
     if not people.is_active(db, person_id):
         raise error(404, "unknown_person")
     return game.set_rules(db, person_id, body.daily_goal, body.play_minutes, body.stars).as_dict()
+
+
+@app.get("/api/films")
+def film_list(_: Person = Depends(auth.current_person), db: sqlite3.Connection = Depends(get_db)) -> list[dict]:
+    return films.listing(db)
+
+
+@app.post("/api/films")
+def add_film(body: FilmIn, _: Person = Depends(auth.parent), db: sqlite3.Connection = Depends(get_db)) -> dict:
+    try:
+        return films.add(db, body.url, body.title)
+    except films.Refused as refused:
+        raise error(422 if refused.code == "not_youtube" else 409, refused.code) from None
+
+
+@app.delete("/api/films/{film_id}")
+def remove_film(film_id: int, _: Person = Depends(auth.parent), db: sqlite3.Connection = Depends(get_db)) -> dict:
+    if not films.remove(db, film_id):
+        raise error(404, "unknown_film")
+    return {"ok": True}

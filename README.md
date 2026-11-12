@@ -16,6 +16,7 @@ The town square has a trampoline, balls to push and its buildings: learning at t
 | 🃏 Arcade | Memory with six pairs of animals | costs 3 per round |
 | 🐍 Schlange | The snake collects treasures until it bites itself | costs 3 per round |
 | 🍬 Bonbonjagd | Collect every sweet in a maze; chasers wander, a power-up turns the tables | costs 3 per round |
+| 🎬 Kino | One of the YouTube films the parents chose | costs 3 per film |
 
 **Free** buildings are always open: before the day's learning, with no Stars, and after the play time. They neither give nor cost Stars and don't count as play time.
 
@@ -24,7 +25,7 @@ When a parent has set a play time per day, the Arcade door shows a moon once it 
 
 **Each child has their own Stars**, kept by the game's server (`backend/`), so the laptop and the iPad show the same.
 Who is playing comes from the family hub's login; a coloured circle with the first letter next to the Star counter shows who it is.
-Parents get a gear next to the "?": their page shows every child's Stars and today's numbers, and sets the daily goal, the play time per day and the Stars.
+Parents get a gear next to the "?": their page shows every child's Stars and today's numbers, and sets the daily goal, the play time per day and the Stars. Below, they keep the Cinema's list of YouTube films (a link and a name each, at most 30, the same for every child).
 
 The idea behind the game is in [Learning City – Gameplay Design.md](Learning%20City%20%E2%80%93%20Gameplay%20Design.md).
 How it is built and what comes next is in [docs/superpowers/specs/2026-11-12-brightville-stage1-design.md](docs/superpowers/specs/2026-11-12-brightville-stage1-design.md);
@@ -32,7 +33,7 @@ the plan for stage 1 is in [docs/superpowers/plans/2026-11-12-brightville-stage1
 Stage 2 (School, Arcade, daily goal) has its own [design](docs/superpowers/specs/2026-11-12-brightville-stage2-design.md) and [plan](docs/superpowers/plans/2026-11-12-brightville-stage2.md).
 Stage 3 (iPad and NAS) has a [design](docs/superpowers/specs/2026-11-12-brightville-stage3-design.md) and a [plan for its first part](docs/superpowers/plans/2026-11-12-brightville-stage3-part1.md).
 Stage 4 (family login, server, parents) has a [design](docs/superpowers/specs/2026-11-12-brightville-stage4-design.md).
-Stage 5 (the rest of Spielzeugkiste) has a [design](docs/superpowers/specs/2026-11-12-brightville-stage5-design.md).
+Stage 5 (the rest of Spielzeugkiste) has a [design](docs/superpowers/specs/2026-11-12-brightville-stage5-design.md), and its third part (Cinema, paintings on the server, a bigger town) [another](docs/superpowers/specs/2026-11-12-brightville-stage5-part3-design.md).
 
 ## Run it
 
@@ -101,6 +102,10 @@ Tap a difference in either picture; the voice says what changed. The lamp 💡 c
 
 Arrow keys or WASD on the keyboard; a swipe anywhere or the arrow pad with a finger. The first direction starts the round.
 Schlange ends when the snake bites itself; Bonbonjagd when the five lives are gone or every sweet is eaten. Then the game goes back to the town by itself. Each look (unicorn or princess) and each maze is picked at random; Bonbonjagd always runs at the slow speed. The mazes are Brightville's own.
+
+## Kino
+
+The door stays grey until a parent added films. Inside, a tap on a film's picture plays it full size in YouTube's privacy-enhanced player (`youtube-nocookie.com`); when it ends, the child is back in the town. One film per 3 Stars; the leave button stops it any time. The page's security rules allow exactly that player and the films' pictures (`i.ytimg.com`), nothing else from YouTube.
 
 ## Ausmalen
 

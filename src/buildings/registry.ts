@@ -1,6 +1,9 @@
 import { doorState, type DoorState } from '@/core/access'
 import type { DoorDef } from '@/city/doors'
 import type { DeviceCaps } from '@/services/device'
+
+/** What the device can do, and what the town has: the Cinema needs films */
+export type Capabilities = DeviceCaps & { films?: boolean }
 import type { BuildingDef } from './types'
 import { defineAsyncComponent } from 'vue'
 
@@ -14,6 +17,7 @@ const malen = () => import('./malen/Malen.vue')
 const unterschiede = () => import('./unterschiede/Unterschiede.vue')
 const schlange = () => import('./schlange/Schlange.vue')
 const bonbonjagd = () => import('./bonbonjagd/Bonbonjagd.vue')
+const kino = () => import('./kino/Kino.vue')
 
 /**
  * Every building in the town: learning at the back, making things on the left, playing on the right.
@@ -21,58 +25,63 @@ const bonbonjagd = () => import('./bonbonjagd/Bonbonjagd.vue')
  */
 export const BUILDINGS: BuildingDef[] = [
   {
-    id: 'school', spokenName: 'Schule', icon: '🔢', kind: 'earn', needs: [], door: { x: -15, z: -14 },
+    id: 'school', spokenName: 'Schule', icon: '🔢', kind: 'earn', needs: [], door: { x: -25, z: -24 },
     component: defineAsyncComponent(school), preload: school,
   },
   {
     // Writing wants a finger or a pen on the glass; a mouse teaches nothing about it
-    id: 'schreiben', spokenName: 'Schreiben', icon: '✏️', kind: 'earn', needs: ['touch'], door: { x: -5, z: -14 },
+    id: 'schreiben', spokenName: 'Schreiben', icon: '✏️', kind: 'earn', needs: ['touch'], door: { x: -15, z: -24 },
     component: defineAsyncComponent(schreiben), preload: schreiben,
   },
   {
-    id: 'yoga', spokenName: 'Yoga', icon: '🧘', kind: 'earn', needs: ['camera'], door: { x: 5, z: -14 },
+    id: 'yoga', spokenName: 'Yoga', icon: '🧘', kind: 'earn', needs: ['camera'], door: { x: -5, z: -24 },
     component: defineAsyncComponent(yoga), preload: yoga,
   },
   {
-    id: 'unterschiede', spokenName: 'Unterschiede', icon: '🔍', kind: 'earn', needs: [], door: { x: 15, z: -14 },
+    id: 'unterschiede', spokenName: 'Unterschiede', icon: '🔍', kind: 'earn', needs: [], door: { x: 5, z: -24 },
     component: defineAsyncComponent(unterschiede), preload: unterschiede,
   },
   {
-    id: 'ausmalen', spokenName: 'Ausmalen', icon: '🎨', kind: 'free', needs: [], door: { x: -13, z: -6, side: 'left' },
+    id: 'ausmalen', spokenName: 'Ausmalen', icon: '🎨', kind: 'free', needs: [], door: { x: -23, z: -12, side: 'left' },
     component: defineAsyncComponent(ausmalen), preload: ausmalen,
   },
   {
-    id: 'malen', spokenName: 'Malen', icon: '🖌️', kind: 'free', needs: [], door: { x: -13, z: 4, side: 'left' },
+    id: 'malen', spokenName: 'Malen', icon: '🖌️', kind: 'free', needs: [], door: { x: -23, z: -2, side: 'left' },
     component: defineAsyncComponent(malen), preload: malen,
   },
   {
-    id: 'arcade', spokenName: 'Spielhalle', icon: '🃏', kind: 'play', cost: 3, needs: [], door: { x: 13, z: -6, side: 'right' },
+    id: 'arcade', spokenName: 'Spielhalle', icon: '🃏', kind: 'play', cost: 3, needs: [], door: { x: 23, z: -12, side: 'right' },
     component: defineAsyncComponent(arcade), preload: arcade,
   },
   {
-    id: 'schlange', spokenName: 'Schlange', icon: '🐍', kind: 'play', cost: 3, needs: [], door: { x: 13, z: 3, side: 'right' },
+    id: 'schlange', spokenName: 'Schlange', icon: '🐍', kind: 'play', cost: 3, needs: [], door: { x: 23, z: -2, side: 'right' },
     component: defineAsyncComponent(schlange), preload: schlange,
   },
   {
-    id: 'bonbonjagd', spokenName: 'Bonbonjagd', icon: '🍬', kind: 'play', cost: 3, needs: [], door: { x: 13, z: 12, side: 'right' },
+    id: 'bonbonjagd', spokenName: 'Bonbonjagd', icon: '🍬', kind: 'play', cost: 3, needs: [], door: { x: 23, z: 8, side: 'right' },
     component: defineAsyncComponent(bonbonjagd), preload: bonbonjagd,
+  },
+  {
+    // Shown, but closed, until the parents chose films
+    id: 'kino', spokenName: 'Kino', icon: '🎬', kind: 'play', cost: 3, needs: ['films'], door: { x: 23, z: 18, side: 'right' },
+    component: defineAsyncComponent(kino), preload: kino,
   },
 ]
 
-export function canServe(building: BuildingDef, device: DeviceCaps): boolean {
-  return building.needs.every(need => device[need])
+export function canServe(building: BuildingDef, device: Capabilities): boolean {
+  return building.needs.every(need => device[need] === true)
 }
 
 /** What the door of this building is to the child right now. */
 export function stateOf(
-  building: BuildingDef, device: DeviceCaps, goalReached: boolean, stars: number, timeUp = false,
+  building: BuildingDef, device: Capabilities, goalReached: boolean, stars: number, timeUp = false,
 ): DoorState {
   return doorState(building, canServe(building, device), goalReached, stars, timeUp)
 }
 
 /** The doors the town shows: one per building, open only when the child may walk in right now. */
 export function toDoors(
-  buildings: BuildingDef[], device: DeviceCaps, goalReached: boolean, stars: number, timeUp = false,
+  buildings: BuildingDef[], device: Capabilities, goalReached: boolean, stars: number, timeUp = false,
 ): DoorDef[] {
   return buildings.map(b => {
     const state = stateOf(b, device, goalReached, stars, timeUp)

@@ -4,6 +4,7 @@
   someone who left is hidden, not deleted.
 - players: Stars, the numbers of `day`, and the parent's settings.
 - events: every earning visit and round bought, under the key the page made up, so a request sent twice counts once.
+- films: the YouTube films the parents chose for the Cinema.
 """
 
 import os
@@ -12,7 +13,9 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
-SCHEMA = """
+# Each step brings the database from the version before it to the next; `user_version` says how far it is
+MIGRATIONS = [
+    """
 CREATE TABLE people (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
@@ -38,8 +41,16 @@ CREATE TABLE events (
     at TEXT NOT NULL,
     PRIMARY KEY (person_id, key)
 );
-"""
-VERSION = 1
+""",
+    """
+CREATE TABLE films (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    youtube_id TEXT NOT NULL UNIQUE,
+    title TEXT NOT NULL DEFAULT ''
+);
+""",
+]
+VERSION = len(MIGRATIONS)
 
 
 def path() -> Path:
@@ -60,12 +71,13 @@ def connect() -> sqlite3.Connection:
     connection.execute("PRAGMA journal_mode=WAL")
     if connection.execute("PRAGMA user_version").fetchone()[0] < VERSION:
         connection.execute("BEGIN IMMEDIATE")
-        # Another request may have set it up while this one waited for the lock
-        if connection.execute("PRAGMA user_version").fetchone()[0] < VERSION:
-            for statement in SCHEMA.split(";"):
+        # Another request may have brought it up to date while this one waited for the lock
+        done = connection.execute("PRAGMA user_version").fetchone()[0]
+        for step in MIGRATIONS[done:]:
+            for statement in step.split(";"):
                 if statement.strip():
                     connection.execute(statement)
-            connection.execute(f"PRAGMA user_version = {VERSION}")
+        connection.execute(f"PRAGMA user_version = {VERSION}")
         connection.execute("COMMIT")
     return connection
 
