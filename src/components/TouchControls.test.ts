@@ -59,6 +59,24 @@ describe('TouchControls', () => {
     expect(source.read().moveX).toBe(0)
   })
 
+  it('lets go when the page is hidden or loses the focus, and takes the next finger', async () => {
+    for (const lose of [() => window.dispatchEvent(new Event('blur')), () => {
+      Object.defineProperty(document, 'hidden', { value: true, configurable: true })
+      document.dispatchEvent(new Event('visibilitychange'))
+      Object.defineProperty(document, 'hidden', { value: false, configurable: true })
+    }]) {
+      const { source, area, w } = open()
+      await send(area, 'pointerdown', at(1, 100, 400))
+      await send(area, 'pointermove', at(1, 400, 400))
+      lose()
+      expect(source.read().moveX).toBe(0)
+      await send(area, 'pointerdown', at(2, 100, 400))
+      await send(area, 'pointermove', at(2, 100, 0))
+      expect(source.read().moveZ).toBeCloseTo(-1)
+      w.unmount()
+    }
+  })
+
   it('jumps on the button', async () => {
     const { source, w } = open()
     await w.find('[data-test="jump"]').trigger('pointerdown')

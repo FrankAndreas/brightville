@@ -407,6 +407,7 @@ describe('App', () => {
       cityOptions.onNearDoor('stub')
       await nextTick()
       await w.find('[data-test="door-prompt"]').trigger('pointerdown')
+      await w.find('[data-test="door-prompt"]').trigger('pointerup')
       await flushPromises()
       expect(w.find('[data-test="stub-building"]').exists()).toBe(true)
       w.unmount()
@@ -423,8 +424,10 @@ describe('App', () => {
       cityOptions.onNearDoor('play')
       await nextTick()
       const prompt = w.find('[data-test="door-prompt"]')
-      void prompt.trigger('pointerdown')
-      void prompt.trigger('pointerdown')
+      for (let tap = 0; tap < 2; tap++) {
+        void prompt.trigger('pointerdown')
+        void prompt.trigger('pointerup')
+      }
       await flushPromises()
       expect(usePlayerStore().stars).toBe(5)
       w.unmount()

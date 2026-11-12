@@ -19,15 +19,29 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ enter: [] }>()
 
-function tap() {
-  if (props.state === 'open') emit('enter')
+// A real tap only: a finger that lands here on its way to the stick, and drags on, must not go in
+const TAP_SLOP_PX = 24
+let press: { id: number; x: number; y: number } | null = null
+
+function down(e: PointerEvent) {
+  press = props.state === 'open' ? { id: e.pointerId, x: e.clientX, y: e.clientY } : null
+}
+
+function up(e: PointerEvent) {
+  const started = press
+  press = null
+  if (!started || started.id !== e.pointerId || props.state !== 'open') return
+  if (Math.hypot(e.clientX - started.x, e.clientY - started.y) <= TAP_SLOP_PX) emit('enter')
 }
 
 const STAR = 'M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.2 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z'
 </script>
 
 <template>
-  <div class="prompt" data-test="door-prompt" :data-state="state" aria-hidden="true" @pointerdown="tap">
+  <div
+    class="prompt" data-test="door-prompt" :data-state="state" aria-hidden="true"
+    :data-place="touch ? 'top' : 'bottom'" @pointerdown="down" @pointerup="up" @pointercancel="press = null"
+  >
     <span v-if="state === 'locked'" class="icon">🔒</span>
     <span class="icon" :class="{ crossed: state === 'unavailable', dim: state === 'locked' || state === 'poor' }">{{ icon }}</span>
 
@@ -68,6 +82,8 @@ const STAR = 'M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.2 5.9 20.6l1.4-6.8L2.2 9
   z-index: 5;
   pointer-events: none;
 }
+/* On a touch screen the bottom belongs to the stick and the jump button */
+.prompt[data-place='top'] { bottom: auto; top: calc(104px + env(safe-area-inset-top)); }
 .prompt[data-state='open'] { pointer-events: auto; cursor: pointer; touch-action: none; }
 .icon { font-size: 72px; line-height: 1; position: relative; }
 .icon.dim { filter: grayscale(1); opacity: 0.55; }

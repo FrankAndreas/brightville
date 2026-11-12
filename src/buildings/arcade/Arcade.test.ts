@@ -154,6 +154,8 @@ describe('Arcade', () => {
     const w = await open()
     await click(w, 0)
     await click(w, 2)
+    // the two cards differ: their turn-back timer is waiting
+    expect(vi.getTimerCount()).toBeGreaterThan(0)
     requestLeave()
     requestLeave()
     await run(10)

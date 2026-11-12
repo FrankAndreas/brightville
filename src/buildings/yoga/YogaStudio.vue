@@ -67,12 +67,12 @@ function send(event: YogaEvent) {
   }
 }
 
-/** Switches everything off. Safe to call more than once. */
 /** Takes back this building's answer to the leave button */
 let stopLeaveRequests = () => {}
 /** True once the no-camera picture has been up long enough to be seen */
 let mayConfirm = false
 
+/** Switches everything off. Safe to call more than once. */
 function shutDown() {
   if (closed) return
   closed = true

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { STICK_RADIUS, stickVector, type Point } from '@/input/stick'
 import type { TouchIntents } from '@/input/touch'
 
@@ -13,12 +13,15 @@ const knob = ref({ x: 0, y: 0 })
 let finger: number | null = null
 
 function down(e: PointerEvent) {
+  const area = e.currentTarget as Element | null
+  // A finger whose lifting never arrived (the iPad switched apps mid-drag) must not block the next one
+  if (finger !== null && area?.hasPointerCapture && !area.hasPointerCapture(finger)) letGo()
   if (finger !== null) return
   finger = e.pointerId
   origin.value = { x: e.clientX, y: e.clientY }
   knob.value = { x: 0, y: 0 }
   // Keeps the moves coming when the finger slides out of the area
-  ;(e.currentTarget as Element | null)?.setPointerCapture?.(e.pointerId)
+  area?.setPointerCapture?.(e.pointerId)
 }
 
 function move(e: PointerEvent) {
@@ -38,7 +41,16 @@ function letGo() {
   props.source.setStick(0, 0)
 }
 
-onBeforeUnmount(letGo)
+const onVisibility = () => { if (document.hidden) letGo() }
+onMounted(() => {
+  window.addEventListener('blur', letGo)
+  document.addEventListener('visibilitychange', onVisibility)
+})
+onBeforeUnmount(() => {
+  window.removeEventListener('blur', letGo)
+  document.removeEventListener('visibilitychange', onVisibility)
+  letGo()
+})
 </script>
 
 <template>
