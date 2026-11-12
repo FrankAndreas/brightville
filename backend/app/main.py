@@ -24,6 +24,8 @@ logger = logging.getLogger("uvicorn.error")
 async def lifespan(_: FastAPI):
     if hub.enabled():
         logger.info("Login: the family hub at %s", hub.client.hub_url())
+    elif not local.enabled():
+        logger.error("Neither HUB_URL nor LOCAL_MODE=1 is set: nobody can play. Set HUB_URL (see docs/deploy-nas.md)")
     else:
         names = ", ".join(f"{p.name} ({p.role})" for p in local.people())
         logger.warning("No HUB_URL: playing without a login. Anybody who opens the page can pick: %s", names)
@@ -65,7 +67,8 @@ class PlayTimeIn(BaseModel):
 class RulesIn(BaseModel):
     daily_goal: int = Field(ge=1, le=5)
     play_minutes: Optional[int] = Field(ge=5, le=180)
-    stars: int = Field(ge=0, le=9999)
+    # Left out: the Stars stay as they are, with whatever was earned since the page was opened
+    stars: Optional[int] = Field(default=None, ge=0, le=9999)
 
 
 class ChooseIn(BaseModel):
@@ -89,6 +92,7 @@ def health() -> dict:
 @app.get("/api/me")
 def me(request: Request, response: Response, db: sqlite3.Connection = Depends(get_db)) -> dict:
     """Who is playing. Without a hub nobody may be chosen yet: then `people` lists who can be."""
+    auth.check_configured()
     if hub.enabled():
         person: Optional[Person] = auth.current_person(request, response, db)
         choices: list[dict] = []
@@ -108,6 +112,7 @@ def me(request: Request, response: Response, db: sqlite3.Connection = Depends(ge
 def choose(body: ChooseIn, request: Request, response: Response) -> dict:
     if hub.enabled():
         raise error(404, "not_found")
+    auth.check_configured()
     auth.check_csrf(request)
     if not any(p.id == body.id for p in local.people()):
         raise error(404, "unknown_person")

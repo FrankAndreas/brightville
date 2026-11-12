@@ -36,15 +36,19 @@ async function load() {
 
 async function save(id: number) {
   const draft = drafts[id]
+  const row = rows.value.find(r => r.id === id)!
   const stars = Math.round(Number(draft.stars))
   if (!Number.isFinite(stars) || stars < 0 || stars > 9999) {
     message[id] = 'Sterne: eine Zahl von 0 bis 9999.'
     return
   }
+  // Stars only when they were changed here: a child may have earned some since the page was loaded
+  const rules: Rules = { daily_goal: draft.daily_goal, play_minutes: draft.play_minutes }
+  if (stars !== row.stars) rules.stars = stars
   saving.value = id
   try {
-    const saved = await props.api.setRules(id, { ...draft, stars })
-    Object.assign(rows.value.find(r => r.id === id)!, saved)
+    const saved = await props.api.setRules(id, rules)
+    Object.assign(row, saved)
     drafts[id].stars = saved.stars
     message[id] = 'Gespeichert.'
     emit('saved', id)

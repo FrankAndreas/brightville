@@ -33,6 +33,8 @@ export const useSessionStore = defineStore('session', () => {
   const status = ref<SessionStatus>('loading')
   const me = shallowRef<Me | null>(null)
   const api = shallowRef<Api | null>(null)
+  /** The hub login is in its last week: pass through the hub once, at a moment that interrupts nothing */
+  const renewWanted = ref(false)
   let go: (url: string) => void = url => window.location.assign(url)
 
   const person = computed(() => me.value?.person ?? null)
@@ -73,9 +75,20 @@ export const useSessionStore = defineStore('session', () => {
     await ask()
   }
 
+  function wantRenew() {
+    renewWanted.value = true
+  }
+
+  function navigate(url: string) {
+    go(url)
+  }
+
   function switchPerson() {
     if (canSwitch.value) status.value = 'choose'
   }
 
-  return { status, me, api, person, people, isParent, canSwitch, start, retry: ask, choose, switchPerson }
+  return {
+    status, me, api, person, people, isParent, canSwitch, renewWanted,
+    start, retry: ask, choose, switchPerson, wantRenew, navigate,
+  }
 })

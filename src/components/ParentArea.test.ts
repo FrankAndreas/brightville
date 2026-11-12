@@ -47,7 +47,8 @@ describe('ParentArea', () => {
     await select.trigger('change')
     await card(w, 1).find('[data-test="save"]').trigger('click')
     await flushPromises()
-    expect(api.calls.at(-1)).toBe('setRules 1 {"daily_goal":2,"play_minutes":null,"stars":0}')
+    // The Stars weren't touched: they aren't sent, so Stars earned meanwhile stay
+    expect(api.calls.at(-1)).toBe('setRules 1 {"daily_goal":2,"play_minutes":null}')
   })
 
   it('does not send a Star count out of range', async () => {

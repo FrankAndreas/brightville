@@ -31,11 +31,28 @@ export const usePlayerStore = defineStore('player', () => {
   const loaded = ref(false)
   /** Earning visits the server doesn't know about yet */
   const waiting = ref<PendingVisit[]>([])
+  /** The server's day, as of its last answer */
+  const day = ref('')
 
   let api: Api | null = null
   let storage: Storage | undefined
   let outboxKey = ''
   let flushing: Promise<void> | null = null
+  let loginLost: () => void = () => {}
+  /**
+   * The round asked for at a door whose answer never came. Asking again with the same key either finds it bought
+   * (no second charge) or buys it now; a key from another day buys nothing.
+   */
+  const unanswered = new Map<string, { key: string; day: string }>()
+
+  /** A 401 or 403: the login ended or access was taken away, which the page must show rather than retry for ever */
+  function checkLogin(e: unknown): boolean {
+    if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
+      loginLost()
+      return true
+    }
+    return false
+  }
 
   const goalReached = computed(() => visitsToday.value >= dailyGoal.value)
   const timeUp = computed(() => playMinutes.value !== null && playSeconds.value >= playMinutes.value * 60)
@@ -47,6 +64,7 @@ export const usePlayerStore = defineStore('player', () => {
     dailyGoal.value = state.daily_goal
     playSeconds.value = state.play_seconds
     playMinutes.value = state.play_minutes
+    day.value = state.day
     loaded.value = true
     // What still waits is not in the server's numbers yet
     for (const visit of waiting.value) addLocally(visit.stars)
@@ -76,13 +94,20 @@ export const usePlayerStore = defineStore('player', () => {
     }
   }
 
-  /** `personId` keeps one child's waiting visits apart from another's on the same device. */
-  function init(server: Api, personId: number, store?: Storage) {
+  /**
+   * `personId` keeps one child's waiting visits apart from another's on the same device. `onLoginLost` is called
+   * when the server no longer takes the login.
+   */
+  function init(server: Api, personId: number, store?: Storage, onLoginLost: () => void = () => {}) {
     api = server
     storage = store
     outboxKey = `brightville.outbox.${personId}`
     waiting.value = readOutbox()
     loaded.value = false
+    loginLost = onLoginLost
+    unanswered.clear()
+    // A send still under way belongs to the person before; it checks and stops by itself
+    flushing = null
   }
 
   /** Sends what waits, oldest first. Stops at the first one the server can't be reached for. */
@@ -92,16 +117,21 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   async function sendWaiting() {
-    while (api && waiting.value.length > 0) {
+    // The person whose visits these are: the device may change hands while a request is under way
+    const owner = outboxKey
+    while (api && owner === outboxKey && waiting.value.length > 0) {
       const visit = waiting.value[0]
       try {
         const answer = await api.visit(visit.building, visit.stars, visit.key)
+        if (owner !== outboxKey) return
         waiting.value = waiting.value.slice(1)
         writeOutbox()
         apply(answer.state)
       } catch (e) {
-        // The server will never take this one (a building that no longer exists): let it go
-        const refused = e instanceof ApiError && e.status >= 400 && e.status < 500 && e.status !== 401 && e.status !== 403
+        if (owner !== outboxKey || checkLogin(e)) return
+        // The server will never take this one (a building that no longer exists): let it go. Anything else,
+        // an error page from a proxy included, may pass: keep it
+        const refused = e instanceof ApiError && (e.code === 'unknown_building' || e.code === 'wrong_kind')
         if (!refused) return
         waiting.value = waiting.value.slice(1)
         writeOutbox()
@@ -115,8 +145,9 @@ export const usePlayerStore = defineStore('player', () => {
     await flush()
     try {
       apply(await api.state())
-    } catch {
+    } catch (e) {
       // Keep showing what we have; the next refresh tries again
+      checkLogin(e)
     }
   }
 
@@ -138,16 +169,22 @@ export const usePlayerStore = defineStore('player', () => {
   /** Asks the server for a round of play. Nothing is taken unless it says yes. */
   async function buy(building: string): Promise<BuyResult> {
     if (!api) return 'offline'
+    const kept = unanswered.get(building)
+    const key = kept && kept.day === day.value ? kept.key : newKey()
+    unanswered.set(building, { key, day: day.value })
     try {
-      apply((await api.play(building, newKey())).state)
+      apply((await api.play(building, key)).state)
+      unanswered.delete(building)
       return 'ok'
     } catch (e) {
       const code = e instanceof ApiError ? e.code : 'offline'
       if (code === 'locked' || code === 'poor' || code === 'time_up') {
+        unanswered.delete(building)
         // The server knows better (a new day, a parent's change): show what it knows before saying why
         await refresh()
         return code
       }
+      if (!checkLogin(e)) void refresh()
       return 'offline'
     }
   }
@@ -158,8 +195,9 @@ export const usePlayerStore = defineStore('player', () => {
     if (!api || whole <= 0) return
     try {
       apply(await api.playTime(Math.min(whole, 3600)))
-    } catch {
+    } catch (e) {
       // not worth a retry
+      checkLogin(e)
     }
   }
 

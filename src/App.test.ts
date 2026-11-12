@@ -10,6 +10,7 @@ import type { BuildingDef, BuildingResult } from './buildings/types'
 import { fakeApi, type FakeApi } from './services/fakeApi'
 import { ApiError } from './services/api'
 import { usePlayerStore } from './stores/player'
+import { useSessionStore } from './stores/session'
 
 vi.mock('./city/city', () => ({ createCity: vi.fn() }))
 vi.mock('./services/sound', () => ({ unlockAudio: vi.fn(), playBeat: vi.fn() }))
@@ -437,6 +438,24 @@ describe('App', () => {
       }
     })
 
+    it('counts no more than a moment for time the iPad slept in a play building', async () => {
+      vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] })
+      try {
+        Object.assign(api.state_, { stars: 10, visits: 2 })
+        const w = await started([stub, play])
+        cityOptions.onEnter('play')
+        await flushPromises()
+        vi.setSystemTime(Date.now() + 8 * 3600_000)
+        vi.advanceTimersByTime(30_000)
+        finishWith({ stars: 0 })
+        await flushPromises()
+        expect(api.state_.play_seconds).toBeLessThanOrEqual(45)
+        w.unmount()
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
     it('keeps earned stars when the server is away, and sends them later', async () => {
       const w = await started([stub, play])
       api.offline = true
@@ -524,6 +543,52 @@ describe('App', () => {
       await flushPromises()
       expect(w.find('[data-test="server-screen"]').attributes('data-kind')).toBe('no_access')
       expect(w.find('[data-test="game"]').exists()).toBe(false)
+      w.unmount()
+    })
+  })
+
+  describe('the hub login during play', () => {
+    async function withNavigation(server: FakeApi = api) {
+      const go = vi.fn()
+      const pinia = createPinia()
+      await useSessionStore(pinia).start(server, go)
+      const w = mount(App, { props: { buildings: [stub, play], api: server }, global: { plugins: [pinia] } })
+      await w.find('[data-test="start-gate"]').trigger('pointerdown')
+      await flushPromises()
+      if (w.find('[data-test="help"]').exists()) await w.find('[data-test="help"]').trigger('pointerdown')
+      return { w, go, session: useSessionStore(pinia) }
+    }
+
+    it('goes to the hub when the login ends mid-game', async () => {
+      const { w, go } = await withNavigation()
+      api.me = async () => { throw new ApiError(401, 'not_logged_in', 'https://hub.test/?next=') }
+      api.state = async () => { throw new ApiError(401, 'not_logged_in', 'https://hub.test/?next=') }
+      document.dispatchEvent(new Event('visibilitychange'))
+      await flushPromises()
+      expect(go).toHaveBeenCalledWith(`https://hub.test/?next=${encodeURIComponent(window.location.href)}`)
+      w.unmount()
+    })
+
+    it('shows the closed door when access is taken away mid-game', async () => {
+      const { w } = await withNavigation()
+      api.me = async () => { throw new ApiError(403, 'no_access') }
+      api.state = async () => { throw new ApiError(403, 'no_access') }
+      document.dispatchEvent(new Event('visibilitychange'))
+      await flushPromises()
+      expect(w.find('[data-test="server-screen"]').attributes('data-kind')).toBe('no_access')
+      w.unmount()
+    })
+
+    it('renews a login in its last week while the child walks around, not inside a building', async () => {
+      const { w, go, session } = await withNavigation()
+      cityOptions.onEnter('stub')
+      await flushPromises()
+      session.wantRenew()
+      await flushPromises()
+      expect(go).not.toHaveBeenCalled()
+      finishWith({ stars: 0 })
+      await flushPromises()
+      expect(go).toHaveBeenCalledWith(`https://hub.test/?next=${encodeURIComponent(window.location.href)}`)
       w.unmount()
     })
   })

@@ -35,7 +35,7 @@ Who is playing comes from the family hub's login (family-hub's README, "For apps
    - `HUB_PUBLIC_URL`: where browsers log in and out.
    - `HUB_APP_KEY`: only if the hub tile's app key is not `brightville`.
    - `ALLOWED_HOSTS`: the names browsers use for the game; any other name gets nothing.
-   - **Never leave `HUB_URL` empty on the NAS.** Without it there is no login: anybody who opens the page can pick a parent and change the Stars. The backend's log says so when it starts ("No HUB_URL").
+   - Without `HUB_URL` nobody gets in: the page shows a sleeping cloud and the backend's log says why. **Never set `LOCAL_MODE=1` on the NAS**: it is for trying the game out without a hub, and lets anybody pick a parent.
 4. **Start** it:
    ```bash
    sudo docker-compose pull
@@ -127,6 +127,7 @@ It shows how the NAS's `nas-update.sh` differs from the repository's, uploads it
 | After logging in at the hub, the game shows a sleeping cloud | The game isn't opened at its `*.local.<domain>` address, so the hub's cookie doesn't reach it (the game goes to the hub at most once in ten minutes, so it can't loop) | Use `https://brightville.local.<domain>` |
 | A closed door with "noch nicht freigeschaltet" | The person isn't ticked in the hub tile, or the tile has no app key or a different one | Hub → Einstellungen → Apps → Brightville |
 | A sleeping cloud | The backend isn't running, or can't reach the hub | `sudo docker logs brightville-backend` |
-| Everyone can pick who plays, without a login | `HUB_URL` is empty | Set it in `.env`, then `sudo docker-compose up -d` |
+| A sleeping cloud, and the backend's log says "Neither HUB_URL nor LOCAL_MODE=1" | `HUB_URL` is missing in `.env` | Set it, then `sudo docker-compose up -d` |
+| Everyone can pick who plays, without a login | `LOCAL_MODE=1` is set | Remove it from `.env` and set `HUB_URL`, then `sudo docker-compose up -d` |
 | The Yoga Studio door is grey | The page is open over plain `http://` | Use the HTTPS address |
 | No voice on the iPad | The ring switch or volume is off, or no German voice is installed | Turn the sound on; **Settings → Accessibility → Spoken Content → Voices → Deutsch** |

@@ -15,6 +15,8 @@ if [ ! -x venv/bin/uvicorn ]; then
     exit 1
 fi
 export DATA_DIR="${DATA_DIR:-$root/backend/data}"
+# Without a hub the server lets nobody in unless asked to: here that is the point
+[ -z "${HUB_URL:-}" ] && export LOCAL_MODE=1
 (cd backend && exec ../venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload) &
 server=$!
 trap 'kill $server 2>/dev/null || true' EXIT INT TERM

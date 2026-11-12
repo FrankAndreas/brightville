@@ -9,6 +9,8 @@ export interface FakeApi extends Api {
   calls: string[]
   /** While true no request gets through */
   offline: boolean
+  /** While true every request is carried out, but its answer is lost on the way back */
+  loseAnswers: boolean
   rows: PlayerRow[]
   /** The server's calendar turns a page */
   newDay(day: string): void
@@ -25,6 +27,7 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
     me_: { mode: 'hub', person: KID, people: [], login_url: 'https://hub.test/?next=', logout_url: 'https://hub.test/logout?next=', ...me },
     calls: [],
     offline: false,
+    loseAnswers: false,
     rows: [],
     newDay(day) {
       Object.assign(state, { day, visits: 0, play_seconds: 0 })
@@ -43,12 +46,13 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
       return { state: { ...state }, goal_reached_now: !before && state.visits >= state.daily_goal }
     }),
     play: (building, key) => run(`play ${building}`, () => {
-      if (seen.has(key)) return { state: { ...state } }
+      // A round key counts on the day it was bought only, as on the server
+      if (seen.has(`${state.day} ${key}`)) return { state: { ...state } }
       const cost = find(building)?.cost ?? 3
       if (state.visits < state.daily_goal) throw new ApiError(409, 'locked')
       if (state.play_minutes !== null && state.play_seconds >= state.play_minutes * 60) throw new ApiError(409, 'time_up')
       if (state.stars < cost) throw new ApiError(409, 'poor')
-      seen.add(key)
+      seen.add(`${state.day} ${key}`)
       state.stars -= cost
       return { state: { ...state } }
     }),
@@ -73,7 +77,9 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
   async function run<T>(name: string, fn: () => T): Promise<T> {
     api.calls.push(name)
     if (api.offline) throw new ApiError(0, 'offline')
-    return fn()
+    const answer = fn()
+    if (api.loseAnswers) throw new ApiError(0, 'offline')
+    return answer
   }
   return api
 }

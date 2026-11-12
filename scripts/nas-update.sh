@@ -18,7 +18,7 @@
 # Exit codes: 0 = up to date or updated successfully, 1 = failure (including a
 #             backend that isn't healthy, and an update that was rolled back).
 # Adapted from family-hub's scripts/nas-update.sh.
-# See docs/deploy-nas.md ("Automatic updates") for the Task Scheduler setup.
+# See docs/deploy-nas.md ("Automatic updates") for the Task Scheduler setup. Only the backend's health is checked.
 
 set -uo pipefail
 
@@ -246,7 +246,7 @@ roll_back() {
 }
 
 # Keep the running images as :previous, so pruning can't remove them and a
-# rollback stays possible (see "Rolling back an update" in README_DOCKER.md)
+# rollback stays possible (see "Rolling back an update" in docs/deploy-nas.md)
 for service in $changed; do
     cid=$(container_of "$service")
     [ -z "$cid" ] && continue

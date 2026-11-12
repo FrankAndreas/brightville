@@ -42,7 +42,7 @@ npm run build      # type check, then static files in dist/
 venv/bin/pytest    # the server's tests
 ```
 
-**Trying it here, without the family hub:** `npm run dev` starts the server without `HUB_URL`, so there is no login. The page asks who plays: big coloured circles for the people of `LOCAL_PEOPLE` (default "Kind" and "Eltern"). Tapping the circle in the town hands the game to someone else. Pick your own people:
+**Trying it here, without the family hub:** `npm run dev` starts the server without `HUB_URL` and with `LOCAL_MODE=1`, so there is no login. The page asks who plays: big coloured circles for the people of `LOCAL_PEOPLE` (default "Kind" and "Eltern"). Tapping the circle in the town hands the game to someone else. Pick your own people:
 
 ```bash
 LOCAL_PEOPLE="Mia:CHILD,Ben:CHILD,Papa:PARENT" npm run dev

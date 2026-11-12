@@ -31,7 +31,8 @@ export interface ServerState {
 export interface Rules {
   daily_goal: number
   play_minutes: number | null
-  stars: number
+  /** Left out: the Stars stay as they are, with whatever was earned since the page was loaded */
+  stars?: number
 }
 
 export type PlayerRow = Person & ServerState

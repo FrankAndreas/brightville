@@ -1,8 +1,14 @@
 """Playing without the family hub, for trying the game out: the people come from LOCAL_PEOPLE and whoever opens the
-page picks one, with no PIN. Anybody can pick a parent, so this is not for a NAS the children can reach."""
+page picks one, with no PIN. Anybody can pick a parent, so this is not for a NAS the children can reach: it has to be
+asked for with LOCAL_MODE=1, and a missing HUB_URL alone lets nobody in."""
 
 import os
 from dataclasses import dataclass
+
+
+def enabled() -> bool:
+    return os.getenv("LOCAL_MODE") == "1"
+
 
 DEFAULT_PEOPLE = "Kind:CHILD,Eltern:PARENT"
 COLORS = ["#ff9a3c", "#4f8fe8", "#4bd37b", "#e86fb0", "#a58bf0", "#f2c230"]

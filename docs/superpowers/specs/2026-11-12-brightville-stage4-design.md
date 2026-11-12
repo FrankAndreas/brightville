@@ -35,7 +35,7 @@ Who is playing comes from the family hub's login; without a hub the game still r
 
 | | With the family hub | Without (trying it out) |
 |---|---|---|
-| Switched on by | `HUB_URL` set | `HUB_URL` empty |
+| Switched on by | `HUB_URL` set | `HUB_URL` empty and `LOCAL_MODE=1` (`npm run dev` sets it); with neither, nobody gets in |
 | Who plays | the person logged in at the hub | chosen on a picture screen, no PIN |
 | People | those the hub lets use the app | `LOCAL_PEOPLE`, default `Kind:CHILD,Eltern:PARENT` |
 | Parent area | hub parents | whoever picks a parent **(so: not for the NAS)** |
@@ -69,7 +69,7 @@ The game rules that touch Stars move to the server; the browser asks and shows.
 | `POST /api/local/choose` | no-hub mode only | pick who plays |
 
 Changes need the header `X-Requested-With: brightville`, as in the other family apps.
-What each building is (earn or play, price, most Stars per visit) is one file, `shared/buildings.json`, read by both the browser and the server.
+What each building is (earn or play, price, most Stars per visit) is one file, `shared/buildings.json`, read by the server; the browser's list of buildings keeps its own prices and a test checks the two agree. **(call)**
 
 ## In the game
 
@@ -80,13 +80,13 @@ What each building is (earn or play, price, most Stars per visit) is one file, `
 - **Who plays:** a coloured circle with the first letter of the name next to the Star counter. Without a hub, tapping it opens the picture choice again.
 - **Earning:** on leaving a building the visit is sent. If that fails it is kept in the browser and sent again later; the Stars already show. **(call)**
 - **Spending:** the server decides at the door. No answer means no entry and no Stars taken.
-- **Play-time limit:** time inside play buildings counts. When today's minutes are used up, the Arcade door shows a moon and the voice says "Für heute ist genug gespielt. Morgen wieder!". A round already started may be finished. **(call)**
+- **Play-time limit:** time inside play buildings counts, at most 45 seconds per report, so a sleeping iPad doesn't use up tomorrow's time. When today's minutes are used up, the Arcade door shows a moon and the voice says "Für heute ist genug gespielt. Morgen wieder!". A round already started may be finished. **(call)**
 - **The daily goal** is the child's own number from the parent area (default 2).
 - **Stars from before:** Stars saved in the browser by stages 1–3 are not carried over by themselves; a parent types the number in once. **(call: one browser's Stars can't be tied to one child safely)**
 
 ## Parent area
 
-A gear button next to the "?" in the town, shown only to parents.
+A gear button next to the "?" in the town, shown only to parents. Saving sends the Stars only when they were changed, so Stars a child earned meanwhile are kept.
 It opens a plain German page (parents read): one card per child with Stars, today's visits and play minutes, and three settings: daily goal, play minutes per day, Stars.
 With a hub, a link leads to the hub's logout.
 

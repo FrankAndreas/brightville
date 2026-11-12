@@ -9,6 +9,7 @@ from app.main import app
 def browser(monkeypatch):
     monkeypatch.delenv("HUB_URL")
     monkeypatch.delenv("HUB_PUBLIC_URL")
+    monkeypatch.setenv("LOCAL_MODE", "1")
     browser = TestClient(app)
     browser.headers.update(CSRF)
     return browser
@@ -55,6 +56,24 @@ def test_a_cookie_for_someone_no_longer_named_is_no_login(browser, monkeypatch):
 def test_the_local_parent_sees_the_children(browser):
     browser.post("/api/local/choose", json={"id": 2})
     assert [p["name"] for p in browser.get("/api/players").json()] == ["Kind", "Eltern"]
+
+
+def test_without_a_hub_and_without_local_mode_nobody_gets_in(monkeypatch):
+    monkeypatch.delenv("HUB_URL")
+    browser = TestClient(app)
+    browser.headers.update(CSRF)
+    for answer in (
+        browser.get("/api/me"),
+        browser.get("/api/state"),
+        browser.post("/api/local/choose", json={"id": 2}),
+    ):
+        assert answer.status_code == 503
+        assert answer.json()["detail"]["code"] == "not_configured"
+
+
+def test_choosing_needs_the_header_too(browser):
+    del browser.headers["X-Requested-With"]
+    assert browser.post("/api/local/choose", json={"id": 2}).status_code == 403
 
 
 def test_with_a_hub_there_is_no_choosing(mia):

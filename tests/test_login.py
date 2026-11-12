@@ -1,3 +1,4 @@
+import pytest
 from conftest import CSRF, as_person
 from fastapi.testclient import TestClient
 
@@ -89,3 +90,36 @@ def test_the_database_can_be_named_as_in_the_other_family_apps(tmp_path, monkeyp
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path}/other/game.db")
     assert db.path() == tmp_path / "other" / "game.db"
     assert db.path().parent.is_dir()
+
+
+@pytest.mark.parametrize(
+    "method, path, body",
+    [
+        ("post", "/api/plays", {"building": "arcade", "key": "p"}),
+        ("post", "/api/playtime", {"seconds": 5}),
+        ("put", "/api/players/2", {"daily_goal": 1, "play_minutes": None, "stars": 1}),
+    ],
+)
+def test_every_change_needs_the_header(family_hub, method, path, body):
+    browser = TestClient(app)
+    browser.cookies.set("hub_session", "tok-Papa")
+    answer = getattr(browser, method)(path, json=body)
+    assert answer.status_code == 403
+    assert answer.json()["detail"]["code"] == "csrf"
+
+
+def test_an_ended_parent_login_does_not_hide_the_children(papa, family_hub):
+    assert len(papa.get("/api/players").json()) == 3
+    from app import auth, db, hub
+
+    family_hub.down = False
+    hub.client.transport = lambda path, headers: (403, None) if "/people" in path else family_hub(path, headers)
+    connection = db.connect()
+    try:
+        from starlette.requests import Request
+
+        request = Request({"type": "http", "headers": [(b"authorization", b"Bearer tok-Papa")], "method": "GET"})
+        auth.refresh_people(request, connection)
+        assert connection.execute("SELECT COUNT(*) FROM people WHERE active = 1").fetchone()[0] == 3
+    finally:
+        connection.close()

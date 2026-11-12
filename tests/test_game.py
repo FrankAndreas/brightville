@@ -141,3 +141,13 @@ def test_the_day_is_the_one_at_home_not_utc(mia, monkeypatch):
 def test_each_person_has_their_own_stars(mia, family_hub):
     visit(mia, 6, "v1")
     assert as_person("Ben").get("/api/state").json()["stars"] == 0
+
+
+def test_a_round_bought_yesterday_is_not_free_today(mia, monkeypatch):
+    visit(mia, 5, "v1")
+    visit(mia, 5, "v2")
+    assert play(mia, "p1").status_code == 200
+    set_time(monkeypatch, "2026-11-13 08:00")
+    answer = play(mia, "p1")
+    assert answer.status_code == 409
+    assert answer.json()["detail"]["code"] == "locked"

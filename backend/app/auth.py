@@ -60,12 +60,21 @@ def local_person(request: Request) -> Optional[Person]:
     return next((Person.of(p) for p in local.people() if str(p.id) == chosen), None)
 
 
+def check_configured() -> None:
+    """Without HUB_URL only an explicit LOCAL_MODE=1 lets anyone in.
+
+    A forgotten setting must not open the parents' page."""
+    if not hub.enabled() and not local.enabled():
+        raise error(status.HTTP_503_SERVICE_UNAVAILABLE, "not_configured")
+
+
 def check_csrf(request: Request) -> None:
     if request.method not in SAFE_METHODS and request.headers.get(CSRF_HEADER) != CSRF_VALUE:
         raise error(status.HTTP_403_FORBIDDEN, "csrf")
 
 
 def current_person(request: Request, response: Response, db: sqlite3.Connection = Depends(get_db)) -> Person:
+    check_configured()
     check_csrf(request)
     if not hub.enabled():
         person = local_person(request)
@@ -108,7 +117,10 @@ def refresh_people(request: Request, db: sqlite3.Connection) -> None:
     if login is None:
         return
     try:
-        people.replace_all(db, (Person.of(p) for p in hub.client.fetch_people(login)))
+        everyone = hub.client.fetch_people(login)
+        # An empty answer is a login that just ended, not a family that left: keep the list as it is
+        if everyone:
+            people.replace_all(db, (Person.of(p) for p in everyone))
     except hub.HubUnavailable as problem:
         logger.warning("The family hub can't be reached (%s)", problem)
         raise error(status.HTTP_503_SERVICE_UNAVAILABLE, "hub_unavailable") from None

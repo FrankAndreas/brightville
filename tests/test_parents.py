@@ -52,6 +52,15 @@ def test_the_goal_reached_flag_follows_the_childs_own_goal(papa, mia):
     )
 
 
+def test_a_parent_may_leave_the_stars_alone(papa, mia):
+    papa.get("/api/players")
+    mia.post("/api/visits", json={"building": "school", "stars": 6, "key": "v"})
+    answer = papa.put("/api/players/2", json={"daily_goal": 3, "play_minutes": 10})
+    assert answer.status_code == 200
+    assert mia.get("/api/state").json()["stars"] == 6
+    assert mia.get("/api/state").json()["daily_goal"] == 3
+
+
 def test_settings_out_of_range_are_refused(papa):
     for body in (
         {"daily_goal": 0, "play_minutes": None, "stars": 0},

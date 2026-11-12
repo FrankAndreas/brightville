@@ -24,6 +24,7 @@ def fresh(tmp_path, monkeypatch):
     monkeypatch.setenv("HUB_URL", "http://hub.test")
     monkeypatch.setenv("HUB_PUBLIC_URL", "https://home.local.example")
     monkeypatch.delenv("LOCAL_PEOPLE", raising=False)
+    monkeypatch.delenv("LOCAL_MODE", raising=False)
     monkeypatch.delenv("TZ", raising=False)
     set_time(monkeypatch, "2026-11-12 10:00")
 

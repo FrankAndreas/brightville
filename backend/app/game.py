@@ -67,9 +67,15 @@ def _seen(db: sqlite3.Connection, person_id: int, key: str) -> bool:
     return db.execute("SELECT 1 FROM events WHERE person_id = ? AND key = ?", (person_id, key)).fetchone() is not None
 
 
+def _seen_today(db: sqlite3.Connection, person_id: int, key: str) -> bool:
+    """A round bought today under this key. A key from another day buys nothing: learn first, every day."""
+    row = db.execute("SELECT at FROM events WHERE person_id = ? AND key = ?", (person_id, key)).fetchone()
+    return row is not None and row["at"][:10] == clock.today()
+
+
 def _log(db: sqlite3.Connection, person_id: int, key: str, kind: str, building: str, stars: int) -> None:
     db.execute(
-        "INSERT INTO events (person_id, key, kind, building, stars, at) VALUES (?, ?, ?, ?, ?, ?)",
+        "INSERT OR REPLACE INTO events (person_id, key, kind, building, stars, at) VALUES (?, ?, ?, ?, ?, ?)",
         (person_id, key, kind, building, stars, clock.now().isoformat(timespec="seconds")),
     )
 
@@ -98,7 +104,8 @@ def play(db: sqlite3.Connection, person_id: int, building: Building, key: str) -
     """Buys one round. Learn first: never before today's goal; then the play time, then the price."""
     with writing(db):
         now = _row(db, person_id)
-        if _seen(db, person_id, key):
+        # Sent again because the answer was lost: the round is bought already
+        if _seen_today(db, person_id, key):
             return now
         if not now.goal_reached():
             raise Refused("locked")
@@ -121,11 +128,13 @@ def add_play_time(db: sqlite3.Connection, person_id: int, seconds: int) -> State
 
 
 def set_rules(
-    db: sqlite3.Connection, person_id: int, daily_goal: int, play_minutes: Optional[int], stars: int
+    db: sqlite3.Connection, person_id: int, daily_goal: int, play_minutes: Optional[int], stars: Optional[int]
 ) -> State:
-    """A parent's settings; today's visits and play time stay as they are."""
+    """A parent's settings; today's visits and play time stay as they are, and the Stars too when `stars` is None."""
     with writing(db):
         now = _row(db, person_id)
-        now.daily_goal, now.play_minutes, now.stars = daily_goal, play_minutes, stars
+        now.daily_goal, now.play_minutes = daily_goal, play_minutes
+        if stars is not None:
+            now.stars = stars
         _store(db, person_id, now)
         return now

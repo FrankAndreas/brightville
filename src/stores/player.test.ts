@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { ApiError } from '@/services/api'
 import { fakeApi, type FakeApi } from '@/services/fakeApi'
@@ -118,6 +118,78 @@ describe('player store', () => {
     const other = await open(2)
     expect(other.pending).toBe(0)
     expect(api.state_.stars).toBe(0)
+  })
+
+  it('pays once for a round whose answer got lost, and lets the child in on the next try', async () => {
+    Object.assign(api.state_, { stars: 10, visits: 2 })
+    const player = await open()
+    api.loseAnswers = true
+    expect(await player.buy('arcade')).toBe('offline')
+    expect(api.state_.stars).toBe(7)
+    api.loseAnswers = false
+    expect(await player.buy('arcade')).toBe('ok')
+    expect(api.state_.stars).toBe(7)
+    expect(await player.buy('arcade')).toBe('ok')
+    expect(api.state_.stars).toBe(4)
+  })
+
+  it('does not carry a lost round into the next day', async () => {
+    Object.assign(api.state_, { stars: 10, visits: 2 })
+    const player = await open()
+    api.loseAnswers = true
+    await player.buy('arcade')
+    api.loseAnswers = false
+    api.newDay('2026-11-13')
+    await player.refresh()
+    expect(await player.buy('arcade')).toBe('locked')
+  })
+
+  it('keeps a waiting visit through an error page without a code', async () => {
+    const player = await open()
+    api.offline = true
+    await player.earn('school', 5)
+    api.offline = false
+    const send = api.visit
+    api.visit = async () => { throw new ApiError(404, 'offline') }
+    await player.refresh()
+    expect(player.pending).toBe(1)
+    api.visit = send
+    await player.refresh()
+    expect(player.pending).toBe(0)
+    expect(api.state_.stars).toBe(9)
+  })
+
+  it('says when the login is gone, instead of quietly failing', async () => {
+    const lost = vi.fn()
+    const player = usePlayerStore()
+    player.init(api, 1, storage, lost)
+    await player.refresh()
+    api.state = async () => { throw new ApiError(401, 'not_logged_in', 'https://hub/?next=') }
+    await player.refresh()
+    expect(lost).toHaveBeenCalledTimes(1)
+    api.visit = async () => { throw new ApiError(403, 'no_access') }
+    await player.earn('school', 2)
+    expect(lost).toHaveBeenCalledTimes(2)
+    expect(player.pending).toBe(1)
+  })
+
+  it('keeps each person\'s waiting visits apart when the device changes hands mid-send', async () => {
+    storage.setItem('brightville.outbox.2', JSON.stringify([{ building: 'school', stars: 2, key: 'ben-1' }]))
+    const player = await open(1)
+    api.offline = true
+    await player.earn('school', 5)
+    api.offline = false
+    let answer!: () => void
+    const send = api.visit
+    api.visit = (...args) => new Promise(resolve => { answer = () => resolve(send(...args)) })
+    const sending = player.refresh()
+    player.init(api, 2, storage)
+    answer()
+    await sending
+    expect(player.pending).toBe(1)
+    expect(JSON.parse(storage.getItem('brightville.outbox.2')!)).toHaveLength(1)
+    // Mia's visit stays queued under her name; sent again later, its key makes it count once
+    expect(JSON.parse(storage.getItem('brightville.outbox.1')!)).toHaveLength(1)
   })
 
   it('drops a kept visit the server refuses for good', async () => {

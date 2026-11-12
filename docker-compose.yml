@@ -22,14 +22,16 @@ services:
       - DATABASE_URL=sqlite:///./data/brightville.db
       # The family hub (FrankAndreas/family-hub): how this backend reaches it (e.g. http://<NAS_IP>:8086), where
       # browsers log in and out (https://home.local.<domain>), and this app's key: the hub tile's App-Schlüssel must
-      # be the same. Without HUB_URL there is no login and anybody can pick a parent: not for the NAS
+      # be the same. Without HUB_URL nobody gets in (the page shows a sleeping cloud, the log says why)
       - HUB_URL=${HUB_URL:-}
       - HUB_PUBLIC_URL=${HUB_PUBLIC_URL:-}
       - HUB_APP_KEY=${HUB_APP_KEY:-brightville}
       # The names browsers use for the game, comma-separated (e.g. brightville.local.<domain>): any other name gets
       # nothing. Empty: any name
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-}
-      # Only without a hub: who can be picked
+      # Only for trying it out without a hub: LOCAL_MODE=1 lets anybody pick who plays from LOCAL_PEOPLE, parents
+      # included. Never on a NAS the children can reach
+      - LOCAL_MODE=${LOCAL_MODE:-}
       - LOCAL_PEOPLE=${LOCAL_PEOPLE:-}
       # The day starts over at midnight here
       - TZ=${TZ:-Europe/Zurich}

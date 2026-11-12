@@ -16,6 +16,7 @@ import WhoPlays from '@/components/WhoPlays.vue'
 import { numberWord } from '@/core/numbers'
 import { httpApi, type Api } from '@/services/api'
 import { detectDevice } from '@/services/device'
+import { renewOnce } from '@/services/renew'
 import { unlockAudio } from '@/services/sound'
 import { speak } from '@/services/tts'
 import { usePlayerStore } from '@/stores/player'
@@ -85,7 +86,8 @@ function start() {
 // Someone (new) plays: their Stars come from the server
 watch(() => (session.status === 'ready' ? session.person?.id : undefined), async id => {
   if (id === undefined) return
-  player.init(props.api, id)
+  // A login that ended shows as such: the hub's login, or the closed door
+  player.init(props.api, id, undefined, () => void session.retry())
   await player.refresh()
   offerHelp()
 }, { immediate: true })
@@ -165,9 +167,12 @@ async function onEnter(id: string) {
 const PLAY_REPORT_MS = 30_000
 let playClock: ReturnType<typeof setInterval> | undefined
 let playSince = 0
+// Timers stop while the iPad sleeps: one report never counts more than this, so a night with the Arcade open
+// doesn't use up the next day's play time
+const MAX_PLAY_REPORT_S = 45
 function reportPlay() {
   const now = Date.now()
-  const seconds = (now - playSince) / 1000
+  const seconds = Math.min((now - playSince) / 1000, MAX_PLAY_REPORT_S)
   playSince = now
   void player.reportPlayTime(seconds)
 }
@@ -180,6 +185,12 @@ watch(inside, (building, before) => {
     playSince = Date.now()
     playClock = setInterval(reportPlay, PLAY_REPORT_MS)
   }
+})
+
+// The hub login is in its last week: through the hub once a day at most, while the child walks around
+watch(() => session.renewWanted && inTown.value, go => {
+  const loginUrl = session.me?.login_url
+  if (go && loginUrl) renewOnce(loginUrl, session.navigate)
 })
 
 /** Confetti over the town when today's learning is done */
