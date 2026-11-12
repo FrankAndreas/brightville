@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { defineComponent } from 'vue'
 import { footprint, type Footprint } from '@/city/doors'
+import { TRAMPOLINE } from '@/city/props'
 import { BUILDINGS, canServe, toDoors } from './registry'
 import type { BuildingDef } from './types'
 
@@ -60,6 +61,20 @@ describe('building registry', () => {
     }
   })
 
+  it('lists Unterschiede at the back as an earning building that needs nothing', () => {
+    const b = BUILDINGS.find(x => x.id === 'unterschiede')
+    expect(b).toMatchObject({ spokenName: 'Unterschiede', icon: '🔍', kind: 'earn', needs: [], door: { x: 15, z: -14 } })
+    expect(b?.preload).toBeTypeOf('function')
+  })
+
+  it('lists Schlange and Bonbonjagd on the right as play buildings for 3 Stars that need nothing', () => {
+    for (const [id, spokenName, icon] of [['schlange', 'Schlange', '🐍'], ['bonbonjagd', 'Bonbonjagd', '🍬']]) {
+      const b = BUILDINGS.find(x => x.id === id)
+      expect(b).toMatchObject({ spokenName, icon, kind: 'play', cost: 3, needs: [], door: { side: 'right' } })
+      expect(b?.preload).toBeTypeOf('function')
+    }
+  })
+
   it('puts learning at the back, making on the left and playing on the right', () => {
     for (const b of BUILDINGS) {
       const side = b.door.side ?? 'back'
@@ -92,12 +107,20 @@ describe('building registry', () => {
     }
   })
 
-  it('keeps every door ring clear of every house', () => {
+  it('keeps the trampoline well away from every door, so nobody bounces off at a door', () => {
+    for (const b of BUILDINGS) {
+      const gap = Math.hypot(b.door.x - TRAMPOLINE.x, b.door.z - TRAMPOLINE.z) - TRAMPOLINE.radius
+      expect(gap, b.id).toBeGreaterThanOrEqual(4)
+    }
+  })
+
+  it('leaves room to walk up to every door: 3 m to any other house', () => {
     for (const a of BUILDINGS) {
       for (const b of BUILDINGS) {
         const f = footprint(b.door)
-        const inside = a.door.x > f.minX - 1 && a.door.x < f.maxX + 1 && a.door.z > f.minZ - 1 && a.door.z < f.maxZ + 1
-        if (a !== b) expect(inside, `${a.id} in front of ${b.id}`).toBe(false)
+        const dx = Math.max(f.minX - a.door.x, 0, a.door.x - f.maxX)
+        const dz = Math.max(f.minZ - a.door.z, 0, a.door.z - f.maxZ)
+        if (a !== b) expect(Math.hypot(dx, dz), `${a.id} next to ${b.id}`).toBeGreaterThanOrEqual(3)
       }
     }
   })

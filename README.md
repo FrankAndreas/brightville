@@ -10,13 +10,16 @@ The town square has a trampoline, balls to push and its buildings: learning at t
 | 🔢 School | Five tasks: counting, a die, first sums up to 9 | +1 per task, +5 for all five |
 | ✏️ Schreiben | Two letters or digits, each traced three times with less help (touch screen only) | +1 per tracing, +4 for all six |
 | 🧘 Yoga Studio | The camera checks three poses | +3 per pose held |
+| 🔍 Unterschiede | Ten differences between two pictures | +1 per difference found without the lamp |
 | 🎨 Ausmalen | Twenty coloring pages: pick one, tap its parts to fill them | free |
 | 🖌️ Malen | Free drawing; each child's paintings stay on the device | free |
 | 🃏 Arcade | Memory with six pairs of animals | costs 3 per round |
+| 🐍 Schlange | The snake collects treasures until it bites itself | costs 3 per round |
+| 🍬 Bonbonjagd | Collect every sweet in a maze; chasers wander, a power-up turns the tables | costs 3 per round |
 
 **Free** buildings are always open: before the day's learning, with no Stars, and after the play time. They neither give nor cost Stars and don't count as play time.
 
-**Learn first, play later:** the Arcade door stays locked until today's earning visits are done (School, Schreiben or Yoga, in any mix; two unless a parent set another number). The slots next to the Star counter show how far the child is. A new day starts the slots over; Stars are kept.
+**Learn first, play later:** the Arcade door stays locked until today's earning visits are done (School, Schreiben, Yoga or Unterschiede, in any mix; two unless a parent set another number). The slots next to the Star counter show how far the child is. A new day starts the slots over; Stars are kept.
 When a parent has set a play time per day, the Arcade door shows a moon once it is used up.
 
 **Each child has their own Stars**, kept by the game's server (`backend/`), so the laptop and the iPad show the same.
@@ -89,6 +92,15 @@ A wrong answer only fades its button and the objects are counted together; the t
 ## Arcade
 
 Turn cards by clicking, or with the arrow keys and Enter. Esc leaves; the 3 Stars are not given back.
+
+## Unterschiede
+
+Tap a difference in either picture; the voice says what changed. The lamp 💡 circles one, which then gives no Star. Five misses within ten seconds let the pictures rest for three seconds ("Schau genau hin!"), so tapping everywhere doesn't pay. One of four scenes from Spielzeugkiste, never the same twice in a row.
+
+## Schlange and Bonbonjagd
+
+Arrow keys or WASD on the keyboard; a swipe anywhere or the arrow pad with a finger. The first direction starts the round.
+Schlange ends when the snake bites itself; Bonbonjagd when the five lives are gone or every sweet is eaten. Then the game goes back to the town by itself. Each look (unicorn or princess) and each maze is picked at random; Bonbonjagd always runs at the slow speed. The mazes are Brightville's own.
 
 ## Ausmalen
 

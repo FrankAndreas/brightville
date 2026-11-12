@@ -11,7 +11,7 @@ export interface Trampoline {
   top: number
 }
 
-export const TRAMPOLINE: Trampoline = { x: 9, z: 3, radius: 2, top: 0.3 }
+export const TRAMPOLINE: Trampoline = { x: 7, z: 8, radius: 2, top: 0.3 }
 
 const BALLS: { x: number; z: number; radius: number; color: number }[] = [
   { x: -6, z: 2, radius: 0.9, color: 0xff8fab },

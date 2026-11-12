@@ -11,6 +11,9 @@ const yoga = () => import('./yoga/YogaStudio.vue')
 const arcade = () => import('./arcade/Arcade.vue')
 const ausmalen = () => import('./ausmalen/Ausmalen.vue')
 const malen = () => import('./malen/Malen.vue')
+const unterschiede = () => import('./unterschiede/Unterschiede.vue')
+const schlange = () => import('./schlange/Schlange.vue')
+const bonbonjagd = () => import('./bonbonjagd/Bonbonjagd.vue')
 
 /**
  * Every building in the town: learning at the back, making things on the left, playing on the right.
@@ -31,6 +34,10 @@ export const BUILDINGS: BuildingDef[] = [
     component: defineAsyncComponent(yoga), preload: yoga,
   },
   {
+    id: 'unterschiede', spokenName: 'Unterschiede', icon: '🔍', kind: 'earn', needs: [], door: { x: 15, z: -14 },
+    component: defineAsyncComponent(unterschiede), preload: unterschiede,
+  },
+  {
     id: 'ausmalen', spokenName: 'Ausmalen', icon: '🎨', kind: 'free', needs: [], door: { x: -13, z: -6, side: 'left' },
     component: defineAsyncComponent(ausmalen), preload: ausmalen,
   },
@@ -39,8 +46,16 @@ export const BUILDINGS: BuildingDef[] = [
     component: defineAsyncComponent(malen), preload: malen,
   },
   {
-    id: 'arcade', spokenName: 'Spielhalle', icon: '🃏', kind: 'play', cost: 3, needs: [], door: { x: 13, z: -8, side: 'right' },
+    id: 'arcade', spokenName: 'Spielhalle', icon: '🃏', kind: 'play', cost: 3, needs: [], door: { x: 13, z: -6, side: 'right' },
     component: defineAsyncComponent(arcade), preload: arcade,
+  },
+  {
+    id: 'schlange', spokenName: 'Schlange', icon: '🐍', kind: 'play', cost: 3, needs: [], door: { x: 13, z: 3, side: 'right' },
+    component: defineAsyncComponent(schlange), preload: schlange,
+  },
+  {
+    id: 'bonbonjagd', spokenName: 'Bonbonjagd', icon: '🍬', kind: 'play', cost: 3, needs: [], door: { x: 13, z: 12, side: 'right' },
+    component: defineAsyncComponent(bonbonjagd), preload: bonbonjagd,
   },
 ]
 

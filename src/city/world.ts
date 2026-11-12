@@ -122,7 +122,8 @@ function doorBuilding(R: Rapier, world: RAPIER.World, scene: THREE.Scene, door: 
   group.add(frame, leaf)
 
   // The camera always looks from behind, so a door on a side is seen from its edge:
-  // side houses hang their sign out from the wall, facing the camera, like a shop sign
+  // side houses hang their sign out from the wall, facing the camera, like a shop sign. It hangs on the
+  // camera side of the door, so the sign of the next house along is behind the camera, not in the picture
   const board = new THREE.Group()
   if (side === 'back') {
     board.position.set(0, 3.95, depth / 2 + 0.06)
@@ -131,9 +132,9 @@ function doorBuilding(R: Rapier, world: RAPIER.World, scene: THREE.Scene, door: 
     const out = side === 'left' ? 1 : -1
     const wallX = side === 'left' ? area.maxX : area.minX
     const bracket = box(1.5, 0.12, 0.12, 0x6b4a2b)
-    bracket.position.set(wallX + out * 0.75, 4.15, door.z - 1.6)
+    bracket.position.set(wallX + out * 0.75, 4.15, door.z + 1.6)
     scene.add(bracket)
-    board.position.set(wallX + out * 1.2, 3.25, door.z - 1.6)
+    board.position.set(wallX + out * 1.2, 3.25, door.z + 1.6)
     scene.add(board)
   }
   if (door.icon) board.add(sign(door.icon))
@@ -233,9 +234,8 @@ export function buildTown(R: Rapier, world: RAPIER.World, doors: DoorDef[]): Tow
     staticBox(R, world, x, BARRIER_HEIGHT / 2, z, w, BARRIER_HEIGHT, d)
   }
 
-  // The near corners, where no door building stands
+  // The near left corner, where no door building stands
   house(R, world, scene, -15.5, 15.5, 5, 3.2, 5, COLORS.houses[2], COLORS.roofs[2])
-  house(R, world, scene, 15.5, 16.5, 5, 3.6, 4, COLORS.houses[1], COLORS.roofs[1])
 
   return { scene, doorVisuals: doors.map((door, i) => doorBuilding(R, world, scene, door, i)) }
 }
