@@ -5,6 +5,9 @@ import { nextTick } from 'vue'
 import App from './App.vue'
 import { unlockAudio } from './services/sound'
 
+vi.mock('./city/city', () => ({
+  createCity: vi.fn(async () => ({ pause: vi.fn(), resume: vi.fn(), dispose: vi.fn() })),
+}))
 vi.mock('./services/sound', () => ({ unlockAudio: vi.fn(), playBeat: vi.fn() }))
 
 const mountApp = () => mount(App, { global: { plugins: [createPinia()] } })

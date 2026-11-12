@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import CityView from '@/city/CityView.vue'
 import StarCounter from '@/components/StarCounter.vue'
 import StartGate from '@/components/StartGate.vue'
 import { unlockAudio } from '@/services/sound'
@@ -15,6 +16,7 @@ function start() {
 <template>
   <StartGate v-if="!started" @start="start" />
   <main v-else class="game" data-test="game">
+    <CityView :doors="[]" :paused="false" />
     <StarCounter />
   </main>
 </template>

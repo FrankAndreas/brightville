@@ -1,0 +1,72 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { flushPromises, mount } from '@vue/test-utils'
+import CityView from './CityView.vue'
+import { createCity, type CityOptions } from './city'
+import type { DoorDef } from './doors'
+
+vi.mock('./city', () => ({ createCity: vi.fn() }))
+
+const doors: DoorDef[] = [{ id: 'yoga', x: 0, z: -14, open: true }]
+
+describe('CityView', () => {
+  const city = { pause: vi.fn(), resume: vi.fn(), dispose: vi.fn() }
+  let options: CityOptions
+
+  beforeEach(() => {
+    city.pause.mockClear()
+    city.resume.mockClear()
+    city.dispose.mockClear()
+    vi.mocked(createCity).mockReset().mockImplementation(async opts => {
+      options = opts
+      return city
+    })
+  })
+
+  it('creates the city with the given doors and disposes it on unmount', async () => {
+    const w = mount(CityView, { props: { doors, paused: false } })
+    await flushPromises()
+    expect(createCity).toHaveBeenCalledTimes(1)
+    expect(options.doors).toEqual(doors)
+    expect(options.canvas).toBeInstanceOf(HTMLCanvasElement)
+    w.unmount()
+    expect(city.dispose).toHaveBeenCalledTimes(1)
+  })
+
+  it('pauses and resumes when the paused prop changes', async () => {
+    const w = mount(CityView, { props: { doors, paused: false } })
+    await flushPromises()
+    await w.setProps({ paused: true })
+    expect(city.pause).toHaveBeenCalledTimes(1)
+    await w.setProps({ paused: false })
+    expect(city.resume).toHaveBeenCalledTimes(1)
+    w.unmount()
+  })
+
+  it('starts paused when mounted paused', async () => {
+    const w = mount(CityView, { props: { doors, paused: true } })
+    await flushPromises()
+    expect(city.pause).toHaveBeenCalledTimes(1)
+    w.unmount()
+  })
+
+  it('emits near-door and enter from the city callbacks', async () => {
+    const w = mount(CityView, { props: { doors, paused: false } })
+    await flushPromises()
+    options.onNearDoor('yoga')
+    options.onNearDoor(null)
+    options.onEnter('yoga')
+    expect(w.emitted('near-door')).toEqual([['yoga'], [null]])
+    expect(w.emitted('enter')).toEqual([['yoga']])
+    w.unmount()
+  })
+
+  it('disposes a city that finishes loading after unmount', async () => {
+    let finish!: (c: typeof city) => void
+    vi.mocked(createCity).mockImplementation(() => new Promise(resolve => { finish = resolve }))
+    const w = mount(CityView, { props: { doors, paused: false } })
+    w.unmount()
+    finish(city)
+    await flushPromises()
+    expect(city.dispose).toHaveBeenCalledTimes(1)
+  })
+})

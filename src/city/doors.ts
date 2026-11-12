@@ -4,6 +4,8 @@ export interface DoorDef {
   z: number
   /** Closed doors are shown but can't be entered on this device */
   open: boolean
+  /** Picture for the sign above the door */
+  icon?: string
 }
 
 /** How close (metres) the character must be to a door to use it */
