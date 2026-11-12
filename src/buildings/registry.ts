@@ -15,6 +15,10 @@ export const BUILDINGS: BuildingDef[] = [
     // Loaded on first visit: the body tracking is large and the town doesn't need it
     component: defineAsyncComponent(() => import('./yoga/YogaStudio.vue')),
   },
+  {
+    id: 'arcade', spokenName: 'Spielhalle', icon: '🃏', kind: 'play', cost: 3, needs: [], door: { x: 11, z: -14 },
+    component: defineAsyncComponent(() => import('./arcade/Arcade.vue')),
+  },
 ]
 
 export function canServe(building: BuildingDef, device: DeviceCaps): boolean {

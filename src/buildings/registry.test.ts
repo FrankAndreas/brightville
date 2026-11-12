@@ -45,6 +45,12 @@ describe('building registry', () => {
     expect(school).toMatchObject({ spokenName: 'Schule', icon: '🔢', kind: 'earn', needs: [], door: { x: -11, z: -14 } })
   })
 
+  it('lists the arcade as a play building that costs 3 stars', () => {
+    const arcade = BUILDINGS.find(b => b.id === 'arcade')
+    expect(arcade).toMatchObject({ spokenName: 'Spielhalle', icon: '🃏', kind: 'play', cost: 3, needs: [], door: { x: 11, z: -14 } })
+    expect(BUILDINGS.filter(b => b.kind === 'play').every(b => (b.cost ?? 0) > 0)).toBe(true)
+  })
+
   it('keeps the door buildings from overlapping', () => {
     const xs = BUILDINGS.map(b => b.door.x).sort((a, b) => a - b)
     for (let i = 1; i < xs.length; i++) expect(xs[i] - xs[i - 1]).toBeGreaterThanOrEqual(9)
