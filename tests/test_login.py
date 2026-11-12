@@ -25,6 +25,7 @@ def test_me_says_who_is_logged_in(mia):
         "mode": "hub",
         "person": {"id": 2, "name": "Mia", "role": "CHILD", "color": "#ff66aa"},
         "people": [],
+        "login_url": "https://home.local.example/?next=",
         "logout_url": "https://home.local.example/logout?next=",
     }
 

@@ -7,6 +7,8 @@ import { createCity, type CityOptions } from './city/city'
 import { unlockAudio } from './services/sound'
 import { speak } from './services/tts'
 import type { BuildingDef, BuildingResult } from './buildings/types'
+import { fakeApi, type FakeApi } from './services/fakeApi'
+import { ApiError } from './services/api'
 import { usePlayerStore } from './stores/player'
 
 vi.mock('./city/city', () => ({ createCity: vi.fn() }))
@@ -31,21 +33,25 @@ const stub: BuildingDef = { id: 'stub', spokenName: 'Turnhalle', icon: '🤸', k
 const camOnly: BuildingDef = { ...stub, id: 'touchy', spokenName: 'Schreiben', needs: ['touch'], door: { x: 8, z: 8 } }
 const play: BuildingDef = { ...stub, id: 'play', spokenName: 'Spielhalle', icon: '🃏', kind: 'play', cost: 3, door: { x: -8, z: 8 } }
 
-const mountApp = (buildings: BuildingDef[] = []) =>
-  mount(App, { props: { buildings }, global: { plugins: [createPinia()] } })
+/** The server of the running test: Mia, a child, with what the test gives her */
+let api: FakeApi
+
+const mountApp = (buildings: BuildingDef[] = [], server: FakeApi = api) =>
+  mount(App, { props: { buildings, api: server }, global: { plugins: [createPinia()] } })
 
 /** In the game, with the first-visit help still open. */
-async function startedWithHelp(buildings: BuildingDef[] = [stub, camOnly]) {
-  const w = mountApp(buildings)
+async function startedWithHelp(buildings: BuildingDef[] = [stub, camOnly], server: FakeApi = api) {
+  const w = mountApp(buildings, server)
   await w.find('[data-test="start-gate"]').trigger('pointerdown')
   await flushPromises()
   return w
 }
 
 /** In the game, walking around. */
-async function started(buildings: BuildingDef[] = [stub, camOnly]) {
-  const w = await startedWithHelp(buildings)
-  await w.find('[data-test="help"]').trigger('pointerdown')
+async function started(buildings: BuildingDef[] = [stub, camOnly], server: FakeApi = api) {
+  const w = await startedWithHelp(buildings, server)
+  const help = w.find('[data-test="help"]')
+  if (help.exists()) await help.trigger('pointerdown')
   vi.mocked(speak).mockClear()
   city.pause.mockClear()
   city.resume.mockClear()
@@ -56,6 +62,8 @@ const key = (code: string) => window.dispatchEvent(new KeyboardEvent('keydown', 
 
 describe('App', () => {
   beforeEach(() => {
+    api = fakeApi()
+    window.localStorage.clear()
     vi.mocked(unlockAudio).mockClear()
     vi.mocked(speak).mockClear()
     city.pause.mockClear()
@@ -72,7 +80,7 @@ describe('App', () => {
     expect(w.find('[data-test="start-gate"]').exists()).toBe(true)
     expect(w.find('[data-test="game"]').exists()).toBe(false)
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'a' }))
-    await nextTick()
+    await flushPromises()
     expect(w.find('[data-test="start-gate"]').exists()).toBe(false)
     expect(w.find('[data-test="game"]').exists()).toBe(true)
     w.unmount()
@@ -173,9 +181,10 @@ describe('App', () => {
       cityOptions.onEnter('stub')
       await flushPromises()
       finishWith({ stars })
-      await nextTick()
+      await flushPromises()
     }
-    const lastDoors = () => city.setDoors.mock.calls.at(-1)![0] as { id: string; open: boolean; locked: boolean }[]
+    // The doors the town shows now: the last change, or the first ones
+    const lastDoors = () => (city.setDoors.mock.calls.at(-1)?.[0] ?? cityOptions.doors) as { id: string; open: boolean; locked: boolean }[]
     const playDoor = () => lastDoors().find(d => d.id === 'play')!
     const slots = (w: Awaited<ReturnType<typeof started>>) =>
       w.findAll('[data-test="goal-slot"]').map(s => s.attributes('data-done'))
@@ -330,35 +339,31 @@ describe('App', () => {
       w.unmount()
     })
 
-    it('looks at the clock again at the door: no play just after midnight', async () => {
-      vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] })
-      vi.setSystemTime(new Date(2026, 10, 12, 23, 59, 30))
-      try {
-        const w = await started([stub, play])
-        await visit(2)
-        await visit(2)
-        vi.setSystemTime(new Date(2026, 10, 13, 0, 0, 5))
-        cityOptions.onEnter('play')
-        await flushPromises()
-        expect(w.find('[data-test="stub-building"]').exists()).toBe(false)
-        expect(w.find('[data-test="stars"]').text()).toBe('4')
-        w.unmount()
-      } finally {
-        vi.useRealTimers()
-      }
+    it('asks the server at the door: no play once its day has turned', async () => {
+      const w = await started([stub, play])
+      await visit(2)
+      await visit(2)
+      api.newDay('2026-11-13')
+      cityOptions.onEnter('play')
+      await flushPromises()
+      expect(w.find('[data-test="stub-building"]').exists()).toBe(false)
+      expect(w.find('[data-test="stars"]').text()).toBe('4')
+      expect(speak).toHaveBeenLastCalledWith('Erst lernen, dann spielen!')
+      w.unmount()
     })
 
     it('notices a new day by itself within a minute', async () => {
-      vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] })
-      vi.setSystemTime(new Date(2026, 10, 12, 23, 59, 30))
+      vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
       try {
         const w = await started([stub, play])
         await visit(2)
         await visit(2)
-        vi.setSystemTime(new Date(2026, 10, 13, 0, 0, 5))
+        api.newDay('2026-11-13')
         vi.advanceTimersByTime(60_000)
-        await nextTick()
+        await flushPromises()
         expect(slots(w)).toEqual(['false', 'false'])
+        expect(playDoor()).toMatchObject({ open: false, locked: true })
+        expect(w.find('[data-test="stars"]').text()).toBe('4')
         w.unmount()
       } finally {
         vi.useRealTimers()
@@ -378,24 +383,166 @@ describe('App', () => {
       w.unmount()
     })
 
-    it('locks the play door again on a new day', async () => {
-      vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] })
-      vi.setSystemTime(new Date(2026, 10, 12, 18, 0))
+    it('looks again when the page comes back into view', async () => {
+      const w = await started([stub, play])
+      await visit(2)
+      await visit(2)
+      api.newDay('2026-11-13')
+      document.dispatchEvent(new Event('visibilitychange'))
+      await flushPromises()
+      expect(playDoor()).toMatchObject({ open: false, locked: true })
+      w.unmount()
+    })
+
+    it('follows the child\'s own daily goal', async () => {
+      api.state_.daily_goal = 3
+      const w = await started([stub, play])
+      expect(slots(w)).toEqual(['false', 'false', 'false'])
+      await visit(1)
+      await visit(1)
+      expect(playDoor()).toMatchObject({ locked: true })
+      w.unmount()
+    })
+
+    it('closes the play door with a moon once today\'s play time is used up', async () => {
+      Object.assign(api.state_, { stars: 10, visits: 2, play_minutes: 10, play_seconds: 600 })
+      const w = await started([stub, play])
+      expect(playDoor()).toMatchObject({ open: false, locked: false })
+      cityOptions.onNearDoor('play')
+      await nextTick()
+      expect(w.find('[data-test="door-prompt"]').attributes('data-state')).toBe('timeUp')
+      expect(speak).toHaveBeenLastCalledWith('Für heute ist genug gespielt. Morgen wieder!')
+      cityOptions.onEnter('play')
+      await flushPromises()
+      expect(w.find('[data-test="stub-building"]').exists()).toBe(false)
+      expect(w.find('[data-test="stars"]').text()).toBe('10')
+      w.unmount()
+    })
+
+    it('counts the time spent in a play building', async () => {
+      vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] })
       try {
+        Object.assign(api.state_, { stars: 10, visits: 2 })
         const w = await started([stub, play])
-        await visit(2)
-        await visit(2)
-        expect(playDoor().open).toBe(true)
-        vi.setSystemTime(new Date(2026, 10, 13, 7, 0))
-        document.dispatchEvent(new Event('visibilitychange'))
-        await nextTick()
-        expect(playDoor()).toMatchObject({ open: false, locked: true })
-        expect(slots(w)).toEqual(['false', 'false'])
-        expect(w.find('[data-test="stars"]').text()).toBe('4')
+        cityOptions.onEnter('play')
+        await flushPromises()
+        vi.advanceTimersByTime(65_000)
+        finishWith({ stars: 0 })
+        await flushPromises()
+        expect(api.state_.play_seconds).toBe(65)
+        expect(api.calls.filter(c => c.startsWith('playTime'))).toEqual(['playTime 30', 'playTime 30', 'playTime 5'])
         w.unmount()
       } finally {
         vi.useRealTimers()
       }
+    })
+
+    it('keeps earned stars when the server is away, and sends them later', async () => {
+      const w = await started([stub, play])
+      api.offline = true
+      await visit(5)
+      expect(w.find('[data-test="stars"]').text()).toBe('5')
+      expect(slots(w)).toEqual(['true', 'false'])
+      api.offline = false
+      document.dispatchEvent(new Event('visibilitychange'))
+      await flushPromises()
+      expect(api.state_.stars).toBe(5)
+      expect(w.find('[data-test="stars"]').text()).toBe('5')
+      w.unmount()
+    })
+
+    it('takes no stars and stays outside when the server cannot be asked at the door', async () => {
+      Object.assign(api.state_, { stars: 10, visits: 2 })
+      const w = await started([stub, play])
+      api.offline = true
+      cityOptions.onEnter('play')
+      await flushPromises()
+      expect(w.find('[data-test="stub-building"]').exists()).toBe(false)
+      expect(w.find('[data-test="stars"]').text()).toBe('10')
+      w.unmount()
+    })
+  })
+
+  describe('who plays', () => {
+    const PEOPLE = [
+      { id: 1, name: 'Kind', role: 'CHILD' as const, color: '#ff9a3c' },
+      { id: 2, name: 'Eltern', role: 'PARENT' as const, color: '#4f8fe8' },
+    ]
+
+    it('shows the player\'s first letter in their colour', async () => {
+      const w = await started()
+      const who = w.find('[data-test="who"]')
+      expect(who.text()).toBe('M')
+      expect(who.attributes('style')).toContain('background')
+      w.unmount()
+    })
+
+    it('without a hub, asks who plays and then starts the game for them', async () => {
+      const server = fakeApi({}, { mode: 'local', person: null, people: PEOPLE, login_url: null, logout_url: null })
+      const w = mountApp([stub], server)
+      await w.find('[data-test="start-gate"]').trigger('pointerdown')
+      await flushPromises()
+      expect(w.find('[data-test="who-plays"]').exists()).toBe(true)
+      expect(w.find('[data-test="game"]').exists()).toBe(false)
+      await w.find('[data-test="person"][data-id="1"]').trigger('click')
+      await flushPromises()
+      expect(w.find('[data-test="game"]').exists()).toBe(true)
+      expect(w.find('[data-test="who"]').text()).toBe('K')
+      // without a hub the badge hands the game to someone else
+      if (w.find('[data-test="help"]').exists()) await w.find('[data-test="help"]').trigger('pointerdown')
+      await w.find('[data-test="who"]').trigger('pointerdown')
+      expect(w.find('[data-test="who-plays"]').exists()).toBe(true)
+      w.unmount()
+    })
+
+    it('with a hub, the badge does nothing', async () => {
+      const w = await started()
+      await w.find('[data-test="who"]').trigger('pointerdown')
+      expect(w.find('[data-test="who-plays"]').exists()).toBe(false)
+      w.unmount()
+    })
+
+    it('shows a sleeping cloud when the server does not answer, and starts once it does', async () => {
+      const server = fakeApi()
+      server.offline = true
+      const w = mountApp([stub], server)
+      await w.find('[data-test="start-gate"]').trigger('pointerdown')
+      await flushPromises()
+      expect(w.find('[data-test="server-screen"]').attributes('data-kind')).toBe('offline')
+      server.offline = false
+      await w.find('[data-test="server-screen"]').trigger('pointerdown')
+      await flushPromises()
+      expect(w.find('[data-test="game"]').exists()).toBe(true)
+      w.unmount()
+    })
+
+    it('shows a closed door to someone who may not play', async () => {
+      const server = fakeApi()
+      server.me = async () => { throw new ApiError(403, 'no_access') }
+      const w = mountApp([stub], server)
+      await w.find('[data-test="start-gate"]').trigger('pointerdown')
+      await flushPromises()
+      expect(w.find('[data-test="server-screen"]').attributes('data-kind')).toBe('no_access')
+      expect(w.find('[data-test="game"]').exists()).toBe(false)
+      w.unmount()
+    })
+  })
+
+  describe('parents', () => {
+    it('get a gear that opens their page over the paused town; children do not', async () => {
+      let w = await started()
+      expect(w.find('[data-test="parents-button"]').exists()).toBe(false)
+      w.unmount()
+      const server = fakeApi({}, { person: { id: 7, name: 'Papa', role: 'PARENT', color: null } })
+      w = await started([stub], server)
+      await w.find('[data-test="parents-button"]').trigger('click')
+      await flushPromises()
+      expect(w.find('[data-test="parent-area"]').exists()).toBe(true)
+      expect(city.pause).toHaveBeenCalled()
+      expect(w.find('[data-test="help-button"]').exists()).toBe(false)
+      await w.find('[data-test="parent-close"]').trigger('click')
+      expect(w.find('[data-test="parent-area"]').exists()).toBe(false)
+      w.unmount()
     })
   })
 
@@ -504,13 +651,11 @@ describe('App', () => {
       w.unmount()
     })
 
-    it('is not shown again to a player who has played before, even with 0 Stars', async () => {
-      const pinia = createPinia()
-      const player = usePlayerStore(pinia)
-      player.award(3)
-      player.recordVisit()
-      player.spend(3)
-      const w = mount(App, { props: { buildings: [stub] }, global: { plugins: [pinia] } })
+    it('is not shown again to a player who has seen it on this device, even with 0 Stars', async () => {
+      let w = await startedWithHelp()
+      await w.find('[data-test="help"]').trigger('pointerdown')
+      w.unmount()
+      w = mountApp([stub])
       await w.find('[data-test="start-gate"]').trigger('pointerdown')
       await flushPromises()
       expect(w.find('[data-test="help"]').exists()).toBe(false)
@@ -518,9 +663,8 @@ describe('App', () => {
     })
 
     it('is not shown at the start to a player who already has Stars', async () => {
-      const pinia = createPinia()
-      usePlayerStore(pinia).award(3)
-      const w = mount(App, { props: { buildings: [stub] }, global: { plugins: [pinia] } })
+      api.state_.stars = 3
+      const w = mountApp([stub])
       await w.find('[data-test="start-gate"]').trigger('pointerdown')
       await flushPromises()
       expect(w.find('[data-test="help"]').exists()).toBe(false)

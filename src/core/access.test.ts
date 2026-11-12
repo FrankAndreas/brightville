@@ -27,6 +27,19 @@ describe('doorState', () => {
     expect(doorState(play, true, true, 4)).toBe('open')
   })
 
+  it('closes a play building for the day when the play time is used up', () => {
+    expect(doorState(play, true, true, 99, true)).toBe('timeUp')
+    expect(doorState(play, true, true, 0, true)).toBe('timeUp')
+  })
+
+  it('still says "learn first" when both the goal and the play time stand in the way', () => {
+    expect(doorState(play, true, false, 99, true)).toBe('locked')
+  })
+
+  it('never closes an earning building for play time', () => {
+    expect(doorState(earn, true, true, 0, true)).toBe('open')
+  })
+
   it('treats a play building without a cost as free', () => {
     expect(doorState({ kind: 'play' }, true, true, 0)).toBe('open')
   })

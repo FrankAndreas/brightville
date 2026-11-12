@@ -1,109 +1,190 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
-import type { SaveData } from '@/core/save'
-import type { SaveStore } from '@/services/storage'
+import { ApiError } from '@/services/api'
+import { fakeApi, type FakeApi } from '@/services/fakeApi'
 import { usePlayerStore } from './player'
 
-function fakeStore(start: Partial<SaveData> = {}): SaveStore & { saved: SaveData[] } {
-  const saved: SaveData[] = []
+function memory(): Storage {
+  const data = new Map<string, string>()
   return {
-    saved,
-    load: () => ({ version: 2, stars: 0, day: '', visits: 0, ...start }),
-    save: d => void saved.push({ ...d }),
+    getItem: k => data.get(k) ?? null,
+    setItem: (k, v) => void data.set(k, v),
+    removeItem: k => void data.delete(k),
+    clear: () => data.clear(),
+    key: () => null,
+    get length() { return data.size },
   }
 }
 
-/** A clock the test can move */
-function clock(start = new Date(2026, 10, 12, 16, 0)) {
-  let now = start
-  return { now: () => now, set: (d: Date) => { now = d } }
-}
-
 describe('player store', () => {
-  beforeEach(() => setActivePinia(createPinia()))
-
-  it('starts from the store and saves each award', () => {
-    const store = fakeStore({ stars: 5 })
+  let api: FakeApi
+  let storage: Storage
+  const open = async (personId = 1) => {
     const player = usePlayerStore()
-    player.init(store, clock().now)
-    expect(player.stars).toBe(5)
-    player.award(3)
-    expect(player.stars).toBe(8)
-    expect(store.saved.at(-1)).toMatchObject({ version: 2, stars: 8 })
+    player.init(api, personId, storage)
+    await player.refresh()
+    return player
+  }
+
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    api = fakeApi({ stars: 4, visits: 1 })
+    storage = memory()
   })
 
-  it.each([0, -1, 1.5, NaN, Infinity])('ignores award(%s)', count => {
-    const store = fakeStore({ stars: 5 })
-    const player = usePlayerStore()
-    player.init(store, clock().now)
-    player.award(count)
-    expect(player.stars).toBe(5)
-    expect(store.saved).toEqual([])
-  })
-
-  it('counts stars without a store, just does not save', () => {
-    const player = usePlayerStore()
-    expect(() => player.award(2)).not.toThrow()
-    expect(player.stars).toBe(2)
-  })
-
-  it('recordVisit counts today and reports reaching the goal once', () => {
-    const store = fakeStore()
-    const player = usePlayerStore()
-    player.init(store, clock().now)
-    expect(player.goalReached).toBe(false)
-    expect(player.recordVisit()).toBe(false)
+  it('shows what the server has', async () => {
+    const player = await open()
+    expect(player.stars).toBe(4)
     expect(player.visitsToday).toBe(1)
-    expect(player.recordVisit()).toBe(true)
-    expect(player.goalReached).toBe(true)
-    expect(player.recordVisit()).toBe(false)
-    expect(store.saved.at(-1)).toMatchObject({ day: '2026-11-12', visits: 3 })
+    expect(player.dailyGoal).toBe(2)
+    expect(player.goalReached).toBe(false)
+    expect(player.timeUp).toBe(false)
+    expect(player.loaded).toBe(true)
   })
 
-  it('picks up the visits of today from the save', () => {
-    const player = usePlayerStore()
-    player.init(fakeStore({ day: '2026-11-12', visits: 2 }), clock().now)
+  it('is not loaded, and shows nothing, before the server answered', async () => {
+    api.offline = true
+    const player = await open()
+    expect(player.loaded).toBe(false)
+    expect(player.stars).toBe(0)
+  })
+
+  it('earns: the Stars show at once and the server confirms', async () => {
+    const player = await open()
+    const earning = player.earn('school', 7)
+    expect(player.stars).toBe(11)
     expect(player.visitsToday).toBe(2)
-    expect(player.goalReached).toBe(true)
+    expect(await earning).toBe(true)
+    expect(api.state_.stars).toBe(11)
+    expect(player.pending).toBe(0)
   })
 
-  it('starts the day empty when the save is from another day', () => {
-    const player = usePlayerStore()
-    player.init(fakeStore({ stars: 9, day: '2026-11-11', visits: 2 }), clock().now)
-    expect(player.visitsToday).toBe(0)
+  it('says only once that the goal was reached', async () => {
+    const player = await open()
+    expect(await player.earn('school', 1)).toBe(true)
+    expect(await player.earn('school', 1)).toBe(false)
+  })
+
+  it('earns nothing for no Stars', async () => {
+    const player = await open()
+    expect(await player.earn('school', 0)).toBe(false)
+    expect(await player.earn('school', -3)).toBe(false)
+    expect(await player.earn('school', 1.5)).toBe(false)
+    expect(api.calls.filter(c => c.startsWith('visit'))).toEqual([])
+    expect(player.stars).toBe(4)
+  })
+
+  it('takes the server\'s number when the building gives less than asked', async () => {
+    const player = await open()
+    await player.earn('yoga', 50)
+    expect(player.stars).toBe(13)
+  })
+
+  it('keeps a visit the server did not get and sends it again later', async () => {
+    const player = await open()
+    api.offline = true
+    expect(await player.earn('school', 5)).toBe(true)
+    expect(player.stars).toBe(9)
+    expect(player.pending).toBe(1)
+    await player.refresh()
+    expect(player.stars).toBe(9)
+    api.offline = false
+    await player.refresh()
+    expect(player.pending).toBe(0)
+    expect(api.state_.stars).toBe(9)
     expect(player.stars).toBe(9)
   })
 
-  it('forgets the visits of yesterday on a new day but keeps the stars', () => {
-    const time = clock()
-    const player = usePlayerStore()
-    player.init(fakeStore({ stars: 4 }), time.now)
-    player.recordVisit()
-    player.recordVisit()
-    time.set(new Date(2026, 10, 13, 7, 0))
-    player.refreshDay()
-    expect(player.visitsToday).toBe(0)
+  it('sends a kept visit after the page was closed and opened again, once', async () => {
+    let player = await open()
+    api.offline = true
+    await player.earn('school', 5)
+    setActivePinia(createPinia())
+    api.offline = false
+    player = await open()
+    expect(player.stars).toBe(9)
+    await player.refresh()
+    expect(api.state_.stars).toBe(9)
+    expect(api.calls.filter(c => c.startsWith('visit'))).toHaveLength(2)
+  })
+
+  it('never sends one child\'s kept visit as another', async () => {
+    const player = await open(1)
+    api.offline = true
+    await player.earn('school', 5)
+    setActivePinia(createPinia())
+    api.offline = false
+    api.state_.stars = 0
+    const other = await open(2)
+    expect(other.pending).toBe(0)
+    expect(api.state_.stars).toBe(0)
+  })
+
+  it('drops a kept visit the server refuses for good', async () => {
+    const player = await open()
+    api.offline = true
+    await player.earn('castle-that-was-removed', 5)
+    api.offline = false
+    api.visit = async () => { throw new ApiError(404, 'unknown_building') }
+    await player.refresh()
+    expect(player.pending).toBe(0)
+    expect(player.stars).toBe(4)
+  })
+
+  it('buys a round when the server agrees', async () => {
+    api.state_.visits = 2
+    const player = await open()
+    expect(await player.buy('arcade')).toBe('ok')
+    expect(player.stars).toBe(1)
+    expect(await player.buy('arcade')).toBe('poor')
+    expect(player.stars).toBe(1)
+  })
+
+  it('passes on why a round was refused', async () => {
+    const player = await open()
+    expect(await player.buy('arcade')).toBe('locked')
+    api.state_.visits = 2
+    api.state_.play_minutes = 10
+    api.state_.play_seconds = 600
+    expect(await player.buy('arcade')).toBe('time_up')
+    api.offline = true
+    expect(await player.buy('arcade')).toBe('offline')
+    expect(player.stars).toBe(4)
+  })
+
+  it('knows when today\'s play time is used up', async () => {
+    api.state_.play_minutes = 10
+    api.state_.play_seconds = 599
+    const player = await open()
+    expect(player.timeUp).toBe(false)
+    await player.reportPlayTime(1)
+    expect(player.timeUp).toBe(true)
+  })
+
+  it('does not mind a play-time report that gets lost', async () => {
+    const player = await open()
+    api.offline = true
+    await expect(player.reportPlayTime(30)).resolves.toBeUndefined()
+    await expect(player.reportPlayTime(0)).resolves.toBeUndefined()
+  })
+
+  it('follows the server into a new day', async () => {
+    api.state_.visits = 2
+    const player = await open()
+    expect(player.goalReached).toBe(true)
+    api.newDay('2026-11-13')
+    await player.refresh()
     expect(player.goalReached).toBe(false)
     expect(player.stars).toBe(4)
-    expect(player.recordVisit()).toBe(false)
-    expect(player.visitsToday).toBe(1)
   })
 
-  it('spend removes exactly the cost and saves', () => {
-    const store = fakeStore({ stars: 3 })
+  it('works without any storage', async () => {
     const player = usePlayerStore()
-    player.init(store, clock().now)
-    expect(player.spend(3)).toBe(true)
-    expect(player.stars).toBe(0)
-    expect(store.saved.at(-1)).toMatchObject({ stars: 0 })
-  })
-
-  it.each([[2, 3], [5, 0], [5, -1], [5, 1.5], [5, NaN]])('spend refuses with %s stars and cost %s', (stars, cost) => {
-    const store = fakeStore({ stars })
-    const player = usePlayerStore()
-    player.init(store, clock().now)
-    expect(player.spend(cost)).toBe(false)
-    expect(player.stars).toBe(stars)
-    expect(store.saved).toEqual([])
+    const broken = { getItem() { throw new Error('blocked') }, setItem() { throw new Error('blocked') } } as unknown as Storage
+    player.init(api, 1, broken)
+    await player.refresh()
+    api.offline = true
+    expect(await player.earn('school', 2)).toBe(true)
+    expect(player.stars).toBe(6)
   })
 })

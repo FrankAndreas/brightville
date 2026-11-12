@@ -99,6 +99,7 @@ def me(request: Request, response: Response, db: sqlite3.Connection = Depends(ge
         "mode": "hub" if hub.enabled() else "local",
         "person": asdict(person) if person else None,
         "people": choices,
+        "login_url": auth.login_url(),
         "logout_url": auth.logout_url(),
     }
 

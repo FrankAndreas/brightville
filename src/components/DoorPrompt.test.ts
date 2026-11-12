@@ -39,7 +39,13 @@ describe('DoorPrompt', () => {
     expect(w.emitted('enter')).toBeUndefined()
   })
 
-  it.each(['locked', 'poor', 'unavailable'])('does not when the door is %s', state => {
+  it('shows a moon when today\'s play time is used up', () => {
+    const w = open({ state: 'timeUp', cost: 3 })
+    expect(w.find('[data-test="moon"]').exists()).toBe(true)
+    expect(w.find('[data-test="door-price"]').exists()).toBe(false)
+  })
+
+  it.each(['locked', 'poor', 'unavailable', 'timeUp'])('does not when the door is %s', state => {
     const w = open({ state, cost: 3, goal: 2, visits: 0 })
     send(w, 'pointerdown')
     send(w, 'pointerup')

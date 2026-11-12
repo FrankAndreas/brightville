@@ -21,6 +21,7 @@ def test_without_a_hub_nobody_plays_until_someone_is_chosen(browser):
     assert body["mode"] == "local"
     assert body["person"] is None
     assert body["logout_url"] is None
+    assert body["login_url"] is None
     assert [(p["id"], p["name"], p["role"]) for p in body["people"]] == [(1, "Kind", "CHILD"), (2, "Eltern", "PARENT")]
     assert all(p["color"].startswith("#") for p in body["people"])
     assert browser.get("/api/state").status_code == 401
