@@ -18,6 +18,13 @@ describe('App', () => {
     w.unmount()
   })
 
+  it('shows the star count in the game', async () => {
+    const w = mountApp()
+    await w.find('[data-test="start-gate"]').trigger('pointerdown')
+    expect(w.find('[data-test="stars"]').text()).toBe('0')
+    w.unmount()
+  })
+
   it('starts on a pointer press too', async () => {
     const w = mountApp()
     await w.find('[data-test="start-gate"]').trigger('pointerdown')

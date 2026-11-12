@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import StarCounter from '@/components/StarCounter.vue'
 import StartGate from '@/components/StartGate.vue'
 
 const started = ref(false)
@@ -7,7 +8,9 @@ const started = ref(false)
 
 <template>
   <StartGate v-if="!started" @start="started = true" />
-  <main v-else class="game" data-test="game" />
+  <main v-else class="game" data-test="game">
+    <StarCounter />
+  </main>
 </template>
 
 <style>
