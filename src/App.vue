@@ -1,0 +1,17 @@
+<script setup lang="ts">
+import { ref } from 'vue'
+import StartGate from '@/components/StartGate.vue'
+
+const started = ref(false)
+</script>
+
+<template>
+  <StartGate v-if="!started" @start="started = true" />
+  <main v-else class="game" data-test="game" />
+</template>
+
+<style>
+html, body, #app { height: 100%; margin: 0; overflow: hidden; }
+body { background: #bfe7ff; font-family: system-ui, sans-serif; touch-action: none; user-select: none; }
+.game { position: fixed; inset: 0; }
+</style>
