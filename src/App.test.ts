@@ -128,7 +128,7 @@ describe('App', () => {
     const w = await started()
     cityOptions.onNearDoor('stub')
     cityOptions.onEnter('stub')
-    await nextTick()
+    await flushPromises()
     expect(w.find('[data-test="stub-building"]').exists()).toBe(true)
     expect(w.find('[data-test="door-prompt"]').exists()).toBe(false)
     expect(city.pause).toHaveBeenCalledTimes(1)
@@ -138,7 +138,7 @@ describe('App', () => {
   it('awards the stars and returns to the town when the building finishes', async () => {
     const w = await started()
     cityOptions.onEnter('stub')
-    await nextTick()
+    await flushPromises()
     finishWith({ stars: 9 })
     await nextTick()
     expect(w.find('[data-test="stub-building"]').exists()).toBe(false)
@@ -150,7 +150,7 @@ describe('App', () => {
   it('awards nothing for { stars: 0 }', async () => {
     const w = await started()
     cityOptions.onEnter('stub')
-    await nextTick()
+    await flushPromises()
     finishWith({ stars: 0 })
     await nextTick()
     expect(w.find('[data-test="stars"]').text()).toBe('0')
@@ -161,7 +161,7 @@ describe('App', () => {
   it('ignores enter for an unknown door', async () => {
     const w = await started()
     cityOptions.onEnter('nowhere')
-    await nextTick()
+    await flushPromises()
     expect(city.pause).not.toHaveBeenCalled()
     w.unmount()
   })
@@ -170,7 +170,7 @@ describe('App', () => {
     /** Walks into the earning stub and comes out with the given Stars. */
     async function visit(stars: number) {
       cityOptions.onEnter('stub')
-      await nextTick()
+      await flushPromises()
       finishWith({ stars })
       await nextTick()
     }
@@ -187,7 +187,7 @@ describe('App', () => {
       expect(w.find('[data-test="door-prompt"]').attributes('data-state')).toBe('locked')
       expect(speak).toHaveBeenLastCalledWith('Erst lernen, dann spielen!')
       cityOptions.onEnter('play')
-      await nextTick()
+      await flushPromises()
       expect(w.find('[data-test="stub-building"]').exists()).toBe(false)
       w.unmount()
     })
@@ -253,7 +253,7 @@ describe('App', () => {
       await visit(2)
       cityOptions.onEnter('play')
       cityOptions.onEnter('play')
-      await nextTick()
+      await flushPromises()
       expect(w.find('[data-test="stub-building"]').exists()).toBe(true)
       finishWith({ stars: 0 })
       await nextTick()
@@ -261,12 +261,106 @@ describe('App', () => {
       w.unmount()
     })
 
+    it('does not sell a second round to a child still standing in the doorway', async () => {
+      const w = await started([stub, play])
+      await visit(5)
+      await visit(5)
+      cityOptions.onNearDoor('play')
+      cityOptions.onEnter('play')
+      await flushPromises()
+      finishWith({ stars: 0 })
+      await nextTick()
+      expect(w.find('[data-test="stars"]').text()).toBe('7')
+      // still in front of the door: the same Enter that turned cards must not buy again
+      cityOptions.onEnter('play')
+      await flushPromises()
+      expect(w.find('[data-test="stub-building"]').exists()).toBe(false)
+      expect(w.find('[data-test="stars"]').text()).toBe('7')
+      expect(w.find('[data-test="door-prompt"]').exists()).toBe(false)
+      // walking away and back offers it again, with the price said aloud
+      cityOptions.onNearDoor(null)
+      cityOptions.onNearDoor('play')
+      await nextTick()
+      expect(speak).toHaveBeenLastCalledWith('Spielhalle. Das kostet drei Sterne.')
+      cityOptions.onEnter('play')
+      await flushPromises()
+      expect(w.find('[data-test="stub-building"]').exists()).toBe(true)
+      expect(w.find('[data-test="stars"]').text()).toBe('4')
+      w.unmount()
+    })
+
+    it('takes no stars and stays in the town when a building cannot be loaded', async () => {
+      const broken: BuildingDef = { ...play, preload: () => Promise.reject(new Error('offline')) }
+      const w = await started([stub, broken])
+      await visit(2)
+      await visit(2)
+      city.pause.mockClear()
+      cityOptions.onEnter('play')
+      await flushPromises()
+      expect(w.find('[data-test="stub-building"]').exists()).toBe(false)
+      expect(w.find('[data-test="stars"]').text()).toBe('4')
+      expect(city.pause).not.toHaveBeenCalled()
+      w.unmount()
+    })
+
+    it('charges once when Enter is pressed again while the building is loading', async () => {
+      let loaded!: () => void
+      const slow: BuildingDef = { ...play, preload: () => new Promise<void>(resolve => { loaded = resolve }) }
+      const w = await started([stub, slow])
+      await visit(2)
+      await visit(2)
+      cityOptions.onEnter('play')
+      cityOptions.onEnter('play')
+      await flushPromises()
+      expect(w.find('[data-test="stars"]').text()).toBe('4')
+      loaded()
+      await flushPromises()
+      expect(w.find('[data-test="stub-building"]').exists()).toBe(true)
+      expect(w.find('[data-test="stars"]').text()).toBe('1')
+      w.unmount()
+    })
+
+    it('looks at the clock again at the door: no play just after midnight', async () => {
+      vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] })
+      vi.setSystemTime(new Date(2026, 10, 12, 23, 59, 30))
+      try {
+        const w = await started([stub, play])
+        await visit(2)
+        await visit(2)
+        vi.setSystemTime(new Date(2026, 10, 13, 0, 0, 5))
+        cityOptions.onEnter('play')
+        await flushPromises()
+        expect(w.find('[data-test="stub-building"]').exists()).toBe(false)
+        expect(w.find('[data-test="stars"]').text()).toBe('4')
+        w.unmount()
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('notices a new day by itself within a minute', async () => {
+      vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] })
+      vi.setSystemTime(new Date(2026, 10, 12, 23, 59, 30))
+      try {
+        const w = await started([stub, play])
+        await visit(2)
+        await visit(2)
+        vi.setSystemTime(new Date(2026, 10, 13, 0, 0, 5))
+        vi.advanceTimersByTime(60_000)
+        await nextTick()
+        expect(slots(w)).toEqual(['false', 'false'])
+        w.unmount()
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
     it('gives no visit and no stars for a play building', async () => {
       const w = await started([stub, play])
       await visit(3)
       await visit(3)
       cityOptions.onEnter('play')
-      await nextTick()
+      await flushPromises()
       finishWith({ stars: 7 })
       await nextTick()
       expect(w.find('[data-test="stars"]').text()).toBe('3')
@@ -315,6 +409,41 @@ describe('App', () => {
       w.unmount()
     })
 
+    it('stays open while the start key is still held down, and for bare modifier keys', async () => {
+      const w = await startedWithHelp()
+      window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyX', repeat: true }))
+      window.dispatchEvent(new KeyboardEvent('keydown', { code: 'ShiftLeft', key: 'Shift' }))
+      window.dispatchEvent(new KeyboardEvent('keydown', { code: 'ControlLeft', key: 'Control' }))
+      await nextTick()
+      expect(w.find('[data-test="help"]').exists()).toBe(true)
+      w.unmount()
+    })
+
+    it('does not flicker when H is held down', async () => {
+      const w = await started()
+      key('KeyH')
+      await nextTick()
+      window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyH', repeat: true }))
+      await nextTick()
+      window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyH', repeat: true }))
+      await nextTick()
+      expect(w.find('[data-test="help"]').exists()).toBe(true)
+      w.unmount()
+    })
+
+    it('is not shown again to a player who has played before, even with 0 Stars', async () => {
+      const pinia = createPinia()
+      const player = usePlayerStore(pinia)
+      player.award(3)
+      player.recordVisit()
+      player.spend(3)
+      const w = mount(App, { props: { buildings: [stub] }, global: { plugins: [pinia] } })
+      await w.find('[data-test="start-gate"]').trigger('pointerdown')
+      await flushPromises()
+      expect(w.find('[data-test="help"]').exists()).toBe(false)
+      w.unmount()
+    })
+
     it('is not shown at the start to a player who already has Stars', async () => {
       const pinia = createPinia()
       usePlayerStore(pinia).award(3)
@@ -344,7 +473,7 @@ describe('App', () => {
     it('does not open inside a building', async () => {
       const w = await started()
       cityOptions.onEnter('stub')
-      await nextTick()
+      await flushPromises()
       key('KeyH')
       await nextTick()
       expect(w.find('[data-test="help"]').exists()).toBe(false)

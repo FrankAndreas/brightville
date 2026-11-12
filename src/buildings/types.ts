@@ -25,4 +25,6 @@ export interface BuildingDef {
   needs: Need[]
   door: { x: number; z: number }
   component: Component
+  /** Fetches the building's code. Awaited before entering, so a failed download never costs Stars. */
+  preload?: () => Promise<unknown>
 }

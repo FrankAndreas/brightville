@@ -12,13 +12,20 @@ const SPOKEN =
 
 const close = () => emit('close')
 
+// A key still held from before, or a bare Shift or Ctrl, is not a wish to close
+const MODIFIERS = new Set(['Shift', 'Control', 'Alt', 'AltGraph', 'Meta', 'CapsLock', 'OS'])
+function onKey(e: KeyboardEvent) {
+  if (e.repeat || MODIFIERS.has(e.key)) return
+  close()
+}
+
 onMounted(() => {
   void speak(SPOKEN)
-  window.addEventListener('keydown', close)
+  window.addEventListener('keydown', onKey)
 })
 onBeforeUnmount(() => {
   stopSpeaking()
-  window.removeEventListener('keydown', close)
+  window.removeEventListener('keydown', onKey)
 })
 </script>
 

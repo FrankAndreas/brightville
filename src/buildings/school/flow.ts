@@ -69,6 +69,8 @@ export function createSchoolFlow(tasks: Task[], things: Thing[]): SchoolFlow {
         state.phase = 'cheering'
         state.solved += 1
         state.stars += STARS_PER_TASK
+        // The bonus is earned with the last right answer, so leaving during the cheer keeps it
+        if (state.solved === tasks.length) state.stars += SET_BONUS
         return [{ type: 'chime' }, { type: 'speak', text: cheerText(task.answer) }]
       }
       // Never a buzzer: the wrong button fades and we count together
@@ -94,7 +96,6 @@ export function createSchoolFlow(tasks: Task[], things: Thing[]): SchoolFlow {
       if (!task) {
         state.task = null
         state.phase = 'done'
-        state.stars += SET_BONUS
         return [{ type: 'confetti' }, { type: 'speak', text: SAY_DONE }]
       }
       state.task = task

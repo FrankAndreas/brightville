@@ -43,12 +43,12 @@ const inTown = computed(() => started.value && inside.value === null)
 function start() {
   unlockAudio()
   started.value = true
-  // A new player gets the controls explained once without asking
-  if (player.stars === 0) helpOpen.value = true
+  // A player who has never earned anything gets the controls explained without asking
+  if (player.stars === 0 && player.day === '') helpOpen.value = true
 }
 
 function onKey(e: KeyboardEvent) {
-  if ((e.code !== 'KeyH' && e.code !== 'F1') || !inTown.value || helpOpen.value) return
+  if (e.repeat || (e.code !== 'KeyH' && e.code !== 'F1') || !inTown.value || helpOpen.value) return
   e.preventDefault()
   helpOpen.value = true
 }
@@ -67,15 +67,38 @@ function doorLine(b: BuildingDef): string {
   }
 }
 
+/**
+ * The play building the child has just come out of. Its door offers nothing
+ * until the child has walked away: the Enter that turned cards a moment ago
+ * must not buy another round.
+ */
+const restingId = ref<string | null>(null)
+/** True while a building's code is being fetched */
+let entering = false
+
 function onNearDoor(id: string | null) {
   nearId.value = id
+  if (id !== restingId.value) restingId.value = null
   const building = find(id)
-  if (building) void speak(doorLine(building))
+  if (building && id !== restingId.value) void speak(doorLine(building))
 }
 
-function onEnter(id: string) {
+async function onEnter(id: string) {
   const building = find(id)
-  if (!building || inside.value || stateFor(building) !== 'open') return
+  if (!building || inside.value || entering || id === restingId.value) return
+  // The day may have changed since anyone last looked at the clock
+  player.refreshDay()
+  if (stateFor(building) !== 'open') return
+  entering = true
+  try {
+    await building.preload?.()
+  } catch {
+    // Offline or a new version on the server: stay in the town, keep the Stars
+    return
+  } finally {
+    entering = false
+  }
+  if (inside.value || stateFor(building) !== 'open') return
   // Play costs Stars, taken at the door
   if (building.kind === 'play' && building.cost && !player.spend(building.cost)) return
   inside.value = building
@@ -88,6 +111,7 @@ let celebrationTimer: ReturnType<typeof setTimeout> | undefined
 function onFinished(result: BuildingResult) {
   const building = inside.value
   inside.value = null
+  if (building?.kind === 'play') restingId.value = building.id
   // Only earning buildings give Stars and count towards the daily goal
   if (building?.kind !== 'earn' || !(result.stars > 0)) return
   player.award(result.stars)
@@ -123,7 +147,7 @@ onBeforeUnmount(() => {
       <GoalBar :visits="player.visitsToday" :goal="DAILY_GOAL" :prize="prize" />
     </div>
     <DoorPrompt
-      v-if="near && !inside && !helpOpen"
+      v-if="near && !inside && !helpOpen && near.id !== restingId"
       :icon="near.icon" :state="stateFor(near)" :cost="near.cost" :visits="player.visitsToday" :goal="DAILY_GOAL"
     />
     <Confetti v-if="celebrating && !inside" />

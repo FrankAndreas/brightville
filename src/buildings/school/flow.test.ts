@@ -98,6 +98,8 @@ describe('school flow', () => {
     const flow = start()
     for (let i = 0; i < 4; i++) solve(flow)
     flow.answer(4)
+    // the bonus belongs to the fifth right answer, not to what comes after
+    expect(flow.state.stars).toBe(10)
     expect(flow.next()).toEqual([{ type: 'confetti' }, { type: 'speak', text: 'Super gemacht!' }])
     expect(flow.state).toMatchObject({ phase: 'done', task: null, solved: 5, stars: 5 * STARS_PER_TASK + SET_BONUS })
     expect(flow.state.stars).toBe(10)

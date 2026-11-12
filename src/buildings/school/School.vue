@@ -85,8 +85,11 @@ function touch(i: number) {
 
 function answer(choice: number) {
   if (closed) return
-  const spoken = run(flow.answer(choice))
-  if (flow.state.phase !== 'cheering' || view.phase !== 'cheering') return
+  const effects = flow.answer(choice)
+  // An extra tap during the cheer or the count-along changes nothing
+  if (effects.length === 0) return
+  const spoken = run(effects)
+  if (flow.state.phase !== 'cheering') return
   // Let the cheer finish before the next question starts
   void spoken.then(() => later(() => {
     marked.value = new Set()

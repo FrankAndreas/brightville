@@ -150,6 +150,38 @@ describe('School', () => {
     w.unmount()
   })
 
+  it('lets the cheer finish when the child taps again during it', async () => {
+    // a voice that takes 1.5 s per line, like a real one
+    vi.mocked(speak).mockImplementation(() => new Promise(resolve => setTimeout(resolve, 1500)))
+    const w = await open()
+    press('Digit3')
+    await run(800)
+    press('Digit3')
+    await choice(w, 3).trigger('pointerdown')
+    await run(600)
+    // 1.4 s in: still cheering, the next question has not been asked
+    expect(said().at(-1)).toBe('Super! Drei!')
+    await run(700)
+    expect(said().at(-1)).toBe('Wie viele Punkte?')
+    expect(said().filter(t => t === 'Wie viele Punkte?')).toHaveLength(1)
+    vi.mocked(speak).mockImplementation(() => Promise.resolve())
+    w.unmount()
+  })
+
+  it('keeps the bonus when the child leaves during the last cheer', async () => {
+    const w = await open()
+    for (const task of TEST_TASKS.slice(0, 4)) {
+      press(`Digit${task.answer}`)
+      await run(CHEER)
+    }
+    press(`Digit${TEST_TASKS[4].answer}`)
+    await run(10)
+    press('Escape')
+    await run(10)
+    expect(w.emitted('finished')).toEqual([[{ stars: 10 }]])
+    w.unmount()
+  })
+
   it('shows a die with countable pips and a sum as two groups', async () => {
     const w = await open()
     press('Digit3')
