@@ -20,6 +20,7 @@ CSRF = {"X-Requested-With": "brightville"}
 def fresh(tmp_path, monkeypatch):
     """Every test gets a database of its own, a hub address and a fixed clock."""
     monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    monkeypatch.delenv("DATABASE_URL", raising=False)
     monkeypatch.setenv("HUB_URL", "http://hub.test")
     monkeypatch.setenv("HUB_PUBLIC_URL", "https://home.local.example")
     monkeypatch.delenv("LOCAL_PEOPLE", raising=False)

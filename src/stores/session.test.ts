@@ -10,7 +10,10 @@ const PEOPLE = [
 ]
 
 describe('session store', () => {
-  beforeEach(() => setActivePinia(createPinia()))
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    window.sessionStorage.clear()
+  })
 
   it('is ready when the server knows who plays', async () => {
     const session = useSessionStore()
@@ -71,6 +74,18 @@ describe('session store', () => {
     api.offline = false
     await session.retry()
     expect(session.status).toBe('ready')
+  })
+
+  it('goes to the hub only once in ten minutes, so a cookie that never arrives cannot loop', async () => {
+    const api = fakeApi()
+    api.me = async () => { throw new ApiError(401, 'not_logged_in', 'https://hub.test/?next=') }
+    const go = vi.fn()
+    await useSessionStore().start(api, go)
+    setActivePinia(createPinia())
+    const again = useSessionStore()
+    await again.start(api, go)
+    expect(go).toHaveBeenCalledTimes(1)
+    expect(again.status).toBe('offline')
   })
 
   it('is offline, not in a redirect loop, for a 401 without a place to log in', async () => {

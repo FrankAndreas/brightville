@@ -12,30 +12,48 @@ The town square has a trampoline, balls to push and four buildings:
 | 🧘 Yoga Studio | The camera checks three poses | +3 per pose held |
 | 🃏 Arcade | Memory with six pairs of animals | costs 3 per round |
 
-**Learn first, play later:** the Arcade door stays locked until two earning visits are done today (School, Schreiben or Yoga, in any mix). The slots next to the Star counter show how far the child is. A new day starts the slots over; Stars are kept.
-Stars and today's visits are saved in the browser.
+**Learn first, play later:** the Arcade door stays locked until today's earning visits are done (School, Schreiben or Yoga, in any mix; two unless a parent set another number). The slots next to the Star counter show how far the child is. A new day starts the slots over; Stars are kept.
+When a parent has set a play time per day, the Arcade door shows a moon once it is used up.
+
+**Each child has their own Stars**, kept by the game's server (`backend/`), so the laptop and the iPad show the same.
+Who is playing comes from the family hub's login; a coloured circle with the first letter next to the Star counter shows who it is.
+Parents get a gear next to the "?": their page shows every child's Stars and today's numbers, and sets the daily goal, the play time per day and the Stars.
 
 The idea behind the game is in [Learning City – Gameplay Design.md](Learning%20City%20%E2%80%93%20Gameplay%20Design.md).
 How it is built and what comes next is in [docs/superpowers/specs/2026-11-12-brightville-stage1-design.md](docs/superpowers/specs/2026-11-12-brightville-stage1-design.md);
 the plan for stage 1 is in [docs/superpowers/plans/2026-11-12-brightville-stage1.md](docs/superpowers/plans/2026-11-12-brightville-stage1.md).
 Stage 2 (School, Arcade, daily goal) has its own [design](docs/superpowers/specs/2026-11-12-brightville-stage2-design.md) and [plan](docs/superpowers/plans/2026-11-12-brightville-stage2.md).
 Stage 3 (iPad and NAS) has a [design](docs/superpowers/specs/2026-11-12-brightville-stage3-design.md) and a [plan for its first part](docs/superpowers/plans/2026-11-12-brightville-stage3-part1.md).
+Stage 4 (family login, server, parents) has a [design](docs/superpowers/specs/2026-11-12-brightville-stage4-design.md).
 
 ## Run it
 
-Requires Node 22 or later.
+Requires Node 22 or later and Python 3.14.
 
 ```bash
 npm install        # also copies the body-tracking files into public/mediapipe/ and enables the git hook
-npm run dev        # http://localhost:5173
+python3 -m venv venv && venv/bin/pip install -r backend/requirements.txt -r tests/requirements.txt black flake8 mypy
+
+npm run dev        # the server on :8000 and the game on http://localhost:5173, without the family hub
 npm test           # Vitest
 npm run lint       # ESLint
 npm run typecheck  # vue-tsc
 npm run build      # type check, then static files in dist/
+venv/bin/pytest    # the server's tests
 ```
 
-The pre-commit hook (`.githooks/pre-commit`, the same script as in the other family repos) runs lint and the type check on commits that touch code.
-CI (`.github/workflows/ci.yml`) runs the audit, the tests, lint and the build on every push to `main` and on pull requests, and builds the container image; a push to `main` publishes it as `ghcr.io/frankandreas/brightville:latest`.
+**Trying it here, without the family hub:** `npm run dev` starts the server without `HUB_URL`, so there is no login. The page asks who plays: big coloured circles for the people of `LOCAL_PEOPLE` (default "Kind" and "Eltern"). Tapping the circle in the town hands the game to someone else. Pick your own people:
+
+```bash
+LOCAL_PEOPLE="Mia:CHILD,Ben:CHILD,Papa:PARENT" npm run dev
+```
+
+Their Stars are kept in `backend/data/brightville.db`; delete it to start over. Anybody can pick a parent, so this mode is not for the NAS.
+
+**With a family hub:** `HUB_URL=http://<NAS_IP>:8086 HUB_PUBLIC_URL=https://home.local.<domain> npm run dev`. The hub's login cookie only reaches pages under `local.<domain>`, so this works on `localhost` only with a `hub_session` token sent by hand (`Authorization: Bearer`). `npm run dev:web` starts the game page alone.
+
+The pre-commit hook (`.githooks/pre-commit`, the same script as in the other family repos) runs lint and the type checks, and black, flake8 and mypy for the server, on commits that touch code.
+CI (`.github/workflows/ci.yml`) runs the audit, the tests, lint and the build, the server's checks and tests, and builds the two container images; a push to `main` publishes them as `ghcr.io/frankandreas/brightville/frontend` and `.../backend`.
 
 Running it on the NAS for the iPad: [docs/deploy-nas.md](docs/deploy-nas.md).
 
@@ -95,11 +113,14 @@ The tracking model (`public/mediapipe/pose_landmarker_lite.task`, from Google's 
 
 | Folder | What it holds |
 |---|---|
-| `src/core` | Pure logic with tests and no browser code: saving, the daily goal, door rules, counting tasks, Memory, letters and tracing, pose rules |
+| `src/core` | Pure logic with tests and no browser code: door rules, counting tasks, Memory, letters and tracing, pose rules |
 | `src/input` | Turns the keyboard and the on-screen stick and buttons into intents (move, jump, go in, leave), merged into one source for the town |
 | `src/city` | The 3D town: Three.js for drawing, Rapier for physics |
 | `src/buildings` | One folder per building, plus the list of buildings in `registry.ts` |
-| `src/services` | Voice, sound, camera, body tracking, storage, device detection |
+| `src/services` | Voice, sound, camera, body tracking, device detection, and `api.ts` for the server (`fakeApi.ts` stands in for it in tests) |
+| `src/stores` | Who plays (`session.ts`) and their Stars and today's numbers (`player.ts`); an earned visit the server didn't get waits in the browser and is sent again |
+| `backend/` | The server: FastAPI and SQLite. The family hub's login (`hub.py`, `auth.py`) or the no-hub picking (`local.py`), the rules that touch Stars (`game.py`), the people (`people.py`). Tests in `tests/` |
+| `shared/buildings.json` | What each building is (earns or costs, how much), read by the server; a test checks the town agrees |
 
 A building is a Vue component that emits `finished` with `{ stars }`. To add one, write the component and add an entry to `src/buildings/registry.ts` with its door position, picture, spoken name, whether it earns or costs Stars (`kind`, `cost`) and what it needs from the device (camera, touch, keyboard). The town shows a door as closed when the device can't serve it. A building also tells `src/buildings/leave.ts` how it is left (`onLeaveRequest(leave)`), so the on-screen leave button works in it.
 

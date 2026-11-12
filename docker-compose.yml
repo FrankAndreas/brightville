@@ -1,22 +1,60 @@
-# Brightville on a NAS (or any Docker host), with the image published by CI.
+# Brightville on a NAS (or any Docker host), with the images published by CI.
 # Copy it to the app folder on the NAS as compose.yaml; see docs/deploy-nas.md.
 #
-# The app is static (nginx serving the built files) and keeps no data, so it
-# needs no volumes or .env. The image brings its own healthcheck and runs as a
-# non-root user.
+# The backend runs as PUID:PGID from .env (default 999:999, the image's own
+# user). On a Synology, use a DSM user's IDs (see docs/deploy-nas.md). It never
+# runs as root. The ./data folder must exist and belong to that user before the
+# first start: it holds the database with everyone's Stars.
 #
 # To try your local changes instead: docker compose up -d --build
 
 services:
-  brightville:
-    image: ghcr.io/frankandreas/brightville:latest
-    build: .
-    container_name: brightville
-    ports:
-      - "${PORT:-8087}:8080"
+  backend:
+    image: ghcr.io/frankandreas/brightville/backend:latest
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: ${CONTAINER_PREFIX:-brightville}-backend
+    user: "${PUID:-999}:${PGID:-999}"
+    volumes:
+      - ./data:/srv/backend/data      # SQLite database
+    environment:
+      - DATABASE_URL=sqlite:///./data/brightville.db
+      # The family hub (FrankAndreas/family-hub): how this backend reaches it (e.g. http://<NAS_IP>:8086), where
+      # browsers log in and out (https://home.local.<domain>), and this app's key: the hub tile's App-Schlüssel must
+      # be the same. Without HUB_URL there is no login and anybody can pick a parent: not for the NAS
+      - HUB_URL=${HUB_URL:-}
+      - HUB_PUBLIC_URL=${HUB_PUBLIC_URL:-}
+      - HUB_APP_KEY=${HUB_APP_KEY:-brightville}
+      # The names browsers use for the game, comma-separated (e.g. brightville.local.<domain>): any other name gets
+      # nothing. Empty: any name
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-}
+      # Only without a hub: who can be picked
+      - LOCAL_PEOPLE=${LOCAL_PEOPLE:-}
+      # The day starts over at midnight here
+      - TZ=${TZ:-Europe/Zurich}
+    mem_limit: 128m
     restart: unless-stopped
-    logging:
+    healthcheck:
+      test: [ "CMD-SHELL", "python3 -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000/health\")' || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging: &logging
       driver: json-file
       options:
         max-size: "10m"
         max-file: "3"
+
+  frontend:
+    image: ghcr.io/frankandreas/brightville/frontend:latest
+    build: .
+    container_name: ${CONTAINER_PREFIX:-brightville}-frontend
+    ports:
+      - "${PORT:-8087}:8080"
+    depends_on:
+      - backend
+    mem_limit: 64m
+    restart: unless-stopped
+    logging: *logging

@@ -26,12 +26,36 @@ jobs:
       - run: node scripts/fetch-pose-assets.mjs
       - run: npm run build
 
-  # The container image for the NAS (docs/deploy-nas.md). Pull requests build it without publishing, so a broken
-  # Dockerfile is caught before merging; a push to main publishes it as :latest.
-  image:
-    name: Build image
-    needs: test
+  # The server: format, lint, types and tests, as in the other family apps. The tests run the API in-process against
+  # a temporary SQLite database, with the hub client's own fake hub (tests/conftest.py)
+  backend:
+    name: Backend tests
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+          cache: 'pip'
+      - run: pip install -r backend/requirements.txt -r tests/requirements.txt black flake8 mypy
+      - run: black --check backend tests
+      - run: flake8 backend tests --max-line-length=120 --extend-ignore=E203,W503
+      - run: cd backend && mypy app --ignore-missing-imports
+      - run: pytest
+
+  # The container images for the NAS (docs/deploy-nas.md). Pull requests build them without publishing, so a broken
+  # Dockerfile is caught before merging; a push to main publishes them as :latest.
+  image:
+    name: Build image (${{ matrix.image }})
+    needs: [test, backend]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - image: frontend
+            dockerfile: Dockerfile
+          - image: backend
+            dockerfile: backend/Dockerfile
     permissions:
       contents: read
       packages: write
@@ -50,7 +74,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v6
         with:
-          images: ghcr.io/${{ github.repository }}
+          images: ghcr.io/${{ github.repository }}/${{ matrix.image }}
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha,prefix=sha-
@@ -62,15 +86,16 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
+          file: ${{ matrix.dockerfile }}
           push: ${{ github.event_name == 'push' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
 
   # Merge Dependabot patch and minor updates once all jobs above pass; majors stay manual
   dependabot-automerge:
-    needs: [test, image]
+    needs: [test, backend, image]
     if: github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]'
     runs-on: ubuntu-latest
     permissions:

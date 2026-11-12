@@ -81,3 +81,11 @@ def test_a_new_name_or_role_in_the_hub_shows_at_once(mia, family_hub):
     family_hub.rename("Mia", "Maya")
     browser = as_person("Maya")
     assert browser.get("/api/me").json()["person"]["name"] == "Maya"
+
+
+def test_the_database_can_be_named_as_in_the_other_family_apps(tmp_path, monkeypatch):
+    from app import db
+
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path}/other/game.db")
+    assert db.path() == tmp_path / "other" / "game.db"
+    assert db.path().parent.is_dir()

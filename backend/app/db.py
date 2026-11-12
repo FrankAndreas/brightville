@@ -43,9 +43,13 @@ VERSION = 1
 
 
 def path() -> Path:
-    folder = Path(os.getenv("DATA_DIR") or "./data")
-    folder.mkdir(parents=True, exist_ok=True)
-    return folder / "brightville.db"
+    """DATABASE_URL (sqlite:///<file>, as in the other family apps; the NAS update script backs it up from there), or
+    brightville.db in DATA_DIR."""
+    url = os.getenv("DATABASE_URL", "")
+    file = Path(url.split("sqlite:///", 1)[1]) if url.startswith("sqlite:///") else None
+    file = file or Path(os.getenv("DATA_DIR") or "./data") / "brightville.db"
+    file.parent.mkdir(parents=True, exist_ok=True)
+    return file
 
 
 def connect() -> sqlite3.Connection:

@@ -13,6 +13,22 @@ import { ApiError, type Api, type Me } from '@/services/api'
  */
 export type SessionStatus = 'loading' | 'ready' | 'choose' | 'no_access' | 'offline' | 'leaving'
 
+// The browser goes to the hub's login at most this often: a login cookie that never arrives (the game opened at an
+// address outside local.<domain>) would otherwise bounce between the hub and the game for ever
+const LOGIN_GAP_MS = 10 * 60_000
+const LOGIN_KEY = 'brightville.loginAt'
+
+function mayGoToLogin(): boolean {
+  try {
+    const last = window.sessionStorage.getItem(LOGIN_KEY)
+    if (last !== null && Date.now() - Number(last) < LOGIN_GAP_MS) return false
+    window.sessionStorage.setItem(LOGIN_KEY, String(Date.now()))
+    return true
+  } catch {
+    return true
+  }
+}
+
 export const useSessionStore = defineStore('session', () => {
   const status = ref<SessionStatus>('loading')
   const me = shallowRef<Me | null>(null)
@@ -31,7 +47,7 @@ export const useSessionStore = defineStore('session', () => {
       me.value = await api.value.me()
       status.value = me.value.person ? 'ready' : 'choose'
     } catch (e) {
-      if (e instanceof ApiError && e.status === 401 && e.loginUrl) {
+      if (e instanceof ApiError && e.status === 401 && e.loginUrl && mayGoToLogin()) {
         status.value = 'leaving'
         go(e.loginUrl + encodeURIComponent(window.location.href))
       } else if (e instanceof ApiError && e.status === 403) {
