@@ -89,6 +89,8 @@ function answer(choice: number) {
   // An extra tap during the cheer or the count-along changes nothing
   if (effects.length === 0) return
   const spoken = run(effects)
+  // A faded answer keeps no focus, so Enter cannot give it again
+  if (flow.state.wrong.includes(choice)) focus.value = -1
   if (flow.state.phase !== 'cheering') return
   // Let the cheer finish before the next question starts
   void spoken.then(() => later(() => {
@@ -98,11 +100,15 @@ function answer(choice: number) {
   }, AFTER_CHEER_MS))
 }
 
+/** Arrows step over answers that have already faded: only live buttons take the focus. */
 function moveFocus(by: number) {
   const choices = task.value?.choices
   if (!choices) return
-  focus.value = Math.min(choices.length - 1, Math.max(0, focus.value + by))
-  void speak(numberWord(choices[focus.value]))
+  let i = focus.value + by
+  while (i >= 0 && i < choices.length && flow.state.wrong.includes(choices[i])) i += by
+  if (i < 0 || i >= choices.length) return
+  focus.value = i
+  void speak(numberWord(choices[i]))
 }
 
 function shutDown() {

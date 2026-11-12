@@ -104,6 +104,14 @@ async function onEnter(id: string) {
   inside.value = building
 }
 
+/** What the voice says when today's learning is done: only an affordable door is called open */
+function goalLine(): string {
+  const prizes = props.buildings.filter(b => b.kind === 'play')
+  if (prizes.some(b => stateFor(b) === 'open')) return 'Geschafft! Die Spielhalle ist offen!'
+  const cost = Math.min(...prizes.map(b => b.cost ?? 0))
+  return prizes.length > 0 ? `Geschafft! Jetzt brauchst du noch ${numberWord(cost)} Sterne.` : 'Geschafft!'
+}
+
 /** Confetti over the town when today's learning is done */
 const celebrating = ref(false)
 let celebrationTimer: ReturnType<typeof setTimeout> | undefined
@@ -119,7 +127,7 @@ function onFinished(result: BuildingResult) {
     celebrating.value = true
     clearTimeout(celebrationTimer)
     celebrationTimer = setTimeout(() => { celebrating.value = false }, CELEBRATION_MS)
-    void speak('Geschafft! Die Spielhalle ist offen!')
+    void speak(goalLine())
   }
 }
 

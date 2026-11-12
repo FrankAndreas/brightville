@@ -116,8 +116,9 @@ function doorBuilding(R: Rapier, world: RAPIER.World, scene: THREE.Scene, door: 
     group.add(board)
   }
   const lock = sign('🔒')
-  lock.scale.setScalar(0.75)
-  lock.position.set(0, 1.5, depth / 2 + 0.2)
+  // A badge on the corner of the sign, so the door itself stays readable
+  lock.scale.setScalar(0.6)
+  lock.position.set(0.85, 3.3, depth / 2 + 0.12)
   group.add(lock)
 
   const ringMaterial = new THREE.MeshBasicMaterial({ color: COLORS.doorOpen, transparent: true })

@@ -225,6 +225,15 @@ describe('App', () => {
       w.unmount()
     })
 
+    it('does not call the play door open while the stars are short', async () => {
+      const w = await started([stub, play])
+      await visit(1)
+      await visit(1)
+      expect(w.find('[data-test="confetti"]').exists()).toBe(true)
+      expect(speak).toHaveBeenLastCalledWith('Geschafft! Jetzt brauchst du noch drei Sterne.')
+      w.unmount()
+    })
+
     it('says what is missing when there are too few stars', async () => {
       const w = await started([stub, play])
       await visit(1)

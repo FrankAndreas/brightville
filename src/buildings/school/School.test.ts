@@ -99,6 +99,33 @@ describe('School', () => {
     w.unmount()
   })
 
+  it('skips a faded answer with the arrows', async () => {
+    const w = await open()
+    press('Digit2')
+    await run(4000)
+    press('ArrowRight')
+    await run(10)
+    expect(choices(w)[1].attributes('data-focus')).toBe('true')
+    press('ArrowLeft')
+    await run(10)
+    expect(choices(w)[1].attributes('data-focus')).toBe('true')
+    expect(choices(w)[0].attributes('data-focus')).toBe('false')
+    w.unmount()
+  })
+
+  it('takes the focus off an answer that turned out wrong', async () => {
+    const w = await open()
+    press('ArrowRight')
+    press('Enter')
+    await run(4000)
+    expect(choices(w)[0].attributes('data-wrong')).toBe('true')
+    expect(choices(w)[0].attributes('data-focus')).toBe('false')
+    press('Enter')
+    await run(CHEER)
+    expect(doneStars(w)).toBe(0)
+    w.unmount()
+  })
+
   it('answers with a click', async () => {
     const w = await open()
     await choice(w, 3).trigger('pointerdown')
