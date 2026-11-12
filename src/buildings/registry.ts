@@ -6,21 +6,27 @@ import { defineAsyncComponent } from 'vue'
 
 // Each building's code is fetched on the first visit: the town doesn't need it to start
 const school = () => import('./school/School.vue')
+const schreiben = () => import('./schreiben/Schreiben.vue')
 const yoga = () => import('./yoga/YogaStudio.vue')
 const arcade = () => import('./arcade/Arcade.vue')
 
 /** Every building in the town */
 export const BUILDINGS: BuildingDef[] = [
   {
-    id: 'school', spokenName: 'Schule', icon: '🔢', kind: 'earn', needs: [], door: { x: -11, z: -14 },
+    id: 'school', spokenName: 'Schule', icon: '🔢', kind: 'earn', needs: [], door: { x: -15, z: -14 },
     component: defineAsyncComponent(school), preload: school,
   },
   {
-    id: 'yoga', spokenName: 'Yoga', icon: '🧘', kind: 'earn', needs: ['camera'], door: { x: 0, z: -14 },
+    // Writing wants a finger or a pen on the glass; a mouse teaches nothing about it
+    id: 'schreiben', spokenName: 'Schreiben', icon: '✏️', kind: 'earn', needs: ['touch'], door: { x: -5, z: -14 },
+    component: defineAsyncComponent(schreiben), preload: schreiben,
+  },
+  {
+    id: 'yoga', spokenName: 'Yoga', icon: '🧘', kind: 'earn', needs: ['camera'], door: { x: 5, z: -14 },
     component: defineAsyncComponent(yoga), preload: yoga,
   },
   {
-    id: 'arcade', spokenName: 'Spielhalle', icon: '🃏', kind: 'play', cost: 3, needs: [], door: { x: 11, z: -14 },
+    id: 'arcade', spokenName: 'Spielhalle', icon: '🃏', kind: 'play', cost: 3, needs: [], door: { x: 15, z: -14 },
     component: defineAsyncComponent(arcade), preload: arcade,
   },
 ]
