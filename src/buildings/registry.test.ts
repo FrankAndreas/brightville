@@ -40,6 +40,16 @@ describe('building registry', () => {
     expect(studio?.component).toBeTruthy()
   })
 
+  it('lists the school, which needs nothing special', () => {
+    const school = BUILDINGS.find(b => b.id === 'school')
+    expect(school).toMatchObject({ spokenName: 'Schule', icon: '🔢', kind: 'earn', needs: [], door: { x: -11, z: -14 } })
+  })
+
+  it('keeps the door buildings from overlapping', () => {
+    const xs = BUILDINGS.map(b => b.door.x).sort((a, b) => a - b)
+    for (let i = 1; i < xs.length; i++) expect(xs[i] - xs[i - 1]).toBeGreaterThanOrEqual(9)
+  })
+
   it('has unique ids', () => {
     expect(new Set(BUILDINGS.map(b => b.id)).size).toBe(BUILDINGS.length)
   })

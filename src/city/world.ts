@@ -211,8 +211,8 @@ export function buildTown(R: Rapier, world: RAPIER.World, doors: DoorDef[]): Tow
   }
 
   // Scenery
-  house(R, world, scene, -13, -15.5, 6, 3.4, 5, COLORS.houses[0], COLORS.roofs[0])
-  house(R, world, scene, 13, -15.5, 6, 3.8, 5, COLORS.houses[1], COLORS.roofs[1])
+  // The far side belongs to the door buildings
+  house(R, world, scene, 15.5, 9, 5, 3.6, 6, COLORS.houses[1], COLORS.roofs[1])
   house(R, world, scene, -15.5, 7, 5, 3.2, 6, COLORS.houses[2], COLORS.roofs[2])
 
   return { scene, doorVisuals: doors.map((door, i) => doorBuilding(R, world, scene, door, i)) }

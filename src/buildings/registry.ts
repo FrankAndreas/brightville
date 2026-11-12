@@ -7,6 +7,10 @@ import { defineAsyncComponent } from 'vue'
 /** Every building in the town */
 export const BUILDINGS: BuildingDef[] = [
   {
+    id: 'school', spokenName: 'Schule', icon: '🔢', kind: 'earn', needs: [], door: { x: -11, z: -14 },
+    component: defineAsyncComponent(() => import('./school/School.vue')),
+  },
+  {
     id: 'yoga', spokenName: 'Yoga', icon: '🧘', kind: 'earn', needs: ['camera'], door: { x: 0, z: -14 },
     // Loaded on first visit: the body tracking is large and the town doesn't need it
     component: defineAsyncComponent(() => import('./yoga/YogaStudio.vue')),
