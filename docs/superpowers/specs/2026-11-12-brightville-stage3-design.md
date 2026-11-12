@@ -81,7 +81,7 @@ Same pattern as Spielzeugkiste, which is already there on port 8084:
 1. A fourth building with a pencil on its sign. On the laptop its door is grey and the picture is crossed out.
 2. Inside, a large letter stands in the lines of the Schreibhaus. A dot shows where to start, an arrow which way to go.
 3. The child traces the letter stroke by stroke with a finger or a pen. The line follows in colour. A resting hand is ignored.
-4. Lifting too early starts that stroke again, with no comment. Starting at the wrong end makes the start dot blink.
+4. Lifting too early starts that stroke again; after a real try the voice says "Fast! Fang nochmal beim grünen Punkt an." Starting at the wrong end gets "Andersherum! Fang beim grünen Punkt an.", at most every 4 seconds. A touch beside the letter gets no comment. (As in Spielzeugkiste; changed from the first draft of this design, which had a blinking dot instead of the voice.)
 5. Each letter is written three times with less help each time: the whole path, then dots, then only the start.
 6. After two letters there is confetti and the child is back in the town.
 
@@ -92,6 +92,9 @@ Same pattern as Spielzeugkiste, which is already there on port 8084:
 - **Stars:** 1 per letter written, so 6 for the six tracings, plus 4 for a full visit: 10, the same as a School visit. **(call)**
 - The voice says "Schreib ein A" and cheers after each one. Mistakes never cost Stars.
 - Needs touch. A mouse would work but teaches nothing about writing. **(call)**
+- The four door buildings stand in one row on the far side: School, Schreiben, Yoga, Arcade. The first three moved to make room. **(call)**
+- Leaving early keeps 1 Star per letter written so far. **(call)**
+- Part 2 was built without a separate written plan: it is one building on the existing contract. **(call)**
 
 ### Left out of the Spielzeugkiste version **(call)**
 

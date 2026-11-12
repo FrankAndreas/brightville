@@ -36,19 +36,32 @@ describe('building registry', () => {
 
   it('lists the yoga studio and needs a camera', () => {
     const studio = BUILDINGS.find(b => b.id === 'yoga')
-    expect(studio).toMatchObject({ spokenName: 'Yoga', icon: '🧘', kind: 'earn', needs: ['camera'], door: { x: 0, z: -14 } })
+    expect(studio).toMatchObject({ spokenName: 'Yoga', icon: '🧘', kind: 'earn', needs: ['camera'], door: { x: 5, z: -14 } })
     expect(studio?.component).toBeTruthy()
   })
 
   it('lists the school, which needs nothing special', () => {
     const school = BUILDINGS.find(b => b.id === 'school')
-    expect(school).toMatchObject({ spokenName: 'Schule', icon: '🔢', kind: 'earn', needs: [], door: { x: -11, z: -14 } })
+    expect(school).toMatchObject({ spokenName: 'Schule', icon: '🔢', kind: 'earn', needs: [], door: { x: -15, z: -14 } })
   })
 
   it('lists the arcade as a play building that costs 3 stars', () => {
     const arcade = BUILDINGS.find(b => b.id === 'arcade')
-    expect(arcade).toMatchObject({ spokenName: 'Spielhalle', icon: '🃏', kind: 'play', cost: 3, needs: [], door: { x: 11, z: -14 } })
+    expect(arcade).toMatchObject({ spokenName: 'Spielhalle', icon: '🃏', kind: 'play', cost: 3, needs: [], door: { x: 15, z: -14 } })
     expect(BUILDINGS.filter(b => b.kind === 'play').every(b => (b.cost ?? 0) > 0)).toBe(true)
+  })
+
+  it('lists the writing building, which earns and needs a touch screen', () => {
+    const schreiben = BUILDINGS.find(b => b.id === 'schreiben')
+    expect(schreiben).toMatchObject({ spokenName: 'Schreiben', icon: '✏️', kind: 'earn', needs: ['touch'], door: { x: -5, z: -14 } })
+    expect(schreiben?.preload).toBeTypeOf('function')
+    const device = { camera: true, touch: false, keyboard: true }
+    expect(canServe(schreiben!, device)).toBe(false)
+    expect(canServe(schreiben!, { ...device, touch: true })).toBe(true)
+  })
+
+  it('keeps every door building (8 m wide) inside the wall of the 40 m square', () => {
+    for (const b of BUILDINGS) expect(Math.abs(b.door.x) + 4).toBeLessThanOrEqual(19.5)
   })
 
   it('keeps the door buildings from overlapping', () => {

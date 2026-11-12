@@ -3,15 +3,16 @@
 A small, friendly town for a kindergarten-age child: walk a wobbly character around, go into buildings, and earn Stars there by learning and moving.
 Everything the child sees is pictures and a German voice; no reading is needed.
 
-The town square has a trampoline, balls to push and three buildings:
+The town square has a trampoline, balls to push and four buildings:
 
 | Building | What happens inside | Stars |
 |---|---|---|
 | 🔢 School | Five tasks: counting, a die, first sums up to 9 | +1 per task, +5 for all five |
+| ✏️ Schreiben | Two letters or digits, each traced three times with less help (touch screen only) | +1 per tracing, +4 for all six |
 | 🧘 Yoga Studio | The camera checks three poses | +3 per pose held |
 | 🃏 Arcade | Memory with six pairs of animals | costs 3 per round |
 
-**Learn first, play later:** the Arcade door stays locked until two earning visits are done today (School or Yoga, in any mix). The slots next to the Star counter show how far the child is. A new day starts the slots over; Stars are kept.
+**Learn first, play later:** the Arcade door stays locked until two earning visits are done today (School, Schreiben or Yoga, in any mix). The slots next to the Star counter show how far the child is. A new day starts the slots over; Stars are kept.
 Stars and today's visits are saved in the browser.
 
 The idea behind the game is in [Learning City – Gameplay Design.md](Learning%20City%20%E2%80%93%20Gameplay%20Design.md).
@@ -66,6 +67,18 @@ A wrong answer only fades its button and the objects are counted together; the t
 
 Turn cards by clicking, or with the arrow keys and Enter. Esc leaves; the 3 Stars are not given back.
 
+## Schreiben
+
+Capital letters, Ä Ö Ü and the digits in the Deutschschweizer Basisschrift, with the stroke order Swiss schools teach. The paths and the tracing rules come from Spielzeugkiste.
+
+The child traces each stroke from the green dot with a finger or a pen; the traced part turns green. A resting hand is ignored: a touch much larger than the pen doesn't count.
+Each letter comes three times: with the whole path and arrows, with dots only, then with just the start.
+Lifting early starts that stroke again. Nothing is ever taken away.
+
+The door is open only on a device with a touch screen.
+
+**The pen.** The rules were tuned in Spielzeugkiste with a children's stylus (Edurino) on the iPad. Its recorded tries (`../kids-games/traces/`) show that Safari reports that pen as an ordinary touch of 41.6 px, the same as a fingertip, so pen and finger are treated alike. A resting hand is told apart by comparing each touch with the smallest one seen in the visit, not by a fixed size. An Apple Pencil has not been tried.
+
 ## Yoga Studio
 
 1. The browser asks for the camera. Without one, a crossed-out camera is shown and Enter leads back.
@@ -82,7 +95,7 @@ The tracking model (`public/mediapipe/pose_landmarker_lite.task`, from Google's 
 
 | Folder | What it holds |
 |---|---|
-| `src/core` | Pure logic with tests and no browser code: saving, the daily goal, door rules, counting tasks, Memory, pose rules |
+| `src/core` | Pure logic with tests and no browser code: saving, the daily goal, door rules, counting tasks, Memory, letters and tracing, pose rules |
 | `src/input` | Turns the keyboard and the on-screen stick and buttons into intents (move, jump, go in, leave), merged into one source for the town |
 | `src/city` | The 3D town: Three.js for drawing, Rapier for physics |
 | `src/buildings` | One folder per building, plus the list of buildings in `registry.ts` |

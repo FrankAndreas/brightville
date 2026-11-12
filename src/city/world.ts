@@ -20,7 +20,8 @@ const COLORS = {
   houses: [0xffc8dd, 0xbde0fe, 0xfde4a8],
   roofs: [0xff8fab, 0x8ecae6, 0xf4a261],
   // One wall and roof colour per door building, in the order of the doors
-  buildings: [[0xd9c8ff, 0xa58bf0], [0xbde0fe, 0x8ecae6], [0xffc8dd, 0xff8fab], [0xfde4a8, 0xf4a261]],
+  // In door order: School, Schreiben, Yoga, Arcade
+  buildings: [[0xd9c8ff, 0xa58bf0], [0xfde4a8, 0xf4a261], [0xbde0fe, 0x8ecae6], [0xffc8dd, 0xff8fab]],
   leafOpen: 0x6b4a2b,
   leafClosed: 0x8a8a8a,
   doorOpen: 0xffd93d,
