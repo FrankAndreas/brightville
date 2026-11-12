@@ -12,10 +12,13 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "postinstall": "node scripts/fetch-pose-assets.mjs",
+    "fetch-pose-assets": "node scripts/fetch-pose-assets.mjs"
   },
   "dependencies": {
     "@dimforge/rapier3d-compat": "^0.21.0",
+    "@mediapipe/tasks-vision": "^1.2.3",
     "pinia": "^4.1.0",
     "three": "^0.187.0",
     "vue": "^3.5.45"
