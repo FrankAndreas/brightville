@@ -44,6 +44,18 @@ export interface Film {
   title: string
 }
 
+/** A painting from Malen on the server; its pictures are at paintingUrl() */
+export interface PaintingRow {
+  id: string
+  /** Milliseconds; changes when painted further */
+  updated: number
+}
+
+/** Where a painting's picture or thumbnail is; `updated` makes a changed painting a new address */
+export function paintingUrl(row: PaintingRow, which: 'image' | 'thumb'): string {
+  return `/api/paintings/${encodeURIComponent(row.id)}/${which}?v=${row.updated}`
+}
+
 /** Why a request failed: the server's code, or 'offline' when there was no usable answer. */
 export class ApiError extends Error {
   constructor(public status: number, public code: string, public loginUrl: string | null = null) {
@@ -67,6 +79,11 @@ export interface Api {
   /** Parents only. Rejects with 'not_youtube', 'already_there' or 'too_many'. */
   addFilm(url: string, title: string): Promise<Film>
   removeFilm(id: number): Promise<unknown>
+  /** The person's paintings, newest first */
+  paintings(): Promise<PaintingRow[]>
+  /** Keeps a painting under its id (new, or painted further). Rejects with 'too_large' or 'not_a_picture'. */
+  keepPainting(id: string, image: string, thumb: string): Promise<PaintingRow>
+  removePainting(id: string): Promise<unknown>
 }
 
 type Fetch = (url: string, init: RequestInit) => Promise<Response>
@@ -114,5 +131,8 @@ export function httpApi(fetchFn: Fetch = (url, init) => fetch(url, init), onRene
     films: () => call('GET', '/api/films'),
     addFilm: (url, title) => call('POST', '/api/films', { url, title }),
     removeFilm: id => call('DELETE', `/api/films/${id}`),
+    paintings: () => call('GET', '/api/paintings'),
+    keepPainting: (id, image, thumb) => call('PUT', `/api/paintings/${encodeURIComponent(id)}`, { image, thumb }),
+    removePainting: id => call('DELETE', `/api/paintings/${encodeURIComponent(id)}`),
   }
 }

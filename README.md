@@ -12,7 +12,7 @@ The town square has a trampoline, balls to push and its buildings: learning at t
 | 🧘 Yoga Studio | The camera checks three poses | +3 per pose held |
 | 🔍 Unterschiede | Ten differences between two pictures | +1 per difference found without the lamp |
 | 🎨 Ausmalen | Twenty coloring pages: pick one, tap its parts to fill them | free |
-| 🖌️ Malen | Free drawing; each child's paintings stay on the device | free |
+| 🖌️ Malen | Free drawing; each child's paintings are kept on the server | free |
 | 🃏 Arcade | Memory with six pairs of animals | costs 3 per round |
 | 🐍 Schlange | The snake collects treasures until it bites itself | costs 3 per round |
 | 🍬 Bonbonjagd | Collect every sweet in a maze; chasers wander, a power-up turns the tables | costs 3 per round |
@@ -101,7 +101,7 @@ Tap a difference in either picture; the voice says what changed. The lamp 💡 c
 ## Schlange and Bonbonjagd
 
 Arrow keys or WASD on the keyboard; a swipe anywhere or the arrow pad with a finger. The first direction starts the round.
-Schlange ends when the snake bites itself; Bonbonjagd when the five lives are gone or every sweet is eaten. Then the game goes back to the town by itself. Each look (unicorn or princess) and each maze is picked at random; Bonbonjagd always runs at the slow speed. The mazes are Brightville's own.
+Schlange ends when the snake bites itself; Bonbonjagd when the five lives are gone or every sweet is eaten. Then the game goes back to the town by itself. Each look (unicorn or princess) and each maze is picked at random. Before the start, Bonbonjagd offers three speeds (🐢 🐇 🐆); the child's last choice is remembered on the device. The mazes are Brightville's own.
 
 ## Kino
 
@@ -114,7 +114,7 @@ A tap on a picture opens it; pick a colour at the bottom, then tap a part of the
 ## Malen
 
 ➕ starts a new sheet; a tap on a painting paints further on it. Brush, pencil, eraser, six shapes (dragged from corner to corner), three sizes, twelve colours, ↩️ and 🗑.
-Leaving the sheet (✅, Esc or the leave button) keeps it. Each child sees only their own paintings, the newest 20, kept in this browser (IndexedDB), not on the server. A resting hand is ignored, as in Schreiben; the mouse works too.
+Leaving the sheet (✅, Esc or the leave button) keeps it on the server, so the same gallery shows on the laptop and the iPad. Each child sees only their own paintings, the newest 30. When the server can't be reached, the painting waits in the browser (IndexedDB, shown with ⏳) and is sent the next time the gallery opens. A resting hand is ignored, as in Schreiben; the mouse works too.
 
 ## Schreiben
 

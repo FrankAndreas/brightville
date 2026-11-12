@@ -7,12 +7,12 @@ from contextlib import asynccontextmanager
 from dataclasses import asdict
 from typing import Optional
 
-from fastapi import Depends, FastAPI, Request, Response
+from fastapi import Depends, FastAPI, Path, Request, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from . import auth, films, game, hub, local, people
+from . import auth, films, game, hub, local, paintings, people
 from .auth import error, get_db
 from .buildings import Building, all_buildings
 from .people import Person
@@ -74,6 +74,15 @@ class RulesIn(BaseModel):
 class FilmIn(BaseModel):
     url: str = Field(max_length=500)
     title: str = Field(default="", max_length=60)
+
+
+class PaintingIn(BaseModel):
+    # Data URLs; the sizes are checked after decoding
+    image: str = Field(max_length=9 * 1024 * 1024)
+    thumb: str = Field(max_length=500 * 1024)
+
+
+PaintingId = Path(pattern=paintings.ID.pattern)
 
 
 class ChooseIn(BaseModel):
@@ -190,4 +199,48 @@ def add_film(body: FilmIn, _: Person = Depends(auth.parent), db: sqlite3.Connect
 def remove_film(film_id: int, _: Person = Depends(auth.parent), db: sqlite3.Connection = Depends(get_db)) -> dict:
     if not films.remove(db, film_id):
         raise error(404, "unknown_film")
+    return {"ok": True}
+
+
+@app.get("/api/paintings")
+def painting_list(person: Person = Depends(auth.current_person), db: sqlite3.Connection = Depends(get_db)) -> list:
+    return paintings.listing(db, person.id)
+
+
+@app.put("/api/paintings/{painting_id}")
+def keep_painting(
+    body: PaintingIn,
+    painting_id: str = PaintingId,
+    person: Person = Depends(auth.current_person),
+    db: sqlite3.Connection = Depends(get_db),
+) -> dict:
+    try:
+        return paintings.keep(db, person.id, painting_id, body.image, body.thumb)
+    except paintings.Refused as refused:
+        raise error(413 if refused.code == "too_large" else 422, refused.code) from None
+
+
+@app.get("/api/paintings/{painting_id}/{which}")
+def painting_part(
+    which: str,
+    painting_id: str = PaintingId,
+    person: Person = Depends(auth.current_person),
+    db: sqlite3.Connection = Depends(get_db),
+) -> Response:
+    found = paintings.part(db, person.id, painting_id, which) if which in ("image", "thumb") else None
+    if found is None:
+        raise error(404, "unknown_painting")
+    data, kind = found
+    # Private to whoever is logged in; checked again every time, so painting further shows at once
+    return Response(data, media_type=kind, headers={"Cache-Control": "private, no-cache"})
+
+
+@app.delete("/api/paintings/{painting_id}")
+def remove_painting(
+    painting_id: str = PaintingId,
+    person: Person = Depends(auth.current_person),
+    db: sqlite3.Connection = Depends(get_db),
+) -> dict:
+    if not paintings.remove(db, person.id, painting_id):
+        raise error(404, "unknown_painting")
     return {"ok": True}

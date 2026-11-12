@@ -2,8 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import 'fake-indexeddb/auto'
 import { IDBFactory } from 'fake-indexeddb'
 import { mount, type VueWrapper } from '@vue/test-utils'
+import { fakeApi, type FakeApi } from '@/services/fakeApi'
 import { speak } from '@/services/tts'
-import { listPaintings, loadPainting, savePainting } from '@/services/paintings'
+import { listPaintings as waitingOnDevice } from '@/services/paintings'
 import { requestLeave } from '../leave'
 import Malen from './Malen.vue'
 
@@ -17,8 +18,10 @@ const tiles = (w: VueWrapper) => w.findAll('[data-test="painting"]')
 const onSheet = (w: VueWrapper) => w.find('[data-test="paper"]').exists()
 const until = (check: () => void) => vi.waitFor(check)
 
+let api: FakeApi
+
 async function open(owner = 1): Promise<VueWrapper> {
-  const w = mount(Malen, { props: { owner }, attachTo: document.body })
+  const w = mount(Malen, { props: { owner, api }, attachTo: document.body })
   await until(() => expect(w.find('[data-test="gallery"]').attributes('data-loaded')).toBe('true'))
   return w
 }
@@ -40,6 +43,7 @@ async function newSheet(w: VueWrapper) {
 describe('Malen', () => {
   beforeEach(() => {
     globalThis.indexedDB = new IDBFactory()
+    api = fakeApi()
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(fakeContext as never)
     vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue('data:image/png;base64,AAA')
     vi.mocked(speak).mockClear()
@@ -64,7 +68,8 @@ describe('Malen', () => {
     requestLeave()
     await until(() => expect(tiles(w)).toHaveLength(1))
     expect(onSheet(w)).toBe(false)
-    expect(await listPaintings(1)).toHaveLength(1)
+    expect(api.paintings_).toHaveLength(1)
+    expect(api.paintings_[0].image).toBe('data:image/png;base64,AAA')
     expect(w.emitted('finished')).toBeUndefined()
     w.unmount()
   })
@@ -74,7 +79,7 @@ describe('Malen', () => {
     await newSheet(w)
     press('Escape')
     await until(() => expect(onSheet(w)).toBe(false))
-    expect(await listPaintings(1)).toHaveLength(0)
+    expect(api.paintings_).toHaveLength(0)
     w.unmount()
   })
 
@@ -93,28 +98,40 @@ describe('Malen', () => {
   })
 
   it('paints further on an old painting and keeps it under the same name', async () => {
-    const id = await savePainting(1, { image: 'data:image/png;base64,OLD', thumb: 'data:image/jpeg;base64,T' })
+    api.paintings_ = [{ id: 'p-old', updated: 5, image: 'data:image/png;base64,OLD', thumb: 'data:image/jpeg;base64,T' }]
     const w = await open()
     expect(tiles(w)).toHaveLength(1)
+    expect(tiles(w)[0].find('img').attributes('src')).toBe('/api/paintings/p-old/thumb?v=5')
     await tiles(w)[0].find('img').trigger('click')
     await until(() => expect(onSheet(w)).toBe(true))
     stroke(w)
     await w.find('[data-test="done"]').trigger('click')
     await until(() => expect(onSheet(w)).toBe(false))
-    expect((await listPaintings(1)).map(p => p.id)).toEqual([id])
-    expect((await loadPainting(1, id))?.image).toBe('data:image/png;base64,AAA')
+    expect(api.paintings_.map(p => p.id)).toEqual(['p-old'])
+    expect(api.paintings_[0].image).toBe('data:image/png;base64,AAA')
     w.unmount()
   })
 
-  it("shows only this child's paintings", async () => {
-    await savePainting(2, { image: 'B', thumb: 'b' })
-    const w = await open(1)
-    expect(tiles(w)).toHaveLength(0)
+  it('keeps a painting on the device when the server is away, and sends it next time', async () => {
+    api.offline = true
+    const w = await open()
+    await newSheet(w)
+    stroke(w)
+    requestLeave()
+    await until(() => expect(tiles(w)).toHaveLength(1))
+    expect(api.paintings_).toEqual([])
+    expect(await waitingOnDevice(1)).toHaveLength(1)
     w.unmount()
+    api.offline = false
+    const again = await open()
+    expect(tiles(again)).toHaveLength(1)
+    expect(api.paintings_).toHaveLength(1)
+    expect(await waitingOnDevice(1)).toEqual([])
+    again.unmount()
   })
 
   it('deletes a painting after asking', async () => {
-    await savePainting(1, { image: 'A', thumb: 'a' })
+    api.paintings_ = [{ id: 'p-a', updated: 1, image: 'A', thumb: 'a' }]
     const ask = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true)
     const w = await open()
     await w.find('[data-test="delete"]').trigger('click')
@@ -122,7 +139,7 @@ describe('Malen', () => {
     await w.find('[data-test="delete"]').trigger('click')
     await until(() => expect(tiles(w)).toHaveLength(0))
     expect(ask).toHaveBeenCalledTimes(2)
-    expect(await listPaintings(1)).toHaveLength(0)
+    expect(api.paintings_).toHaveLength(0)
     w.unmount()
   })
 
@@ -141,6 +158,6 @@ describe('Malen', () => {
     await newSheet(w)
     stroke(w)
     w.unmount()
-    await until(async () => expect(await listPaintings(1)).toHaveLength(1))
+    await until(() => expect(api.paintings_).toHaveLength(1))
   })
 })
