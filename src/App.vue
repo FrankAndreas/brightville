@@ -25,6 +25,9 @@ const device = detectDevice()
 const doors = computed(() => toDoors(props.buildings, device, player.goalReached, player.stars))
 const stateFor = (b: BuildingDef) => stateOf(b, device, player.goalReached, player.stars)
 
+/** No mouse, so most likely no keyboard: explain and prompt with fingers */
+const fingersOnly = device.touch && !device.keyboard
+
 const CELEBRATION_MS = 3000
 
 const started = ref(false)
@@ -158,11 +161,11 @@ onBeforeUnmount(() => {
     <DoorPrompt
       v-if="near && !inside && !helpOpen && near.id !== restingId"
       :icon="near.icon" :state="stateFor(near)" :cost="near.cost" :visits="player.visitsToday" :goal="DAILY_GOAL"
-      :touch="device.touch && !device.keyboard" @enter="onEnter(near.id)"
+      :touch="fingersOnly" @enter="onEnter(near.id)"
     />
     <Confetti v-if="celebrating && !inside" />
     <button v-if="inTown && !helpOpen" class="help-button" data-test="help-button" aria-label="Hilfe" @pointerdown="helpOpen = true">?</button>
-    <HelpOverlay v-if="helpOpen && inTown" @close="helpOpen = false" />
+    <HelpOverlay v-if="helpOpen && inTown" :touch="fingersOnly" @close="helpOpen = false" />
     <section v-if="inside" class="building">
       <component :is="inside.component" @finished="onFinished" />
       <LeaveButton />
@@ -172,12 +175,22 @@ onBeforeUnmount(() => {
 
 <style>
 html, body, #app { height: 100%; margin: 0; overflow: hidden; }
-body { background: #bfe7ff; font-family: system-ui, sans-serif; touch-action: none; user-select: none; }
+body {
+  background: #bfe7ff;
+  font-family: system-ui, sans-serif;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  /* No long-press menu, no grey flash on taps, no rubber-band scrolling on the iPad */
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
 .game { position: fixed; inset: 0; }
 .building { position: fixed; inset: 0; z-index: 10; }
 .hud {
   position: fixed;
-  top: 16px;
+  top: calc(16px + env(safe-area-inset-top));
   left: 50%;
   transform: translateX(-50%);
   z-index: 5;
@@ -191,8 +204,8 @@ body { background: #bfe7ff; font-family: system-ui, sans-serif; touch-action: no
 }
 .help-button {
   position: fixed;
-  top: 16px;
-  right: 16px;
+  top: calc(16px + env(safe-area-inset-top));
+  right: calc(16px + env(safe-area-inset-right));
   z-index: 5;
   width: 60px;
   height: 60px;
