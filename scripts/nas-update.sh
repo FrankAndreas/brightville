@@ -1,35 +1,41 @@
 #!/bin/bash
 # Nightly auto-update for a Brightville Docker deployment (e.g. on a Synology NAS).
 #
-# Pulls the app image and, only if a newer one was published, recreates the
-# container and waits until it is healthy. Without a new image it only checks
-# that the app is healthy. The app keeps no data, so there is nothing to back
-# up. The compose file is never changed by this script.
+# Every run backs up the SQLite database (everyone's Stars) when it changed since
+# the last backup. Then it pulls the app images (backend,
+# frontend) and, only if a newer image was published, recreates the app
+# containers and waits until the backend is healthy. If it doesn't get healthy,
+# the previous images and the database from just before are put back (rollback).
+# Without a new image it only checks that the backend is healthy. The
+# compose/.env configuration is never changed by this script.
 #
 # Usage:   nas-update.sh [--force] [APP_DIR]
 #   APP_DIR  folder containing the compose file (compose.yaml, docker-compose.yml, ...)
 #            (default: the folder this script is in)
-#   --force  recreate the container even if no new image was pulled
+#   --force  recreate the app containers even if no new image was pulled
 #            (e.g. after editing the compose file)
 #
-# Exit codes: 0 = up to date or updated successfully, 1 = failure (including an
-#             app that isn't healthy).
-# See docs/deploy-nas.md ("Automatic updates") for the Task Scheduler setup.
+# Exit codes: 0 = up to date or updated successfully, 1 = failure (including a
+#             backend that isn't healthy, and an update that was rolled back).
+# Adapted from family-hub's scripts/nas-update.sh.
+# See docs/deploy-nas.md ("Automatic updates") for the Task Scheduler setup. Only the backend's health is checked.
 
 set -uo pipefail
 
 # Task Scheduler runs with a minimal PATH; Docker lives in /usr/local/bin on DSM
 export PATH="$PATH:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 
-SERVICE=brightville
-HEALTH_TIMEOUT=300
+APP_SERVICES="backend frontend"
+BACKUP_KEEP=5        # always keep at least the newest 5 backups
+BACKUP_MIN_DAYS=7    # and every backup younger than 7 days
+HEALTH_TIMEOUT=${HEALTH_TIMEOUT:-300}
 
 FORCE=0
 APP_DIR=""
 for arg in "$@"; do
     case "$arg" in
         --force) FORCE=1 ;;
-        -h|--help) sed -n '2,17p' "$0"; exit 0 ;;
+        -h|--help) sed -n '2,16p' "$0"; exit 0 ;;
         *) APP_DIR="$arg" ;;
     esac
 done
@@ -37,7 +43,11 @@ APP_DIR="${APP_DIR:-$(cd "$(dirname "$0")" && pwd)}"
 cd "$APP_DIR" || { echo "Cannot cd to $APP_DIR"; exit 1; }
 
 LOG_DIR="$APP_DIR/logs"
-mkdir -p "$LOG_DIR"
+BACKUP_DIR="$APP_DIR/db-backups"
+# Backups and logs are for root only: they hold the family's names and Stars
+umask 077
+mkdir -p "$LOG_DIR" "$BACKUP_DIR"
+chmod 700 "$LOG_DIR" "$BACKUP_DIR"
 LOG_FILE="$LOG_DIR/update.log"
 
 log() { echo "$(date '+%Y-%m-%d %H:%M:%S') $*" | tee -a "$LOG_FILE"; }
@@ -68,40 +78,44 @@ fi
 # Reuse the project name of the running stack, so a project created in the
 # Container Manager UI isn't duplicated under the folder name
 if [ -z "${COMPOSE_PROJECT_NAME:-}" ]; then
-    app_id=$("${COMPOSE[@]}" ps -q "$SERVICE" 2>/dev/null | head -n1)
-    [ -z "$app_id" ] && app_id=$(docker ps -aq --filter name='^brightville$' | head -n1)
-    if [ -n "$app_id" ]; then
-        project=$(docker inspect -f '{{ index .Config.Labels "com.docker.compose.project" }}' "$app_id" 2>/dev/null)
-        workdir=$(docker inspect -f '{{ index .Config.Labels "com.docker.compose.project.working_dir" }}' "$app_id" 2>/dev/null)
+    backend_id=$("${COMPOSE[@]}" ps -q backend 2>/dev/null | head -n1)
+    # The container name comes from CONTAINER_PREFIX in .env (a second instance uses its own)
+    prefix=$(sed -n 's/^CONTAINER_PREFIX=//p' .env 2>/dev/null | tail -n1 | tr -d "\"' \r")
+    backend_name="${prefix:-brightville}-backend"
+    [ -z "$backend_id" ] && backend_id=$(docker ps -aq --filter name="^${backend_name}\$" | head -n1)
+    if [ -n "$backend_id" ]; then
+        project=$(docker inspect -f '{{ index .Config.Labels "com.docker.compose.project" }}' "$backend_id" 2>/dev/null)
+        workdir=$(docker inspect -f '{{ index .Config.Labels "com.docker.compose.project.working_dir" }}' "$backend_id" 2>/dev/null)
         # Never take over a stack that was started from another folder
         if [ -n "$workdir" ] && [ "$(cd "$workdir" 2>/dev/null && pwd -P)" != "$(pwd -P)" ]; then
-            fail "brightville belongs to the stack in $workdir, not $APP_DIR; run the script from that folder or set COMPOSE_PROJECT_NAME"
+            fail "$backend_name belongs to the stack in $workdir, not $APP_DIR; run the script from that folder or set COMPOSE_PROJECT_NAME"
         fi
         [ -n "$project" ] && export COMPOSE_PROJECT_NAME="$project"
     fi
 fi
 compose() { "${COMPOSE[@]}" "$@"; }
 
-# The app's container, running or stopped
-container() { compose ps -a -q "$SERVICE" 2>/dev/null | head -n1; }
+# Container of a service, running or stopped (running_container_of: running only)
+container_of() { compose ps -a -q "$1" 2>/dev/null | head -n1; }
+running_container_of() { compose ps -q "$1" 2>/dev/null | head -n1; }
 
-# Wait up to $HEALTH_TIMEOUT seconds for the image's healthcheck;
+# Wait up to $HEALTH_TIMEOUT seconds for the backend's Docker healthcheck;
 # leaves the last status in $status
 wait_healthy() {
     local deadline=$(( $(date +%s) + HEALTH_TIMEOUT ))
     status=""
     while [ "$(date +%s)" -lt "$deadline" ]; do
-        status=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$(container)" 2>/dev/null)
+        status=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$(container_of backend)" 2>/dev/null)
         [ "$status" = "healthy" ] && return 0
         sleep 10
     done
     return 1
 }
 
-# True if the container is missing or runs an older image than the local tag
+# True if the service's container is missing or runs an older image than the local tag
 needs_update() {
-    local cid image running latest
-    cid=$(container)
+    local service=$1 cid image running latest
+    cid=$(container_of "$service")
     [ -z "$cid" ] && return 0
     image=$(docker inspect -f '{{.Config.Image}}' "$cid") || return 0
     running=$(docker inspect -f '{{.Image}}' "$cid")
@@ -110,36 +124,150 @@ needs_update() {
 }
 
 log "Checking for updates in $APP_DIR (project: ${COMPOSE_PROJECT_NAME:-default})"
-compose pull --quiet "$SERVICE" >>"$LOG_FILE" 2>&1 || fail "docker pull failed (network or registry login?)"
+compose pull --quiet $APP_SERVICES >>"$LOG_FILE" 2>&1 || fail "docker pull failed (network or registry login?)"
 
-if ! needs_update && [ "$FORCE" -eq 0 ]; then
-    # Nothing to install, but report a broken app instead of calling it up to date
+changed=""
+for service in $APP_SERVICES; do
+    needs_update "$service" && changed="$changed $service"
+done
+
+# Back up the database: every night when it changed since the last backup, and always before an update (a new
+# version may change it when it starts). Writes the backup to stdout, using SQLite's online-backup API (a consistent
+# copy even while the backend is writing), through the running backend or a one-off backend container if it is stopped
+backup_sqlite() {
+    local runner=(exec -T backend)
+    [ -z "$(running_container_of backend)" ] && runner=(run --rm --no-deps -T backend)
+    compose "${runner[@]}" python -c '
+import os, sqlite3, sys, tempfile
+path = os.environ["DATABASE_URL"].split("sqlite:///", 1)[1]
+tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+tmp.close()
+src = sqlite3.connect("file:%s?mode=ro" % path, uri=True)
+dst = sqlite3.connect(tmp.name)
+src.backup(dst)
+dst.close()
+src.close()
+with open(tmp.name, "rb") as f:
+    sys.stdout.buffer.write(f.read())
+os.unlink(tmp.name)
+'
+}
+
+# Puts a backup (.gz) back into the database, through a one-off backend container (so the file keeps its owner);
+# the backend must be stopped
+restore_sqlite() {
+    gzip -dc "$1" | compose run --rm --no-deps -T backend python -c '
+import os, sqlite3, sys, tempfile
+path = os.environ["DATABASE_URL"].split("sqlite:///", 1)[1]
+tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+tmp.write(sys.stdin.buffer.read())
+tmp.close()
+src = sqlite3.connect(tmp.name)
+dst = sqlite3.connect(path)
+src.backup(dst)
+dst.close()
+src.close()
+os.unlink(tmp.name)
+'
+}
+
+backend_cid=$(container_of backend)
+database_url=""
+[ -n "$backend_cid" ] && database_url=$(docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$backend_cid" \
+    | sed -n 's/^DATABASE_URL=//p' | head -n1)
+stamp=$(date '+%Y%m%d-%H%M%S')
+previous_backup=$(ls -1t "$BACKUP_DIR"/brightville-*.gz 2>/dev/null | head -n1)
+case "$database_url" in
+    sqlite:///*)
+        backup="$BACKUP_DIR/brightville-$stamp.sqlite.gz"
+        backup_sqlite | gzip > "$backup" && [ "$(gzip -dc "$backup" | head -c 15)" = "SQLite format 3" ] ;;
+    *) backup="" ;;
+esac
+backup_ok=$?
+if [ -z "$backup" ]; then
+    log "No database to back up yet (no backend container yet)"
+elif [ "$backup_ok" -ne 0 ]; then
+    rm -f "$backup"
+    fail "database backup failed, not updating"
+elif [ -z "$changed" ] && [ "$FORCE" -eq 0 ] && [ -n "$previous_backup" ] \
+    && cmp -s <(gzip -dc "$backup") <(gzip -dc "$previous_backup"); then
+    # Nothing changed since the last backup, and no update follows
+    rm -f "$backup"
+    backup="$previous_backup"
+else
+    log "Database backup: $backup"
+    # Delete a backup only if it is beyond the newest $BACKUP_KEEP and older than $BACKUP_MIN_DAYS days
+    ls -1t "$BACKUP_DIR"/brightville-*.gz 2>/dev/null | tail -n +$((BACKUP_KEEP + 1)) | while read -r old; do
+        if [ -n "$(find "$old" -mmin +$((BACKUP_MIN_DAYS * 24 * 60)))" ]; then
+            rm -f "$old" && log "Removed old backup $(basename "$old")"
+        fi
+    done
+fi
+
+
+if [ -z "$changed" ] && [ "$FORCE" -eq 0 ]; then
+    # Nothing to install, but report a broken app (e.g. a backend crash-looping
+    # after a change to .env) instead of calling it up to date
     if ! wait_healthy; then
-        compose logs --tail 50 "$SERVICE" >>"$LOG_FILE" 2>&1
-        fail "up to date, but the app is not healthy (status: ${status:-unknown}); last logs in $LOG_FILE"
+        compose logs --tail 50 backend >>"$LOG_FILE" 2>&1
+        fail "up to date, but the backend is not healthy (status: ${status:-unknown}); last logs in $LOG_FILE"
     fi
     log "Up to date"
     exit 0
 fi
-needs_update && log "Updating to the new image" || log "Recreating the container (forced)"
+log "Updating:${changed:- (forced)}"
 
-# Keep the running image as :previous, so pruning can't remove it and a
-# rollback stays possible (see "Rolling back" in docs/deploy-nas.md)
-cid=$(container)
-if [ -n "$cid" ] && needs_update; then
+# A broken update is undone at once, so the children aren't locked out until someone rolls back by hand. The previous images come back, and the database from just before the
+# update (a migration may have changed it). The run still fails, so the Task Scheduler's mail tells about it.
+rollback_tags=""
+roll_back() {
+    if [ -z "$rollback_tags" ]; then
+        fail "$1; no previous version to go back to"
+    fi
+    log "$1: rolling back"
+    for pair in $rollback_tags; do
+        docker tag "${pair%%=*}" "${pair#*=}" && log "Back to ${pair%%=*}"
+    done
+    case "$changed" in
+        *backend*)
+            if [ -n "$backup" ]; then
+                compose stop backend >>"$LOG_FILE" 2>&1
+                restore_sqlite "$backup" >>"$LOG_FILE" 2>&1 && log "Database restored from $backup" \
+                    || log "Restoring the database from $backup failed"
+            fi ;;
+    esac
+    compose up -d $APP_SERVICES >>"$LOG_FILE" 2>&1
+    compose restart frontend >>"$LOG_FILE" 2>&1
+    if wait_healthy; then
+        fail "$1; rolled back to the previous version, which is healthy (see $LOG_FILE)"
+    fi
+    compose logs --tail 50 backend >>"$LOG_FILE" 2>&1
+    fail "$1; the rollback didn't help either (status: ${status:-unknown}); last logs in $LOG_FILE"
+}
+
+# Keep the running images as :previous, so pruning can't remove them and a
+# rollback stays possible (see "Rolling back an update" in docs/deploy-nas.md)
+for service in $changed; do
+    cid=$(container_of "$service")
+    [ -z "$cid" ] && continue
     image=$(docker inspect -f '{{.Config.Image}}' "$cid")
     docker tag "$(docker inspect -f '{{.Image}}' "$cid")" "${image%:*}:previous" \
-        && log "Kept current image as ${image%:*}:previous"
-fi
+        && log "Kept current $service image as ${image%:*}:previous" \
+        && rollback_tags="$rollback_tags ${image%:*}:previous=$image"
+done
 
-compose up -d "$SERVICE" >>"$LOG_FILE" 2>&1 || fail "docker compose up failed"
+compose up -d $APP_SERVICES >>"$LOG_FILE" 2>&1 || roll_back "docker compose up failed"
+# nginx resolves the backend's address once at startup; a recreated backend may have a new one
+case "$changed" in
+    *backend*) compose restart frontend >>"$LOG_FILE" 2>&1 || roll_back "restarting frontend failed" ;;
+esac
 
 if ! wait_healthy; then
-    compose logs --tail 50 "$SERVICE" >>"$LOG_FILE" 2>&1
-    fail "app not healthy after ${HEALTH_TIMEOUT}s (status: ${status:-unknown}); last logs in $LOG_FILE"
+    compose logs --tail 50 backend >>"$LOG_FILE" 2>&1
+    roll_back "backend not healthy after ${HEALTH_TIMEOUT}s (status: ${status:-unknown})"
 fi
 
 # Remove superseded (dangling) images to save disk space
 docker image prune -f >/dev/null 2>&1
 
-log "Update complete, app healthy"
+log "Update complete, backend healthy"

@@ -6,6 +6,10 @@ export default defineConfig({
   resolve: {
     alias: { '@': '/src' },
   },
+  // The game's server (backend/, scripts/dev.sh starts both)
+  server: {
+    proxy: { '/api': 'http://127.0.0.1:8000' },
+  },
   test: {
     environment: 'jsdom',
     include: ['src/**/*.test.ts'],

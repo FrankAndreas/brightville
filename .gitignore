@@ -3,3 +3,8 @@ dist
 public/mediapipe/wasm
 .superpowers
 .deploy.env
+venv
+backend/data
+__pycache__
+.pytest_cache
+.mypy_cache

@@ -7,7 +7,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "dev": "vite",
+    "dev": "bash scripts/dev.sh",
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
@@ -16,7 +16,8 @@
     "postinstall": "node scripts/fetch-pose-assets.mjs",
     "fetch-pose-assets": "node scripts/fetch-pose-assets.mjs",
     "typecheck": "vue-tsc --noEmit",
-    "prepare": "git config core.hooksPath .githooks || true"
+    "prepare": "git config core.hooksPath .githooks || true",
+    "dev:web": "vite"
   },
   "dependencies": {
     "@dimforge/rapier3d-compat": "^0.21.0",

@@ -36,14 +36,18 @@ export function canServe(building: BuildingDef, device: DeviceCaps): boolean {
 }
 
 /** What the door of this building is to the child right now. */
-export function stateOf(building: BuildingDef, device: DeviceCaps, goalReached: boolean, stars: number): DoorState {
-  return doorState(building, canServe(building, device), goalReached, stars)
+export function stateOf(
+  building: BuildingDef, device: DeviceCaps, goalReached: boolean, stars: number, timeUp = false,
+): DoorState {
+  return doorState(building, canServe(building, device), goalReached, stars, timeUp)
 }
 
 /** The doors the town shows: one per building, open only when the child may walk in right now. */
-export function toDoors(buildings: BuildingDef[], device: DeviceCaps, goalReached: boolean, stars: number): DoorDef[] {
+export function toDoors(
+  buildings: BuildingDef[], device: DeviceCaps, goalReached: boolean, stars: number, timeUp = false,
+): DoorDef[] {
   return buildings.map(b => {
-    const state = stateOf(b, device, goalReached, stars)
+    const state = stateOf(b, device, goalReached, stars, timeUp)
     return { id: b.id, x: b.door.x, z: b.door.z, open: state === 'open', locked: state === 'locked', icon: b.icon }
   })
 }

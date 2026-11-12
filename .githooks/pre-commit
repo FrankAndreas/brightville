@@ -29,3 +29,10 @@ if changed '\.(ts|js|mjs|vue|json)$'; then
     step "types"
     npm run --silent typecheck
 fi
+
+if changed '^(backend|tests)/.*\.py$'; then
+    step "backend black, flake8, mypy"
+    py black --check backend tests
+    py flake8 backend tests --max-line-length=120 --extend-ignore=E203,W503
+    (cd backend && py mypy app --ignore-missing-imports)
+fi

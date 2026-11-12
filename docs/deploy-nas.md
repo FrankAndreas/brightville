@@ -1,119 +1,133 @@
 # Deploying Brightville on a Synology NAS
 
-The NAS runs the image that CI publishes to the GitHub Container Registry, `ghcr.io/frankandreas/brightville:latest`, whenever a change lands on `main` and the tests pass.
-The repository is public, so no registry login is needed.
+Brightville runs as two containers from images that CI publishes to the GitHub Container Registry whenever a change lands on `main` and the tests pass:
 
-The app is static: nginx serves the built game as a non-root user.
-It keeps no data, so there is nothing to back up and no `.env` to set up.
-Stars are saved in each browser, so the laptop and the iPad each have their own until the family login arrives (stage 4).
-It runs next to the other family apps on port **8087**, for the home network only.
+- **backend** (`ghcr.io/frankandreas/brightville/backend`): the game's server, with everyone's Stars, today's numbers and the parents' settings in a SQLite database in `./data`
+- **frontend** (`ghcr.io/frankandreas/brightville/frontend`): nginx serving the game on port 8080 inside the container and forwarding `/api` to the backend
+
+The repository is public, so no registry login is needed.
+It runs next to the other family apps on port **8087**, for the home network only: requests through the Cloudflare tunnel are refused.
+Who is playing comes from the family hub's login (family-hub's README, "For apps").
 
 ## Prerequisites
 
 - A Synology NAS with **Container Manager** and SSH access (**Control Panel → Terminal & SNMP → Enable SSH**).
-- For the Yoga Studio: the `*.local.<domain>` DNS record and wildcard certificate the other family apps use (family-budget-dashboard's README_DOCKER.md, "HTTPS at home"). Browsers give a page the camera only over HTTPS.
+- family-hub running on the NAS, with its `*.local.<domain>` DNS record and wildcard certificate (family-hub's README_DOCKER.md). The hub's login cookie and the Yoga Studio's camera both need HTTPS.
 
 ## Installation
 
-1. **Prepare the folder.** Create `/volume1/docker/brightville` and upload `docker-compose.yml` into it **renamed to `compose.yaml`**. Remove the `build: .` line, since the NAS has no source code to build from. Change the port in it if 8087 is taken.
-2. **Start** it over SSH:
+1. **Choose the user the backend runs as.** Reuse the DSM user of the other family apps and look up its IDs: `id <user>` (e.g. `uid=1031 gid=100`).
+2. **Prepare the folder.** Create `/volume1/docker/brightville`, upload `docker-compose.yml` into it **renamed to `compose.yaml`**, and remove the two `build:` entries (the NAS has no source code). Create the data folder, owned by that user:
    ```bash
    cd /volume1/docker/brightville
+   sudo mkdir -p data
+   sudo chown -R 1031:100 data    # the IDs from step 1, or 999:999
+   sudo chmod 700 data
+   ```
+3. **Create `.env`**:
+   ```bash
+   printf '%s\n' 'PUID=1031' 'PGID=100' 'PORT=8087' \
+     'HUB_URL=http://<NAS_IP>:8086' 'HUB_PUBLIC_URL=https://home.local.<domain>' \
+     'ALLOWED_HOSTS=brightville.local.<domain>' | sudo tee .env
+   sudo chmod 600 .env
+   ```
+   - `HUB_URL`: how the backend reaches the hub (the hub's port on the NAS).
+   - `HUB_PUBLIC_URL`: where browsers log in and out.
+   - `HUB_APP_KEY`: only if the hub tile's app key is not `brightville`.
+   - `ALLOWED_HOSTS`: the names browsers use for the game; any other name gets nothing.
+   - Without `HUB_URL` nobody gets in: the page shows a sleeping cloud and the backend's log says why. **Never set `LOCAL_MODE=1` on the NAS**: it is for trying the game out without a hub, and lets anybody pick a parent.
+4. **Start** it:
+   ```bash
+   sudo docker-compose pull
    sudo docker-compose up -d
    ```
-3. Open `http://<NAS_IP>:8087`. The town works; the Yoga Studio door is grey until the next step.
 
-### HTTPS at home (for the camera)
+### HTTPS at home
 
 1. **Control Panel → Login Portal → Advanced → Reverse Proxy → Create**: source HTTPS, `brightville.local.<domain>`, port 443, **Enable HSTS**; destination HTTP, `localhost`, port 8087.
 2. **Control Panel → Security → Certificate → Settings**: pick the `*.local.<domain>` certificate for the new entry.
-3. Open `https://brightville.local.<domain>`. The Yoga Studio door glows, and the first visit asks for the camera.
 
-### A tile in family-hub
+The game must be opened at this `*.local.<domain>` address: only there does the browser send the hub's login cookie.
 
-In the hub, **Einstellungen → Apps → add**: name Brightville, home address `https://brightville.local.<domain>`, no outside address, no app key.
-Brightville doesn't use the family login yet, so the tile is only a link, shown to everybody.
+### The tile in family-hub
+
+In the hub, **Einstellungen → Apps → add**: name Brightville, home address `https://brightville.local.<domain>`, no outside address, **app key `brightville`**, and tick everyone who may play (the children, and the parents who want the parent area).
+
+### First visit
+
+- A child opens the address, is sent to the hub to log in once, and comes back to the game.
+- A parent sees a gear next to the "?" in the town: it opens the parent area with every child's Stars, today's visits and play minutes, and three settings: daily goal (1–5 visits), play time per day (no limit, or 5–180 minutes), and Stars.
+- **Stars from before stage 4** were saved in each browser and are not carried over. A parent types each child's number in once, in the parent area.
 
 ### On the iPad
 
-Open the address in Safari, then **Share → Add to Home Screen**.
-Started from that icon, the game fills the screen without Safari's bars.
-Turn the iPad sideways; the game is laid out for landscape.
+Open the address in Safari, then **Share → Add to Home Screen**. Started from that icon, the game fills the screen without Safari's bars.
+Each child logs in at the hub as themselves; the iPad and the laptop show the same Stars.
 
-Safari keeps the Stars of a home-screen app separate from those of the same page in a Safari tab.
+## Coming from the single image of stage 3
 
-## Updates
-
-Set up [automatic updates](#automatic-updates) to install new versions nightly, or update by hand:
+Stage 3 ran one container from `ghcr.io/frankandreas/brightville:latest`. To switch:
 
 ```bash
-sudo docker-compose pull
-sudo docker-compose up -d
+cd /volume1/docker/brightville
+sudo docker-compose down
+# then steps 1–4 above: the new compose.yaml, the data folder and .env
+sudo docker image rm ghcr.io/frankandreas/brightville:latest ghcr.io/frankandreas/brightville:previous 2>/dev/null
 ```
+
+Also copy the new `scripts/nas-update.sh` (below): the old one knows only one container.
+
+## Where the data is, and backups
+
+`data/brightville.db` holds the family's names (a copy of the hub's), everyone's Stars, today's numbers, the settings and a log of every visit and round.
+
+- **Every night** `nas-update.sh` (below) copies the database to `db-backups/` when it changed since the last copy, through SQLite's online backup, so the copy is consistent even while children play. It keeps the newest 5 copies and every copy younger than 7 days.
+- **On another disk**: back up the whole folder `/volume1/docker/brightville` with **Hyper Backup**, as for the other family apps.
+
+To restore by hand: stop the backend, then
+`sudo sh -c 'gunzip -c db-backups/brightville-<stamp>.sqlite.gz > data/brightville.db'`, `sudo chown 1031:100 data/brightville.db`, and start again.
 
 ## Automatic updates
 
-`scripts/nas-update.sh` checks for a new image and installs it. Run nightly by DSM's Task Scheduler, it:
+`scripts/nas-update.sh` (the same as family-hub's) backs up the database, pulls the images and, if there is a new one, keeps the old ones as `:previous`, restarts and waits until the backend is healthy (`logs/update.log`).
+A version that doesn't get healthy within 5 minutes is rolled back at once: the previous images and the database from just before the update come back. The run still fails, so the mail below tells you.
 
-1. pulls the image; if nothing is new, it only checks that the app is healthy and stops,
-2. keeps the running image tagged as `:previous` for [rolling back](#rolling-back-an-update),
-3. restarts the app and waits until it is healthy, logging to `logs/update.log`.
-
-It finds the compose file by its usual names and never changes it.
-It also removes dangling (untagged) Docker images to save space, including those of other projects on the NAS.
-
-### Setup
-
-1. Copy `scripts/nas-update.sh` into the app folder (next to the compose file) and make it executable:
+1. Copy `scripts/nas-update.sh` into `/volume1/docker/brightville` and make it executable:
    ```bash
    sudo chmod +x /volume1/docker/brightville/nas-update.sh
+   sudo /volume1/docker/brightville/nas-update.sh     # should end with "Up to date" or "Update complete"
    ```
-2. Run it once by hand and check that it ends with "Up to date" or "Update complete":
-   ```bash
-   sudo /volume1/docker/brightville/nas-update.sh
-   ```
-3. In DSM, open **Control Panel → Task Scheduler → Create → Scheduled Task → User-defined script**:
-   - **General**: any name (e.g. `Brightville update`), user **root**
-   - **Schedule**: daily, a few minutes apart from the other apps
-   - **Task Settings**: tick **Send run details by email** and **only when the script terminates abnormally**, and enter the command:
-     ```bash
-     bash /volume1/docker/brightville/nas-update.sh
-     ```
+2. **Control Panel → Task Scheduler → Create → Scheduled Task → User-defined script**: user **root**, daily a few minutes apart from the other apps, command `bash /volume1/docker/brightville/nas-update.sh`. Under **Task Settings**, tick **Send run details by email** and **only when the script terminates abnormally**.
 
-### Rolling back an update
+### Rolling back by hand
 
 First **disable the scheduled task**, otherwise the next night installs the same version again. Then:
 
 ```bash
 cd /volume1/docker/brightville
-sudo docker tag ghcr.io/frankandreas/brightville:previous ghcr.io/frankandreas/brightville:latest
+sudo docker tag ghcr.io/frankandreas/brightville/backend:previous ghcr.io/frankandreas/brightville/backend:latest
+sudo docker tag ghcr.io/frankandreas/brightville/frontend:previous ghcr.io/frankandreas/brightville/frontend:latest
 sudo docker-compose up -d
 ```
 
-Re-enable the task once a fixed version is published.
-
 ### Deploying from your computer
-
-To install the latest version right away, or to roll out a new version of `nas-update.sh`:
 
 ```bash
 cp .deploy.env.example .deploy.env   # once; then set NAS_HOST and NAS_DIR in it
 scripts/deploy-nas.sh
 ```
 
-It shows how the NAS's `nas-update.sh` differs from the repository's, uploads it after you confirm, and runs the update.
-Add `--force` to restart the app even without a new version.
-The compose file belongs to your deployment and is never copied.
-`.deploy.env` is gitignored, so your NAS address stays out of the repository.
+It shows how the NAS's `nas-update.sh` differs from the repository's, uploads it after you confirm, and runs the update. Add `--force` to restart even without a new version.
 
 ## Troubleshooting
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `docker pull` fails with *denied* or *unauthorized* | The image on GHCR is private (the default for a first publish) | On GitHub, **Packages → brightville → Package settings → Change visibility → Public** |
-| *Bind for 0.0.0.0:8087 failed: port is already allocated* | Another app uses 8087 | Change the port in `compose.yaml` and run `sudo docker-compose up -d` |
-| The Yoga Studio door is grey and the picture crossed out | The page is open over plain `http://` | Use the HTTPS address |
-| Yoga shows the crossed-out camera | The camera was refused | iPad: **Settings → Apps → Safari → Camera → Ask** or **Allow**, then reload |
+| `docker pull` fails with *denied* or *unauthorized* | A new package on GHCR is private (the first publish of `brightville/backend` and `brightville/frontend`) | On GitHub, **Packages → brightville/backend** (and **/frontend**) **→ Package settings → Change visibility → Public** |
+| After logging in at the hub, the game shows a sleeping cloud | The game isn't opened at its `*.local.<domain>` address, so the hub's cookie doesn't reach it (the game goes to the hub at most once in ten minutes, so it can't loop) | Use `https://brightville.local.<domain>` |
+| A closed door with "noch nicht freigeschaltet" | The person isn't ticked in the hub tile, or the tile has no app key or a different one | Hub → Einstellungen → Apps → Brightville |
+| A sleeping cloud | The backend isn't running, or can't reach the hub | `sudo docker logs brightville-backend` |
+| A sleeping cloud, and the backend's log says "Neither HUB_URL nor LOCAL_MODE=1" | `HUB_URL` is missing in `.env` | Set it, then `sudo docker-compose up -d` |
+| Everyone can pick who plays, without a login | `LOCAL_MODE=1` is set | Remove it from `.env` and set `HUB_URL`, then `sudo docker-compose up -d` |
+| The Yoga Studio door is grey | The page is open over plain `http://` | Use the HTTPS address |
 | No voice on the iPad | The ring switch or volume is off, or no German voice is installed | Turn the sound on; **Settings → Accessibility → Spoken Content → Voices → Deutsch** |
-| The iPad shows an old version after an update | Safari kept the page | Close the game (swipe it away) and open it again |
-| Email from Task Scheduler: *app not healthy* | A new version fails to start | Check `logs/update.log`, then [roll back](#rolling-back-an-update) |

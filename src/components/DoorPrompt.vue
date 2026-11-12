@@ -6,6 +6,7 @@ import type { DoorState } from '@/core/access'
 //  unavailable the picture crossed out: this device can't play it
 //  locked      a lock and today's learning slots: learn first
 //  poor        the price in Stars, which the child doesn't have yet
+//  timeUp      a moon: enough play for today
 //
 // The picture of an open door is also the button that goes in, for fingers and the mouse.
 const props = defineProps<{
@@ -43,7 +44,8 @@ const STAR = 'M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.2 5.9 20.6l1.4-6.8L2.2 9
     :data-place="touch ? 'top' : 'bottom'" @pointerdown="down" @pointerup="up" @pointercancel="press = null"
   >
     <span v-if="state === 'locked'" class="icon">🔒</span>
-    <span class="icon" :class="{ crossed: state === 'unavailable', dim: state === 'locked' || state === 'poor' }">{{ icon }}</span>
+    <span v-if="state === 'timeUp'" class="icon" data-test="moon">🌙</span>
+    <span class="icon" :class="{ crossed: state === 'unavailable', dim: state === 'locked' || state === 'poor' || state === 'timeUp' }">{{ icon }}</span>
 
     <span v-if="state === 'locked'" class="slots">
       <i v-for="n in goal ?? 0" :key="n" :class="{ done: n <= (visits ?? 0) }" />

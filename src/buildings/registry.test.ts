@@ -73,3 +73,16 @@ describe('building registry', () => {
     expect(new Set(BUILDINGS.map(b => b.id)).size).toBe(BUILDINGS.length)
   })
 })
+
+describe('the buildings file the server reads', () => {
+  it('agrees with the town on what earns and what costs', async () => {
+    const shared = (await import('../../shared/buildings.json')).default as { id: string; kind: string; cost?: number; maxStars?: number }[]
+    expect(shared.map(b => b.id).sort()).toEqual(BUILDINGS.map(b => b.id).sort())
+    for (const b of BUILDINGS) {
+      const s = shared.find(x => x.id === b.id)!
+      expect(s.kind).toBe(b.kind)
+      if (b.kind === 'play') expect(s.cost).toBe(b.cost)
+      else expect(s.maxStars).toBeGreaterThan(0)
+    }
+  })
+})

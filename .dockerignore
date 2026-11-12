@@ -7,3 +7,8 @@ dist/
 .deploy.env
 docs/
 *.md
+venv/
+backend/data/
+**/__pycache__/
+.pytest_cache/
+.mypy_cache/
