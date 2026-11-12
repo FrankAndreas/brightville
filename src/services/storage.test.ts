@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { SAVE_KEY, localSaveStore } from './storage'
 
 function memoryStorage(): Storage {
@@ -33,5 +33,16 @@ describe('localSaveStore', () => {
     const storage = memoryStorage()
     storage.getItem = () => { throw new Error('blocked') }
     expect(localSaveStore(storage).load()).toEqual({ version: 1, stars: 0 })
+  })
+
+  describe('when the browser blocks storage altogether', () => {
+    afterEach(() => vi.restoreAllMocks())
+
+    it('still creates a store, loads an empty save and ignores saving', () => {
+      vi.spyOn(window, 'localStorage', 'get').mockImplementation(() => { throw new DOMException('blocked', 'SecurityError') })
+      const store = localSaveStore()
+      expect(store.load()).toEqual({ version: 1, stars: 0 })
+      expect(() => store.save({ version: 1, stars: 3 })).not.toThrow()
+    })
   })
 })

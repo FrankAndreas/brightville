@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import RAPIER from '@dimforge/rapier3d-compat'
 import type { IntentSource } from '@/input/intents'
 import { nearestDoor, type DoorDef } from './doors'
-import { clampFrame } from './frame'
+import { createLoop } from './loop'
 import { GRAVITY, buildTown } from './world'
 import { TRAMPOLINE, buildProps } from './props'
 import { createCharacter, type CharacterFrame } from './character'
@@ -62,22 +62,12 @@ export async function createCity(opts: CityOptions): Promise<City> {
   resize()
   window.addEventListener('resize', resize)
 
-  let running = false
-  let disposed = false
-  let raf = 0
-  let last = 0
   let time = 0
   let nearId: string | null = null
   let first = true
 
-  function tick(now: number) {
-    if (!running) return
-    raf = requestAnimationFrame(tick)
-    const dt = clampFrame((now - last) / 1000)
-    last = now
+  const loop = createLoop(opts.intents, (intents, dt) => {
     time += dt
-
-    const intents = opts.intents.read()
     world.timestep = dt || 1 / 60
     const f = character.step(intents, dt)
     if (dt > 0) world.step()
@@ -98,30 +88,14 @@ export async function createCity(opts: CityOptions): Promise<City> {
       opts.onNearDoor(nearId)
     }
     if (near?.open && intents.interact) opts.onEnter(near.id)
-  }
-
-  function resume() {
-    if (running || disposed) return
-    running = true
-    // Presses made while paused belong to whatever was on screen then
-    opts.intents.read()
-    last = performance.now()
-    raf = requestAnimationFrame(tick)
-  }
-
-  function pause() {
-    running = false
-    cancelAnimationFrame(raf)
-  }
-
-  resume()
+  })
+  loop.resume()
 
   return {
-    pause,
-    resume,
+    pause: loop.pause,
+    resume: loop.resume,
     dispose() {
-      pause()
-      disposed = true
+      loop.stop()
       window.removeEventListener('resize', resize)
       town.scene.traverse(object => {
         const mesh = object as THREE.Mesh

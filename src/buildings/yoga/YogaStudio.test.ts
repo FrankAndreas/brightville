@@ -175,6 +175,18 @@ describe('YogaStudio', () => {
     w.unmount()
   })
 
+  it('switches the camera off when tracking breaks down', async () => {
+    const w = await calibrated()
+    tracker.detect.mockImplementationOnce(() => { throw new Error('tracker crashed') })
+    await run(100)
+    expect(w.find('[data-test="no-camera"]').exists()).toBe(true)
+    expect(closeCamera).toHaveBeenCalledWith(stream)
+    press('Escape')
+    await run(50)
+    expect(closeCamera).toHaveBeenCalledTimes(1)
+    w.unmount()
+  })
+
   it('closes a camera that opens after the child already left', async () => {
     let resolveCamera!: (s: MediaStream) => void
     vi.mocked(openCamera).mockReturnValue(new Promise(resolve => { resolveCamera = resolve }))

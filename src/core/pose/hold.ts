@@ -20,7 +20,8 @@ export function createHold(): Hold {
       heldMs = matching ? Math.min(HOLD_MS, heldMs + dt) : Math.max(0, heldMs - dt * DRAIN_FACTOR)
       const progress = heldMs / HOLD_MS
       if (heldMs >= HOLD_MS) return { progress: 1, status: 'done' }
-      return { progress, status: elapsedMs >= POSE_TIMEOUT_MS ? 'timeout' : 'holding' }
+      // Never cut off a child who is in the pose right now
+      return { progress, status: !matching && elapsedMs >= POSE_TIMEOUT_MS ? 'timeout' : 'holding' }
     },
   }
 }

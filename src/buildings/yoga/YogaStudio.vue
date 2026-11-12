@@ -50,6 +50,11 @@ function send(event: YogaEvent) {
     results.value.push(held ? 'held' : 'missed')
   }
   Object.assign(view, flow.state)
+  // Without tracking there is no reason to keep filming
+  if (flow.state.phase === 'noCamera' && stream) {
+    closeCamera(stream)
+    stream = null
+  }
   for (const effect of effects) {
     if (effect.type === 'speak') void speak(effect.text)
     else if (effect.type === 'chime') playBeat('chime')
@@ -129,10 +134,6 @@ onMounted(async () => {
     send({ type: 'cameraReady' })
   } catch {
     if (closed) return
-    if (stream) {
-      closeCamera(stream)
-      stream = null
-    }
     send({ type: 'cameraFailed' })
   }
 })

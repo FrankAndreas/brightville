@@ -39,6 +39,21 @@ describe('createHold', () => {
     expect(hold.update(true, 5000).status).toBe('done')
   })
 
+  it('does not time out while the pose is being held', () => {
+    const hold = createHold()
+    hold.update(false, 29900)
+    hold.update(true, 100)
+    for (let t = 0; t < 4800; t += 100) expect(hold.update(true, 100).status).toBe('holding')
+    expect(hold.update(true, 100).status).toBe('done')
+  })
+
+  it('times out once a late attempt is given up', () => {
+    const hold = createHold()
+    hold.update(false, 29900)
+    hold.update(true, 1000)
+    expect(hold.update(false, 100).status).toBe('timeout')
+  })
+
   it('ignores negative and broken frame times', () => {
     const hold = createHold()
     hold.update(true, 1000)

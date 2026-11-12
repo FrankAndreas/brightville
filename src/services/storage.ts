@@ -8,18 +8,19 @@ export interface SaveStore {
 
 export const SAVE_KEY = 'brightville.save'
 
-export function localSaveStore(storage: Storage = window.localStorage): SaveStore {
+/** `storage` defaults to the browser's local storage, looked up on each use because merely touching it can throw. */
+export function localSaveStore(storage?: Storage): SaveStore {
   return {
     load() {
       try {
-        return parseSave(storage.getItem(SAVE_KEY))
+        return parseSave((storage ?? window.localStorage).getItem(SAVE_KEY))
       } catch {
         return emptySave()
       }
     },
     save(data) {
       try {
-        storage.setItem(SAVE_KEY, serializeSave(data))
+        (storage ?? window.localStorage).setItem(SAVE_KEY, serializeSave(data))
       } catch {
         // Storage full or blocked (private mode): play on without saving
       }
