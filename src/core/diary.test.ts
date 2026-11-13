@@ -32,6 +32,14 @@ describe('entries', () => {
     expect(entrySaid({ building: 'malen', kind: 'free', stars: 0, at: '16:30' }, name)).toBe('Malen.')
   })
 
+  it('tells the name lookup what kind of entry it is, so an add-on is never taken for a building', () => {
+    const asked: string[] = []
+    const named = (id: string, kind?: string) => { asked.push(`${kind} ${id}`); return id }
+    entrySaid({ building: 'schal', kind: 'buy', stars: -20, at: '17:00' }, named)
+    entrySaid({ building: 'school', kind: 'visit', stars: 7, at: '15:00' }, named)
+    expect(asked).toEqual(['buy schal', 'visit school'])
+  })
+
   it('names a purchase in the Kleiderladen by its add-on', () => {
     const named = (id: string) => outfitDef(id)?.name ?? name(id)
     expect(entrySaid({ building: 'schal', kind: 'buy', stars: -20, at: '17:00' }, named)).toBe('Schal gekauft, zwanzig Sterne.')

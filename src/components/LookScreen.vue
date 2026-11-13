@@ -8,8 +8,8 @@ import {
 import { instruct } from '@/services/tts'
 
 // She designs her wobbly character (stage 7): on the first visit, and from the wardrobe. Free; nothing to read.
-const props = defineProps<{ start: Look }>()
-const emit = defineEmits<{ done: [look: Look] }>()
+const props = defineProps<{ start: Look; /** Shows ✖️: close without saving (from the wardrobe) */ cancel?: boolean }>()
+const emit = defineEmits<{ done: [look: Look]; cancel: [] }>()
 
 const look = ref<Look>({ ...props.start })
 const dress = computed<Dress>(() => ({ look: look.value, worn: {} }))
@@ -33,6 +33,7 @@ onMounted(() => void instruct('So siehst du aus! Tipp auf die Farben und Haare, 
       <div class="actions">
         <button class="round" data-test="look-random" aria-label="Zufall" @click="look = randomLook()">🎲</button>
         <button class="round done" data-test="look-done" aria-label="Fertig" @click="emit('done', look)">✔️</button>
+        <button v-if="cancel" class="round" data-test="look-cancel" aria-label="Abbrechen" @click="emit('cancel')">✖️</button>
       </div>
     </div>
     <div class="rows">

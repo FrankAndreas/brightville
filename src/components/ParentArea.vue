@@ -66,7 +66,8 @@ async function save(id: number) {
 
 /** Each person's logbook, fetched the first time its section is opened */
 const diaries = reactive<Record<number, { status: 'loading' | 'ready' | 'error'; days: LogDay[]; stickers: StickerRow[] }>>({})
-const nameOf = (id: string) => BUILDINGS.find(b => b.id === id)?.spokenName ?? outfitDef(id)?.name ?? id
+const nameOf = (id: string, kind?: string) =>
+  (kind === 'buy' ? outfitDef(id)?.name : BUILDINGS.find(b => b.id === id)?.spokenName) ?? id
 /** Her add-ons as pictures; ids the catalogue no longer has are left out */
 const ownedEmojis = (row: PlayerRow) => (row.owned ?? []).map(id => outfitDef(id)?.emoji).filter(Boolean).join(' ')
 

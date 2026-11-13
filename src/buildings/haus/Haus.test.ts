@@ -94,6 +94,17 @@ describe('Haus', () => {
       expect(lastSaid()).toBe('Im Kleiderladen kannst du dir etwas aussuchen.')
     })
 
+    it('closes the look editor with ✖️ without saving, back in the wardrobe', async () => {
+      const w = await open()
+      await w.find('[data-test="open-wardrobe"]').trigger('click')
+      await w.find('[data-test="edit-look"]').trigger('click')
+      await w.findAll('[data-test="look-body"]')[1].trigger('click')
+      await w.find('[data-test="look-cancel"]').trigger('click')
+      await flushPromises()
+      expect(api.calls).not.toContain('saveLook')
+      expect(w.find('[data-test="kleiderschrank"]').exists()).toBe(true)
+    })
+
     it('changes her look with ✏️, and keeps it with ✔️', async () => {
       const w = await open()
       await w.find('[data-test="open-wardrobe"]').trigger('click')

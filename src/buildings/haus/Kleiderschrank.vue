@@ -12,14 +12,13 @@ import { useWardrobeStore } from '@/stores/wardrobe'
 const wardrobe = useWardrobeStore()
 const editing = ref(false)
 
-/** Her add-ons by place, in the catalogue's order; ids the catalogue no longer has are left out */
-const byPlace = computed(() => {
-  const mine = new Set(wardrobe.owned.map(o => o.id))
-  return PLACES.map(place => ({
+/** Her add-ons by place, in the order she got them; ids the catalogue no longer has are left out */
+const byPlace = computed(() =>
+  PLACES.map(place => ({
     place,
-    items: wardrobe.owned.map(o => outfitDef(o.id)).filter((o): o is OutfitDef => !!o && o.place === place && mine.has(o.id)),
-  })).filter(group => group.items.length > 0)
-})
+    items: wardrobe.owned.map(o => outfitDef(o.id)).filter((o): o is OutfitDef => !!o && o.place === place),
+  })).filter(group => group.items.length > 0),
+)
 
 function tap(place: Place, o: OutfitDef) {
   const on = wardrobe.worn[place] === o.id
@@ -38,7 +37,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <LookScreen v-if="editing" :start="wardrobe.dress.look" @done="lookChosen" />
+  <LookScreen v-if="editing" :start="wardrobe.dress.look" cancel @done="lookChosen" @cancel="editing = false" />
   <div v-else class="schrank" data-test="kleiderschrank">
     <div class="mirror">
       <CharacterView :dress="wardrobe.dress" :size="280" />
@@ -62,6 +61,8 @@ onMounted(() => {
   inset: 0;
   display: flex;
   align-items: center;
+  /* With many add-ons (or Safari's bars) it scrolls instead of running under the buttons at the top */
+  overflow-y: auto;
   justify-content: center;
   gap: 4vw;
   padding: calc(100px + env(safe-area-inset-top)) 3vw 3vh;
@@ -78,7 +79,7 @@ onMounted(() => {
   box-shadow: 0 5px 0 rgb(0 0 0 / 12%);
   cursor: pointer;
 }
-.rails { display: flex; flex-direction: column; gap: 2.4vh; }
+.rails { display: flex; flex-direction: column; gap: 2.4vh; max-height: 100%; }
 .rail { display: flex; flex-wrap: wrap; gap: 1.4vw; padding-bottom: 1.4vh; border-bottom: 8px solid #9c6b3e; }
 .item {
   width: min(11vw, 96px);

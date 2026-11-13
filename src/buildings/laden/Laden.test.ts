@@ -63,9 +63,21 @@ describe('the Kleiderladen', () => {
 
   it('says how many more open a locked shelf', async () => {
     const { w } = await open()
-    await item(w, 'krone').trigger('click')
+    await item(w, 'kleid').trigger('click')
     expect(lastSaid()).toBe('Kauf noch zwei Teile von oben, dann geht dieses Regal auf.')
     expect(w.find('[data-test="buy"]').exists()).toBe(false)
+    w.unmount()
+  })
+
+  it('points to the top shelf when the one above a locked shelf is still locked too', async () => {
+    const { w, wardrobe } = await open()
+    // Shelf 2 isn't open yet either: the next step is on shelf 1
+    await item(w, 'krone').trigger('click')
+    expect(lastSaid()).toBe('Dieses Regal geht später auf. Fang ganz oben an!')
+    api.wardrobe_.owned = [{ id: 'schleife', how: 'bought', got_at: '2026-11-11T10:00:00+01:00' }]
+    await wardrobe.load()
+    await item(w, 'kleid').trigger('click')
+    expect(lastSaid()).toBe('Kauf noch ein Teil von oben, dann geht dieses Regal auf.')
     w.unmount()
   })
 

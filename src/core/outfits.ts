@@ -28,7 +28,7 @@ export const outfitDef = (id: string): OutfitDef | undefined => OUTFITS.find(o =
 export const giftFor = (stickerId: string): OutfitDef | undefined => OUTFITS.find(o => o.sticker === stickerId)
 
 /** Owned add-ons from the shelf above needed to open a shelf */
-const TO_OPEN = 2
+export const TO_OPEN = 2
 
 /** Shelf 1 is open from the start; each further one once two add-ons from the shelf above are owned (gifts don't count). */
 export function shelfOpen(shelf: 1 | 2 | 3, owned: string[]): boolean {

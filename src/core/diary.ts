@@ -60,17 +60,20 @@ export function starsSaid(n: number): string {
 }
 
 /** What the voice says for a tapped entry. */
-export function entrySaid(entry: LogEntry, name: (building: string) => string): string {
-  if (entry.kind === 'visit') return `${name(entry.building)}, ${starsSaid(entry.stars)}.`
-  if (entry.kind === 'play') return `${name(entry.building)}, ${starsSaid(-entry.stars)} ausgegeben.`
-  if (entry.kind === 'buy') return `${name(entry.building)} gekauft, ${starsSaid(-entry.stars)}.`
-  return `${name(entry.building)}.`
+/** How an entry is named: by its building, or for a purchase by its add-on (`kind` says which) */
+export type EntryName = (id: string, kind?: LogEntry['kind']) => string
+
+export function entrySaid(entry: LogEntry, name: EntryName): string {
+  if (entry.kind === 'visit') return `${name(entry.building, entry.kind)}, ${starsSaid(entry.stars)}.`
+  if (entry.kind === 'play') return `${name(entry.building, entry.kind)}, ${starsSaid(-entry.stars)} ausgegeben.`
+  if (entry.kind === 'buy') return `${name(entry.building, entry.kind)} gekauft, ${starsSaid(-entry.stars)}.`
+  return `${name(entry.building, entry.kind)}.`
 }
 
 /** One day as a line of text for the parents. */
-export function dayLine(day: LogDay, name: (building: string) => string): string {
+export function dayLine(day: LogDay, name: EntryName): string {
   const things = day.entries.map(e =>
-    e.kind === 'visit' ? `${name(e.building)} +${e.stars}` : e.kind === 'play' || e.kind === 'buy' ? `${name(e.building)} −${-e.stars}` : name(e.building))
+    e.kind === 'visit' ? `${name(e.building, e.kind)} +${e.stars}` : e.kind === 'play' || e.kind === 'buy' ? `${name(e.building, e.kind)} −${-e.stars}` : name(e.building, e.kind))
   let line = `${shortDate(day.day)}: ${things.join(', ') || 'gemalt'}.`
   if (day.goal_reached) line += ' Tagesziel erreicht.'
   const stickers = day.stickers.map(id => stickerDef(id)?.name ?? id)
