@@ -1,6 +1,6 @@
 <template>
   <!-- Her wardrobe, drawn as a piece of furniture: two doors, round handles, a crown on top -->
-  <svg class="schrank" viewBox="0 0 120 220" aria-hidden="true">
+  <svg class="schrank" viewBox="0 0 120 220" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
     <path d="M14 18 Q60 0 106 18 V26 H14 Z" class="crown" />
     <rect x="10" y="24" width="100" height="184" rx="8" class="body" />
     <rect x="18" y="32" width="40" height="164" rx="5" class="door" />

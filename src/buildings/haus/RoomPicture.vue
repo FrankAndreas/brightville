@@ -40,13 +40,14 @@ function tap(spot: Spot) {
 </script>
 
 <template>
-  <div class="room-picture" :data-small="small">
+  <div class="room-picture" :data-small="small" :data-interactive="interactive">
     <div class="wall" />
     <div class="floor" />
     <div class="window" aria-hidden="true">☀️</div>
     <button
       v-for="spot in SPOTS" :key="spot" class="spot" data-test="spot" :data-spot="spot" :data-empty="!emoji(spot)"
-      :style="box(spot)" :aria-label="spot" :tabindex="interactive ? 0 : -1" @click="tap(spot)"
+      :style="box(spot)" :aria-label="spot" :tabindex="interactive ? 0 : -1" :aria-hidden="!interactive"
+      @click="tap(spot)"
     >
       <span v-if="emoji(spot)" class="piece">{{ emoji(spot) }}</span>
     </button>
@@ -84,9 +85,11 @@ function tap(spot: Spot) {
 }
 .spot[data-empty='true'] { border: 0.5cqh dashed rgb(160 120 80 / 45%); border-radius: 2cqh; }
 .spot[data-spot='teppich'][data-empty='true'] { border-radius: 50%; }
-.piece { font-size: 20cqh; line-height: 1; filter: drop-shadow(0 0.8cqh 0 rgb(0 0 0 / 12%)); }
-.spot[data-spot='vorhang'] .piece, .spot[data-spot='teppich'] .piece { font-size: 9cqh; }
-.spot[data-spot='lampe'] .piece { font-size: 11cqh; }
-.spot[data-spot='bild'] .piece { font-size: 14cqh; }
-.room-picture[data-small='true'] .spot { cursor: default; }
+/* Sized by the smaller of the room's height and width, so a tall (upright) screen keeps every piece in its spot */
+.piece { font-size: min(20cqh, 14cqw); line-height: 1; filter: drop-shadow(0 0.8cqh 0 rgb(0 0 0 / 12%)); }
+.spot[data-spot='vorhang'] .piece, .spot[data-spot='teppich'] .piece { font-size: min(9cqh, 8cqw); }
+.spot[data-spot='lampe'] .piece { font-size: min(11cqh, 8cqw); }
+.spot[data-spot='bild'] .piece { font-size: min(14cqh, 10cqw); }
+/* Not to be chosen (no furniture yet, or the shop's small picture): no buttons that do nothing */
+.room-picture:not([data-interactive='true']) .spot { pointer-events: none; cursor: default; }
 </style>

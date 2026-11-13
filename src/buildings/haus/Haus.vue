@@ -54,7 +54,7 @@ function onKey(e: KeyboardEvent) {
 onMounted(() => {
   window.addEventListener('keydown', onKey)
   stopLeaveRequests = onLeaveRequest(leave)
-  void instruct('Willkommen zu Hause! Tipp auf das Buch, auf den Stern oder auf den Schrank.')
+  void instruct('Willkommen zu Hause! Tipp auf das Buch, das Stickerheft oder den Schrank.')
 })
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKey)
@@ -64,7 +64,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="haus" data-test="haus" :data-view="view">
-    <RoomPicture v-if="view === 'room'" :placed="{}" interactive class="room">
+    <RoomPicture v-if="view === 'room'" :placed="{}" class="room">
       <div class="table-top">
         <button class="thing book" data-test="open-book" aria-label="Tagebuch" @click="show('book')">
           <span class="picture">📖</span>
@@ -100,7 +100,8 @@ onBeforeUnmount(() => {
 .table-top { position: absolute; left: 34%; top: 60%; width: 24%; height: 18%; display: flex; justify-content: space-evenly; align-items: flex-end; }
 .table { position: absolute; left: 33%; top: 78%; width: 26%; height: 3.4%; border-radius: 1cqh; background: #9c6b3e; box-shadow: 0 0.8cqh 0 #7d5530; }
 .trophy-shelf { position: absolute; left: 51%; top: 17%; width: 33%; }
-.wardrobe { position: absolute; left: 85%; top: 38%; width: 13%; height: 58%; padding: 0; }
+/* Shaped like the drawing and standing on the floor, so the wall above it opens nothing */
+.wardrobe { position: absolute; left: 85%; bottom: 4%; width: 13%; aspect-ratio: 120 / 220; padding: 0; }
 .thing {
   border: 0;
   background: none;
@@ -111,7 +112,7 @@ onBeforeUnmount(() => {
   transition: transform 0.2s ease;
 }
 .thing:active { transform: scale(0.95); }
-.picture { font-size: 13cqh; line-height: 1; filter: drop-shadow(0 0.8cqh 0 rgb(0 0 0 / 12%)); }
+.picture { font-size: min(13cqh, 9cqw); line-height: 1; filter: drop-shadow(0 0.8cqh 0 rgb(0 0 0 / 12%)); }
 .album[data-new='true'] .picture { animation: glow 1.2s ease-in-out infinite; }
 @keyframes glow {
   50% { transform: scale(1.12) rotate(-6deg); filter: drop-shadow(0 0 24px #ffd93d); }

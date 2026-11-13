@@ -223,6 +223,20 @@ describe('Haus', () => {
       expect(spots.every(s => s.attributes('data-empty') === 'true')).toBe(true)
     })
 
+    it('keeps the spots quiet until there is furniture to choose: no buttons that do nothing', async () => {
+      const w = await open()
+      for (const spot of w.findAll('[data-test="spot"]')) {
+        expect(spot.attributes('tabindex')).toBe('-1')
+        expect(spot.attributes('aria-hidden')).toBe('true')
+      }
+    })
+
+    it('names the sticker book, not "the star", now that the trophy shelf has stars too', async () => {
+      const w = await open()
+      expect(speak).toHaveBeenCalledWith('Willkommen zu Hause! Tipp auf das Buch, das Stickerheft oder den Schrank.')
+      w.unmount()
+    })
+
     it('keeps book, album, trophy shelf and a drawn wardrobe as things of their own', async () => {
       const w = await open()
       expect(w.find('[data-test="open-book"]').exists()).toBe(true)
