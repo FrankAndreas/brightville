@@ -94,12 +94,19 @@ describe('building registry', () => {
     expect(canServe(kino!, { ...device, films: true })).toBe(true)
   })
 
-  it('puts learning at the back, making and moving on the left and playing on the right', () => {
+  it('puts learning at the back, making and moving on the left, playing on the right and the house at the front', () => {
     const MOVING = ['huepfhalle', 'tanzsaal']
     for (const b of BUILDINGS) {
       const side = b.door.side ?? 'back'
-      expect(side, b.id).toBe(MOVING.includes(b.id) ? 'left' : { earn: 'back', free: 'left', play: 'right' }[b.kind])
+      const expected = b.id === 'haus' ? 'front' : MOVING.includes(b.id) ? 'left' : { earn: 'back', free: 'left', play: 'right' }[b.kind]
+      expect(side, b.id).toBe(expected)
     }
+  })
+
+  it('lists the house at the front, free, needing nothing, and kept out of the logbook', () => {
+    const haus = BUILDINGS.find(x => x.id === 'haus')
+    expect(haus).toMatchObject({ spokenName: 'Mein Haus', icon: '🏠', kind: 'free', needs: [], door: { x: -5, z: 24, side: 'front' }, unlogged: true })
+    expect(BUILDINGS.filter(b => b.unlogged).map(b => b.id)).toEqual(['haus'])
   })
 
   it('lists the Hüpfhalle and the Tanzsaal on the left as earning buildings that need a camera', () => {

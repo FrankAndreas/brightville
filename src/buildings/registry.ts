@@ -22,9 +22,11 @@ const bonbonjagd = () => import('./bonbonjagd/Bonbonjagd.vue')
 const kino = () => import('./kino/Kino.vue')
 const huepfhalle = () => import('./huepfhalle/Huepfhalle.vue')
 const tanzsaal = () => import('./tanzsaal/Tanzsaal.vue')
+const haus = () => import('./haus/Haus.vue')
 
 /**
- * Every building in the town: learning at the back, making things and moving on the left, playing on the right.
+ * Every building in the town: learning at the back, making things and moving on the left, playing on the right,
+ * and the child's own house at the front, by the playground.
  * A door's x and z are the spot in front of it; its house stands behind that, facing the middle.
  */
 export const BUILDINGS: BuildingDef[] = [
@@ -86,6 +88,11 @@ export const BUILDINGS: BuildingDef[] = [
     // Shown, but closed, until the parents chose films
     id: 'kino', spokenName: 'Kino', icon: '🎬', kind: 'play', cost: 3, needs: ['films'], door: { x: 23, z: 18, side: 'right' },
     component: defineAsyncComponent(kino), preload: kino,
+  },
+  {
+    // The child's own: the logbook and the sticker book
+    id: 'haus', spokenName: 'Mein Haus', icon: '🏠', kind: 'free', needs: [], door: { x: -5, z: 24, side: 'front' },
+    unlogged: true, component: defineAsyncComponent(haus), preload: haus,
   },
 ]
 

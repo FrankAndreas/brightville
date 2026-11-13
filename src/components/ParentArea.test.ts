@@ -103,4 +103,33 @@ describe('ParentArea', () => {
     list.vm.$emit('changed')
     expect(w.emitted('filmsChanged')).toHaveLength(1)
   })
+
+  it('shows a child\'s last days and stickers as text when the logbook is opened', async () => {
+    const { api, w } = await open()
+    api.logbook_ = [{
+      day: '2026-11-12', goal_reached: true, stickers: ['buecherwurm'], paintings: [],
+      entries: [{ building: 'school', kind: 'visit', stars: 7, at: '15:00' }, { building: 'arcade', kind: 'play', stars: -3, at: '16:00' }],
+    }]
+    api.stickers_ = [{ id: 'buecherwurm', earned_at: '2026-11-12T10:00:00+01:00', seen: false }]
+    expect(api.calls.filter(c => c.startsWith('diary'))).toEqual([])
+    const diary = card(w, 2).find('[data-test="diary"]')
+    ;(diary.element as HTMLDetailsElement).open = true
+    await diary.trigger('toggle')
+    await flushPromises()
+    expect(api.calls).toContain('diary 2')
+    expect(diary.findAll('[data-test="diary-day"]').map(d => d.text())).toEqual([
+      'Do 12.11.: Schule +7, Spielhalle −3. Tagesziel erreicht. Neuer Sticker: Bücherwurm.',
+    ])
+    expect(diary.find('[data-test="diary-stickers"]').text()).toBe('Sticker: Bücherwurm (12.11.)')
+  })
+
+  it('says so when a child has no logbook yet', async () => {
+    const { w } = await open()
+    const diary = card(w, 2).find('[data-test="diary"]')
+    ;(diary.element as HTMLDetailsElement).open = true
+    await diary.trigger('toggle')
+    await flushPromises()
+    expect(diary.text()).toContain('Noch nichts eingetragen.')
+  })
 })
+

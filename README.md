@@ -3,7 +3,7 @@
 A small, friendly town for a kindergarten-age child: walk a wobbly character around, go into buildings, and earn Stars there by learning and moving.
 Everything the child sees is pictures and a German voice; no reading is needed.
 
-The town square (60 m across) has balls to push, a playground at the front (three trampolines, a staircase of blocks up to a platform, hurdles to hop over) and its buildings: learning at the back, making things and moving on the left, playing on the right.
+The town square (60 m across) has balls to push, three trampolines, a playground at the front (a staircase of blocks up to a platform, hurdles to hop over) and its buildings: learning at the back, making things and moving on the left, playing on the right, and the child's own house at the front.
 
 | Building | What happens inside | Stars |
 |---|---|---|
@@ -21,6 +21,7 @@ The town square (60 m across) has balls to push, a playground at the front (thre
 | 🐍 Schlange | The snake collects treasures until it bites itself | costs 3 per round |
 | 🍬 Bonbonjagd | Collect every sweet in a maze; chasers wander, a power-up turns the tables | costs 3 per round |
 | 🎬 Kino | One of the YouTube films the parents chose | costs 3 per film |
+| 🏠 Mein Haus | The logbook (Tagebuch) and the sticker book (Stickerheft) | free |
 
 **Free** buildings are always open: before the day's learning, with no Stars, and after the play time. They neither give nor cost Stars and don't count as play time.
 
@@ -29,7 +30,7 @@ When a parent has set a play time per day, the Arcade door shows a moon once it 
 
 **Each child has their own Stars**, kept by the game's server (`backend/`), so the laptop and the iPad show the same.
 Who is playing comes from the family hub's login; a coloured circle with the first letter next to the Star counter shows who it is.
-Parents get a gear next to the "?": their page shows every child's Stars and today's numbers, and sets the daily goal, the play time per day and the Stars. Below, they keep the Cinema's list of YouTube films (a link and a name each, at most 30, the same for every child).
+Parents get a gear next to the "?": their page shows every child's Stars and today's numbers, and sets the daily goal, the play time per day and the Stars. Below, they keep the Cinema's list of YouTube films (a link and a name each, at most 30, the same for every child). Each child's card has a folded "Tagebuch" with the last seven days as text and the stickers earned.
 
 The idea behind the game is in [Learning City – Gameplay Design.md](Learning%20City%20%E2%80%93%20Gameplay%20Design.md).
 How it is built and what comes next is in [docs/superpowers/specs/2026-11-12-brightville-stage1-design.md](docs/superpowers/specs/2026-11-12-brightville-stage1-design.md);
@@ -154,6 +155,15 @@ When the camera loses the child for 1.5 seconds, an 👀 covers the picture and 
 
 Camera pictures are analysed in the page and thrown away. Nothing is recorded or sent anywhere.
 The tracking model (`public/mediapipe/pose_landmarker_lite.task`, from Google's MediaPipe) is part of the repo, so the game works offline.
+
+## Mein Haus, the logbook and stickers
+
+The house at the front of the square holds two things to tap:
+
+- **Tagebuch:** one page per day the child did something, newest first. It shows the icon of each building visited with the Stars earned (green) or spent (grey), a sun when the daily goal was reached, the stickers earned and the paintings made that day. The voice reads the date, and tapping an entry says it ("Schule, sieben Sterne."). It is built from what the server has recorded since stage 4; visits to Malen and Ausmalen are recorded from stage 6 on.
+- **Stickerheft:** a space for each of the 17 stickers, earned ones in colour, the rest as grey outlines. Tapping one says what it is for.
+
+**Stickers** are rare milestones, never spent: ten visits to a building, six different learning buildings, the daily goal 3, 7 or 14 days in a row or on 10 or 30 days, 100 or 500 Stars. The list is `shared/stickers.json`, read by the page and the server; the server decides (`backend/app/stickers.py`), after each visit and when the page loads, so earlier history counts. A new sticker is celebrated in the town (at most three in a row; any more wait in the album, which glows).
 
 ## How the code is organised
 

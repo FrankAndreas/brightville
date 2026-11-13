@@ -813,4 +813,67 @@ describe('App', () => {
       w.unmount()
     })
   })
+
+  describe('stickers and the logbook', () => {
+    const row = (id: string) => ({ id, earned_at: '2026-11-12T10:00:00+01:00', seen: false })
+
+    it('records a visit to Malen for the logbook, but not one to the house', async () => {
+      const malen: BuildingDef = { ...stub, id: 'malen', spokenName: 'Malen', kind: 'free', door: { x: -8, z: -8 } }
+      const haus: BuildingDef = { ...stub, id: 'haus', spokenName: 'Mein Haus', kind: 'free', unlogged: true, door: { x: 8, z: -8 } }
+      const w = await started([malen, haus])
+      for (const id of ['malen', 'haus']) {
+        cityOptions.onEnter(id)
+        await flushPromises()
+        finishWith({ stars: 0 })
+        await flushPromises()
+      }
+      expect(api.calls.filter(c => c.startsWith('freeVisit'))).toEqual(['freeVisit malen'])
+      w.unmount()
+    })
+
+    it('celebrates new stickers in the town, one after another, at most three, then counts them seen', async () => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] })
+      try {
+        api.stickers_ = [row('rechenprofi'), row('buecherwurm'), row('springfloh'), row('tanzstern')]
+        const w = await started()
+        await flushPromises()
+        const shown = () => w.find('[data-test="sticker-parade"]')
+        expect(shown().attributes('data-id')).toBe('rechenprofi')
+        await vi.advanceTimersByTimeAsync(3600)
+        expect(shown().attributes('data-id')).toBe('buecherwurm')
+        expect(speak).toHaveBeenLastCalledWith('Ein neuer Sticker: Bücherwurm!')
+        await vi.advanceTimersByTimeAsync(3600 * 2)
+        expect(shown().exists()).toBe(false)
+        expect(api.calls).toContain('stickersSeen rechenprofi,buecherwurm,springfloh')
+        // The fourth waits in the album as new
+        expect(usePlayerStore().unseen).toEqual(['tanzstern'])
+        w.unmount()
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('celebrates a sticker a visit earned once the child is back in the town', async () => {
+      const w = await started()
+      cityOptions.onEnter('stub')
+      await flushPromises()
+      api.earns_ = ['rechenprofi']
+      finishWith({ stars: 5 })
+      await flushPromises()
+      expect(w.find('[data-test="sticker-parade"]').attributes('data-id')).toBe('rechenprofi')
+      w.unmount()
+    })
+
+    it('does not celebrate inside a building', async () => {
+      const w = await started()
+      cityOptions.onEnter('stub')
+      await flushPromises()
+      api.stickers_ = [row('rechenprofi')]
+      await usePlayerStore().refresh()
+      await flushPromises()
+      expect(w.find('[data-test="sticker-parade"]').exists()).toBe(false)
+      w.unmount()
+    })
+  })
 })
+

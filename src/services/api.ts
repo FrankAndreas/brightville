@@ -1,3 +1,7 @@
+import type { LogDay } from '@/core/diary'
+
+export type { LogDay, LogEntry } from '@/core/diary'
+
 // The game's server (backend/): who is playing, their Stars and today's numbers, the parents' settings, the films.
 
 export interface Person {
@@ -57,6 +61,13 @@ export function paintingUrl(row: PaintingRow, which: 'image' | 'thumb'): string 
 }
 
 /** Why a request failed: the server's code, or 'offline' when there was no usable answer. */
+/** A sticker a child has: `seen` once the child was shown it */
+export interface StickerRow {
+  id: string
+  earned_at: string
+  seen: boolean
+}
+
 export class ApiError extends Error {
   constructor(public status: number, public code: string, public loginUrl: string | null = null) {
     super(`api ${status} ${code}`)
@@ -68,7 +79,16 @@ export interface Api {
   me(): Promise<Me>
   state(): Promise<ServerState>
   /** An earning visit. `key` is made up once per visit, so sending it again counts once. */
-  visit(building: string, stars: number, key: string): Promise<{ state: ServerState; goal_reached_now: boolean }>
+  visit(building: string, stars: number, key: string): Promise<{ state: ServerState; goal_reached_now: boolean; stickers?: string[] }>
+  /** A visit to Malen or Ausmalen: no Stars, only remembered; answers with stickers it earned */
+  freeVisit(building: string, key: string): Promise<{ stickers: string[] }>
+  /** The person's stickers; the server gives any earned by now first */
+  stickers(): Promise<StickerRow[]>
+  stickersSeen(ids: string[]): Promise<unknown>
+  /** The days something happened, newest first; `before` a day, for older pages */
+  logbook(before?: string, days?: number): Promise<LogDay[]>
+  /** For parents: a child's last days and stickers */
+  diary(personId: number): Promise<{ days: LogDay[]; stickers: StickerRow[] }>
   /** Buys a round. Rejects with code 'locked', 'poor' or 'time_up'. */
   play(building: string, key: string): Promise<{ state: ServerState }>
   playTime(seconds: number): Promise<ServerState>
@@ -134,5 +154,10 @@ export function httpApi(fetchFn: Fetch = (url, init) => fetch(url, init), onRene
     paintings: () => call('GET', '/api/paintings'),
     keepPainting: (id, image, thumb) => call('PUT', `/api/paintings/${encodeURIComponent(id)}`, { image, thumb }),
     removePainting: id => call('DELETE', `/api/paintings/${encodeURIComponent(id)}`),
+    freeVisit: (building, key) => call('POST', '/api/free-visits', { building, key }),
+    stickers: () => call('GET', '/api/stickers'),
+    stickersSeen: ids => call('POST', '/api/stickers/seen', { ids }),
+    logbook: (before, days = 7) => call('GET', `/api/logbook?days=${days}${before ? `&before=${before}` : ''}`),
+    diary: personId => call('GET', `/api/players/${personId}/diary`),
   }
 }

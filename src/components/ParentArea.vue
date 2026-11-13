@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
-import type { Api, PlayerRow, Rules } from '@/services/api'
+import { BUILDINGS } from '@/buildings/registry'
+import { dayLine, type LogDay } from '@/core/diary'
+import { stickerDef } from '@/core/stickers'
+import type { Api, PlayerRow, Rules, StickerRow } from '@/services/api'
 import FilmList from './FilmList.vue'
 
 // The parents' page: plain German, for grown-ups who read. One card per person who may play,
-// with today's numbers and three settings, then the Cinema's films.
+// with today's numbers, three settings and their logbook of the last days, then the Cinema's films.
 const props = defineProps<{
   api: Api
   /** With the family hub: where to log out; the page adds its own address */
@@ -60,6 +63,27 @@ async function save(id: number) {
   }
 }
 
+/** Each person's logbook, fetched the first time its section is opened */
+const diaries = reactive<Record<number, { status: 'loading' | 'ready' | 'error'; days: LogDay[]; stickers: StickerRow[] }>>({})
+const nameOf = (id: string) => BUILDINGS.find(b => b.id === id)?.spokenName ?? id
+
+async function openDiary(id: number, event: Event) {
+  if (!(event.target as HTMLDetailsElement).open || diaries[id]?.status === 'ready') return
+  diaries[id] = { status: 'loading', days: [], stickers: [] }
+  try {
+    const { days, stickers } = await props.api.diary(id)
+    diaries[id] = { status: 'ready', days, stickers }
+  } catch {
+    diaries[id].status = 'error'
+  }
+}
+
+/** "Sticker: Bücherwurm (12.11.), Springfloh (14.11.)" */
+function stickerLine(rows: StickerRow[]): string {
+  const when = (at: string) => `${Number(at.slice(8, 10))}.${Number(at.slice(5, 7))}.`
+  return `Sticker: ${rows.map(r => `${stickerDef(r.id)?.name ?? r.id} (${when(r.earned_at)})`).join(', ')}`
+}
+
 const minutes = (seconds: number) => Math.floor(seconds / 60)
 const logout = () => props.logoutUrl && window.location.assign(props.logoutUrl + encodeURIComponent(window.location.href))
 
@@ -104,6 +128,16 @@ onMounted(load)
           <button class="save" data-test="save" :disabled="saving === row.id" @click="save(row.id)">Speichern</button>
           <span class="message" data-test="message">{{ message[row.id] }}</span>
         </div>
+        <details class="diary" data-test="diary" @toggle="openDiary(row.id, $event)">
+          <summary>Tagebuch</summary>
+          <p v-if="diaries[row.id]?.status === 'loading'">Lädt …</p>
+          <p v-else-if="diaries[row.id]?.status === 'error'">Das Tagebuch konnte nicht geladen werden.</p>
+          <template v-else-if="diaries[row.id]">
+            <p v-if="!diaries[row.id].days.length">Noch nichts eingetragen.</p>
+            <p v-for="d in diaries[row.id].days" :key="d.day" data-test="diary-day">{{ dayLine(d, nameOf) }}</p>
+            <p v-if="diaries[row.id].stickers.length" data-test="diary-stickers">{{ stickerLine(diaries[row.id].stickers) }}</p>
+          </template>
+        </details>
       </article>
 
       <FilmList :api="api" @changed="emit('filmsChanged')" />
@@ -146,4 +180,7 @@ button { font: inherit; padding: 10px 16px; border-radius: 10px; border: 1px sol
 .save:disabled { opacity: 0.6; }
 .message { color: #4a5562; }
 footer { display: flex; gap: 12px; margin-top: 24px; }
+.diary { margin-top: 12px; }
+.diary summary { cursor: pointer; font-weight: 600; }
+.diary p { margin: 6px 0; color: #4a5562; }
 </style>

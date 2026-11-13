@@ -16,11 +16,11 @@ export interface Trampoline {
 /** The first trampoline, near the plaza */
 export const TRAMPOLINE: Trampoline = { x: 7, z: 8, radius: 2, top: 0.3, height: 4 }
 
-/** Every trampoline: the first one, and a big and a small one in the playground at the front */
+/** Every trampoline: the first one, a big one in the playground at the front, and a small one beside the first */
 export const TRAMPOLINES: Trampoline[] = [
   TRAMPOLINE,
   { x: -14, z: 18, radius: 2.6, top: 0.4, height: 7 },
-  { x: -5, z: 25, radius: 1.2, top: 0.25, height: 2.5 },
+  { x: 8, z: 15, radius: 1.2, top: 0.25, height: 2.5 },
 ]
 
 /** Something solid to climb or hop over: centre, width (x), depth (z) and height, metres */
