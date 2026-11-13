@@ -30,12 +30,18 @@ export const giftFor = (stickerId: string): OutfitDef | undefined => OUTFITS.fin
 /** Owned add-ons from the shelf above needed to open a shelf */
 export const TO_OPEN = 2
 
-/** Shelf 1 is open from the start; each further one once two add-ons from the shelf above are owned (gifts don't count). */
-export function shelfOpen(shelf: 1 | 2 | 3, owned: string[]): boolean {
+/**
+ * The shops' shelf rule, for any catalogue: shelf 1 is open from the start, each further one once two of the
+ * catalogue's things from the shelf above are owned. Things of another catalogue (and gifts) don't count.
+ */
+export function shelfOpenIn(defs: { id: string; shelf?: number }[], shelf: 1 | 2 | 3, owned: string[]): boolean {
   if (shelf === 1) return true
-  const fromAbove = owned.filter(id => outfitDef(id)?.shelf === shelf - 1).length
+  const fromAbove = owned.filter(id => defs.find(d => d.id === id)?.shelf === shelf - 1).length
   return fromAbove >= TO_OPEN
 }
+
+/** The clothes' shelves (gifts don't count) */
+export const shelfOpen = (shelf: 1 | 2 | 3, owned: string[]): boolean => shelfOpenIn(OUTFITS, shelf, owned)
 
 /** Savings count in pairs: a lone saved Star left over counts like a new one, so it isn't worth nothing for good */
 const paired = (savings: number) => savings - (savings % 2)

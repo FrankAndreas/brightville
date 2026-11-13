@@ -6,7 +6,7 @@ import os
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Any, Iterable, Optional
 
 DEFAULT_FILE = Path(__file__).resolve().parents[2] / "shared" / "outfits.json"
 PLACES = ("head", "neck", "body", "back")
@@ -42,12 +42,18 @@ def gift_for(sticker_id: str) -> Optional[Outfit]:
     return next((o for o in catalogue() if o.sticker == sticker_id), None)
 
 
-def shelf_open(shelf: int, owned: Iterable[str]) -> bool:
-    """Shelf 1 from the start; each further one once two add-ons from the shelf above are owned (gifts don't count)."""
+def shelf_open_in(items: Iterable[Any], shelf: int, owned: Iterable[str]) -> bool:
+    """The shops' shelf rule, for any catalogue (things with `id` and `shelf`): shelf 1 from the start, each further
+    one once two of the catalogue's things from the shelf above are owned. Other catalogues and gifts don't count."""
     if shelf == 1:
         return True
-    from_above = sum(1 for i in owned if (o := outfit(i)) is not None and o.shelf == shelf - 1)
-    return from_above >= TO_OPEN
+    shelf_of = {i.id: i.shelf for i in items}
+    return sum(1 for i in owned if shelf_of.get(i) == shelf - 1) >= TO_OPEN
+
+
+def shelf_open(shelf: int, owned: Iterable[str]) -> bool:
+    """The clothes' shelves (gifts don't count)."""
+    return shelf_open_in(catalogue(), shelf, owned)
 
 
 def _paired(savings: int) -> int:
