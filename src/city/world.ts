@@ -4,8 +4,8 @@ import { HOUSE_DEPTH, HOUSE_WIDTH, facingAngle, footprint, type DoorDef } from '
 
 type Rapier = typeof RAPIER
 
-/** Half the side of the square town, metres */
-export const HALF_SIZE = 30
+/** Half the side of the square town, metres (31 since stage 8: the Möbelhaus needed a metre at the front) */
+export const HALF_SIZE = 31
 export const GRAVITY = 10
 const WALL_HEIGHT = 1.2
 // The real barrier is much taller than the wall you see, so no trampoline

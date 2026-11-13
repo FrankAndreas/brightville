@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { BUILDINGS } from '@/buildings/registry'
 import { doorState } from './access'
 
 const earn = { kind: 'earn' as const }
@@ -51,6 +52,13 @@ describe('doorState', () => {
     expect(doorState(shop, true, true, 0)).toBe('open')
     expect(doorState(shop, true, true, 0, true)).toBe('open')
     expect(doorState(shop, false, true, 0)).toBe('unavailable')
+  })
+
+  it('treats the Möbelhaus like the Kleiderladen: learn first, then open, also after the play time', () => {
+    const moebel = BUILDINGS.find(b => b.id === 'moebel')!
+    expect(doorState(moebel, true, false, 500)).toBe('locked')
+    expect(doorState(moebel, true, true, 0)).toBe('open')
+    expect(doorState(moebel, true, true, 0, true)).toBe('open')
   })
 
   it('opens a free building before the goal, without Stars and after the play time', () => {

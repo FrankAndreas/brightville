@@ -24,6 +24,7 @@ const huepfhalle = () => import('./huepfhalle/Huepfhalle.vue')
 const tanzsaal = () => import('./tanzsaal/Tanzsaal.vue')
 const haus = () => import('./haus/Haus.vue')
 const laden = () => import('./laden/Laden.vue')
+const moebel = () => import('./moebel/Moebelhaus.vue')
 
 /**
  * Every building in the town: learning at the back, making things and moving on the left, playing on the right,
@@ -100,6 +101,12 @@ export const BUILDINGS: BuildingDef[] = [
     // side has no room for a fifth door, and the front right is between the Cinema and the playground)
     id: 'laden', spokenName: 'Kleiderladen', icon: '👗', kind: 'shop', needs: [], door: { x: -21, z: 24, side: 'front' },
     component: defineAsyncComponent(laden), preload: laden,
+  },
+  {
+    // Furniture for her room (stage 8). The front left has no room for a third house between the Kleiderladen and
+    // hers, so it stands at the front right, past the playground; the square grew by a metre for it (z 25)
+    id: 'moebel', spokenName: 'Möbelhaus', icon: '🛋️', kind: 'shop', needs: [], door: { x: 22, z: 25, side: 'front' },
+    component: defineAsyncComponent(moebel), preload: moebel,
   },
 ]
 

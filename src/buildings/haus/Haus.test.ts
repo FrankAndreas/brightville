@@ -6,6 +6,7 @@ import { STICKERS } from '@/core/stickers'
 import { fakeApi, type FakeApi } from '@/services/fakeApi'
 import { speak } from '@/services/tts'
 import { usePlayerStore } from '@/stores/player'
+import { useRoomStore } from '@/stores/room'
 import { useWardrobeStore } from '@/stores/wardrobe'
 import { requestLeave } from '../leave'
 import Haus from './Haus.vue'
@@ -36,6 +37,9 @@ async function open(): Promise<VueWrapper> {
   const wardrobe = useWardrobeStore()
   wardrobe.init(api, 1)
   await wardrobe.load()
+  const room = useRoomStore()
+  room.init(api, 1)
+  await room.load()
   const w = mount(Haus, { props: { api }, attachTo: document.body })
   await flushPromises()
   return w
@@ -151,6 +155,18 @@ describe('Haus', () => {
       expect(lastSaid()).toBe('Schal gekauft, zwanzig Sterne.')
     })
 
+    it('shows a purchase in the Möbelhaus with its piece, as Stars spent', async () => {
+      api.logbook_ = [day('2026-11-12', { entries: [{ building: 'holzbett', kind: 'buy', stars: -25, at: '16:00' }] })]
+      const w = await open()
+      await w.find('[data-test="open-book"]').trigger('click')
+      await flushPromises()
+      const entry = w.find('[data-test="entry"]')
+      expect(entry.text()).toBe('🛏️−25')
+      expect(entry.attributes('data-spent')).toBe('true')
+      await entry.trigger('click')
+      expect(lastSaid()).toBe('Holzbett gekauft, 25 Sterne.')
+    })
+
     it('says an entry when it is tapped', async () => {
       api.logbook_ = [day('2026-11-12', {
         entries: [
@@ -223,12 +239,46 @@ describe('Haus', () => {
       expect(spots.every(s => s.attributes('data-empty') === 'true')).toBe(true)
     })
 
-    it('keeps the spots quiet until there is furniture to choose: no buttons that do nothing', async () => {
+    const owned = (...ids: string[]) => ids.map(id => ({ id, got_at: '2026-11-12T10:00:00+01:00' }))
+
+    it('shows what she placed on its spot', async () => {
+      api.room_.owned = owned('holzbett', 'kaktus')
+      api.room_.placed = { bett: 'holzbett', pflanze: 'kaktus' }
       const w = await open()
-      for (const spot of w.findAll('[data-test="spot"]')) {
-        expect(spot.attributes('tabindex')).toBe('-1')
-        expect(spot.attributes('aria-hidden')).toBe('true')
-      }
+      expect(w.find('[data-test="spot"][data-spot="bett"]').text()).toBe('🛏️')
+      expect(w.find('[data-test="spot"][data-spot="pflanze"]').attributes('data-empty')).toBe('false')
+      expect(w.find('[data-test="spot"][data-spot="bild"]').attributes('data-empty')).toBe('true')
+    })
+
+    it('swaps the bed for the other one she owns', async () => {
+      api.room_.owned = owned('holzbett', 'zeltbett')
+      api.room_.placed = { bett: 'holzbett' }
+      const w = await open()
+      await w.find('[data-test="spot"][data-spot="bett"]').trigger('click')
+      expect(w.findAll('[data-test="piece"]').map(p => p.attributes('data-id'))).toEqual(['holzbett', 'zeltbett'])
+      await w.find('[data-test="piece"][data-id="zeltbett"]').trigger('click')
+      await flushPromises()
+      expect(api.room_.placed).toEqual({ bett: 'zeltbett' })
+      expect(w.find('[data-test="spot"][data-spot="bett"]').text()).toBe('🏕️')
+      expect(w.find('[data-test="piece"]').exists()).toBe(false)
+    })
+
+    it('takes a piece away with "nothing"', async () => {
+      api.room_.owned = owned('kaktus')
+      api.room_.placed = { pflanze: 'kaktus' }
+      const w = await open()
+      await w.find('[data-test="spot"][data-spot="pflanze"]').trigger('click')
+      await w.find('[data-test="piece-none"]').trigger('click')
+      await flushPromises()
+      expect(api.room_.placed).toEqual({})
+      expect(w.find('[data-test="spot"][data-spot="pflanze"]').attributes('data-empty')).toBe('true')
+    })
+
+    it('says where to get something for an empty spot', async () => {
+      const w = await open()
+      await w.find('[data-test="spot"][data-spot="lampe"]').trigger('click')
+      expect(lastSaid()).toBe('Im Möbelhaus gibt es etwas dafür.')
+      expect(w.find('[data-test="piece"]').exists()).toBe(false)
     })
 
     it('names the sticker book, not "the star", now that the trophy shelf has stars too', async () => {

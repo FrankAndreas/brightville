@@ -1,6 +1,7 @@
 import type { LogDay } from '@/core/diary'
 import type { Look } from '@/core/look'
 import type { Place } from '@/core/outfits'
+import type { Spot } from '@/core/furniture'
 
 export type { LogDay, LogEntry } from '@/core/diary'
 
@@ -52,8 +53,16 @@ export interface Rules {
   stars?: number
 }
 
-/** For the parents' page; `owned`: the add-ons a player has (stage 7) */
-export type PlayerRow = Person & ServerState & { owned?: string[] }
+/** For the parents' page; `owned`: the add-ons a player has (stage 7), `furniture`: her furniture (stage 8) */
+export type PlayerRow = Person & ServerState & { owned?: string[]; furniture?: string[] }
+
+/** Her room (backend/app/room.py): what stands on each spot, her furniture, and whether anything (in either shop) was
+ * bought today */
+export interface RoomState {
+  placed: Partial<Record<Spot, string>>
+  owned: { id: string; got_at: string }[]
+  bought_today: boolean
+}
 
 /** A film the parents chose for the Cinema */
 export interface Film {
@@ -130,6 +139,11 @@ export interface Api {
   setWorn(worn: Partial<Record<Place, string | null>>): Promise<WardrobeState>
   /** Rejects with 'locked', 'bought_today', 'shelf_locked', 'owned', 'poor', 'not_for_sale' or 'unknown' */
   buy(item: string, key: string): Promise<{ state: ServerState; wardrobe: WardrobeState }>
+  room(): Promise<RoomState>
+  /** Puts a piece on its spot or (null) takes it away, spot by spot */
+  setPlaced(placed: Partial<Record<Spot, string | null>>): Promise<RoomState>
+  /** The Möbelhaus; rejects with the same codes as `buy` */
+  buyFurniture(item: string, key: string): Promise<{ state: ServerState; room: RoomState }>
 }
 
 type Fetch = (url: string, init: RequestInit) => Promise<Response>
@@ -194,5 +208,8 @@ export function httpApi(fetchFn: Fetch = (url, init) => fetch(url, init), onRene
     saveLook: look => call('PUT', '/api/look', { look }),
     setWorn: worn => call('PUT', '/api/worn', { worn }),
     buy: (item, key) => call('POST', '/api/shop/buy', { item, key }),
+    room: () => call('GET', '/api/room'),
+    setPlaced: placed => call('PUT', '/api/room/placed', { placed }),
+    buyFurniture: (item, key) => call('POST', '/api/moebel/buy', { item, key }),
   }
 }
