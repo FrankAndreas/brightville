@@ -24,8 +24,9 @@ const canOlder = computed(() => index.value < days.value.length - 1 || more.valu
 
 const building = (id: string) => BUILDINGS.find(b => b.id === id)
 // A purchase names its add-on where a visit names its building
-const nameOf = (id: string) => building(id)?.spokenName ?? outfitDef(id)?.name ?? id
-const iconOf = (id: string) => building(id)?.icon ?? outfitDef(id)?.emoji ?? '❓'
+const nameOf = (id: string, kind?: LogEntry['kind']) =>
+  (kind === 'buy' ? outfitDef(id)?.name : building(id)?.spokenName) ?? id
+const iconOf = (id: string, kind?: LogEntry['kind']) => (kind === 'buy' ? outfitDef(id)?.emoji : building(id)?.icon) ?? '❓'
 
 async function fetchMore(): Promise<number> {
   if (fetching) return 0
@@ -102,9 +103,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
         <div class="entries">
           <button
             v-for="(e, i) in page.entries" :key="i" class="entry" data-test="entry" :data-kind="e.kind" :data-spent="e.stars < 0"
-            :aria-label="nameOf(e.building)" @click="sayEntry(e)"
+            :aria-label="nameOf(e.building, e.kind)" @click="sayEntry(e)"
           >
-            <span class="icon">{{ iconOf(e.building) }}</span>
+            <span class="icon">{{ iconOf(e.building, e.kind) }}</span>
             <span v-if="e.kind !== 'free'" class="stars">{{ e.stars > 0 ? `+${e.stars}` : `−${-e.stars}` }}</span>
           </button>
         </div>

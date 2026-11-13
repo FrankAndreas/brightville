@@ -17,6 +17,8 @@ const ids = [...props.ids].filter(id => stickerDef(id))
 const index = ref(0)
 const current = computed(() => stickerDef(ids[index.value] ?? ''))
 let timer: ReturnType<typeof setTimeout> | undefined
+// "Und dazu …": what you get, by the add-on's article
+const A_GIFT = { der: 'einen', die: 'eine', das: 'ein', pl: 'die' } as const
 
 function show() {
   const s = current.value
@@ -26,7 +28,7 @@ function show() {
   }
   playBeat('sparkle')
   const gift = giftFor(s.id)
-  void speak(gift ? `Ein neuer Sticker: ${s.name}! Und dazu: ${gift.name}!` : `Ein neuer Sticker: ${s.name}!`)
+  void speak(gift ? `Ein neuer Sticker: ${s.name}! Und dazu ${A_GIFT[gift.article]} ${gift.name}!` : `Ein neuer Sticker: ${s.name}!`)
   timer = setTimeout(() => {
     index.value += 1
     show()

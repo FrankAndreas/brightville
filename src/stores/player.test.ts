@@ -192,6 +192,20 @@ describe('player store', () => {
     }
   })
 
+  it('does not let a refresh that left before a purchase undo its Stars', async () => {
+    const player = await open()
+    let answerStale: (s: typeof api.state_) => void = () => {}
+    const stale = { ...api.state_ }
+    let asked = false
+    api.state = () => new Promise(resolve => { asked = true; answerStale = resolve })
+    const refreshing = player.refresh()
+    await vi.waitFor(() => expect(asked).toBe(true))
+    player.applyState({ ...stale, stars: stale.stars - 20 })
+    answerStale(stale)
+    await refreshing
+    expect(player.stars).toBe(stale.stars - 20)
+  })
+
   it('says when the login is gone, instead of quietly failing', async () => {
     const lost = vi.fn()
     const player = usePlayerStore()

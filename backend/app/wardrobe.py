@@ -35,7 +35,13 @@ def _row(db: sqlite3.Connection, person_id: int) -> tuple[Optional[dict], dict[s
     row = db.execute("SELECT look, worn FROM looks WHERE person_id = ?", (person_id,)).fetchone()
     if row is None:
         return None, {}
-    return json.loads(row["look"]), json.loads(row["worn"])
+    # Only add-ons the catalogue still has, each in its own place: a renamed or removed id breaks no screen
+    worn = {
+        place: item_id
+        for place, item_id in json.loads(row["worn"]).items()
+        if (o := outfits.outfit(item_id)) is not None and o.place == place
+    }
+    return json.loads(row["look"]), worn
 
 
 def _store(db: sqlite3.Connection, person_id: int, look: Optional[dict], worn: dict[str, str]) -> None:
@@ -47,8 +53,9 @@ def _store(db: sqlite3.Connection, person_id: int, look: Optional[dict], worn: d
 
 
 def owned_ids(db: sqlite3.Connection, person_id: int) -> list[str]:
+    """Her add-ons the catalogue still has (kept by id: an id that left it stays in the table, unused)"""
     rows = db.execute("SELECT item_id FROM outfits WHERE person_id = ? ORDER BY got_at, rowid", (person_id,))
-    return [r["item_id"] for r in rows]
+    return [r["item_id"] for r in rows if outfits.outfit(r["item_id"]) is not None]
 
 
 def _bought_today(db: sqlite3.Connection, person_id: int) -> bool:
@@ -67,7 +74,9 @@ def state(db: sqlite3.Connection, person_id: int) -> dict:
     return {
         "look": look,
         "worn": worn,
-        "owned": [{"id": r["item_id"], "how": r["how"], "got_at": r["got_at"]} for r in rows],
+        "owned": [
+            {"id": r["item_id"], "how": r["how"], "got_at": r["got_at"]} for r in rows if outfits.outfit(r["item_id"])
+        ],
         "bought_today": _bought_today(db, person_id),
     }
 
@@ -102,8 +111,12 @@ def buy(db: sqlite3.Connection, person_id: int, item_id: str, key: str) -> game.
     bought_today, shelf_locked, poor; key_used for a key from another day. The same key today buys once."""
     with writing(db):
         now = game._row(db, person_id)
-        if game._seen_today(db, person_id, key):
+        # The same purchase sent again buys once; a key that stands for something else buys nothing
+        seen = db.execute("SELECT kind, at FROM events WHERE person_id = ? AND key = ?", (person_id, key)).fetchone()
+        if seen is not None and seen["kind"] == "buy" and seen["at"][:10] == clock.today():
             return now
+        if seen is not None:
+            raise game.Refused("key_used")
         item = outfits.outfit(item_id)
         if item is None:
             raise game.Refused("unknown")
@@ -121,8 +134,6 @@ def buy(db: sqlite3.Connection, person_id: int, item_id: str, key: str) -> game.
         paid = outfits.pay(item.price, now.stars, now.savings)
         if paid is None:
             raise game.Refused("poor")
-        if game._seen(db, person_id, key):
-            raise game.Refused("key_used")
         taken = now.stars - paid[0]
         now.stars, now.savings = paid
         game._store(db, person_id, now)

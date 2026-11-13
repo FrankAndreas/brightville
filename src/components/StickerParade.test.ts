@@ -12,7 +12,13 @@ describe('the sticker parade', () => {
   it('shows the gift that comes with a sticker, and says it', () => {
     const w = mount(StickerParade, { props: { ids: ['sternensammler'] } })
     expect(w.find('[data-test="parade-gift"]').text()).toBe('✨')
-    expect(speak).toHaveBeenCalledWith('Ein neuer Sticker: Sternensammler! Und dazu: Glitzer-Stirnband!')
+    expect(speak).toHaveBeenCalledWith('Ein neuer Sticker: Sternensammler! Und dazu ein Glitzer-Stirnband!')
+    w.unmount()
+  })
+
+  it('says the gift with its article', () => {
+    const w = mount(StickerParade, { props: { ids: ['ganzewoche'] } })
+    expect(speak).toHaveBeenCalledWith('Ein neuer Sticker: Eine ganze Woche! Und dazu eine Medaille!')
     w.unmount()
   })
 

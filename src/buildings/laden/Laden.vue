@@ -5,7 +5,7 @@ import Confetti from '@/components/Confetti.vue'
 import { starsSaid } from '@/core/diary'
 import type { Dress } from '@/core/look'
 import { numberWord } from '@/core/numbers'
-import { OUTFITS, outfitDef, shelfOpen, shopMoney, type OutfitDef } from '@/core/outfits'
+import { OUTFITS, TO_OPEN, outfitDef, shelfOpen, shopMoney, type OutfitDef } from '@/core/outfits'
 import { instruct, speak, stopSpeaking } from '@/services/tts'
 import { usePlayerStore } from '@/stores/player'
 import { useWardrobeStore } from '@/stores/wardrobe'
@@ -20,7 +20,6 @@ const player = usePlayerStore()
 const wardrobe = useWardrobeStore()
 
 const SHELVES = [1, 2, 3] as const
-const TO_OPEN = 2
 const CONFETTI_MS = 2500
 
 const sold = OUTFITS.filter(o => o.shelf !== undefined && o.price !== undefined)
@@ -50,6 +49,11 @@ let confettiTimer: ReturnType<typeof setTimeout> | undefined
 function tap(o: OutfitDef) {
   if (busy.value) return
   if (!open(o.shelf!)) {
+    // The shelf above is locked too: its add-ons can't be bought yet, the way starts at the top
+    if (!open((o.shelf! - 1) as 1 | 2)) {
+      void speak('Dieses Regal geht später auf. Fang ganz oben an!')
+      return
+    }
     const above = ownedIds.value.filter(id => outfitDef(id)?.shelf === o.shelf! - 1).length
     const more = TO_OPEN - above
     void speak(more === 1

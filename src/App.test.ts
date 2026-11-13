@@ -677,6 +677,30 @@ describe('App', () => {
       w.unmount()
     })
 
+    it('keeps the town\'s keys out of the look screen', async () => {
+      api = fakeApi({ stars: 5 })
+      api.wardrobe_.look = null
+      const w = await startedWithHelp()
+      key('KeyH')
+      await nextTick()
+      await w.find('[data-test="look-done"]').trigger('click')
+      await flushPromises()
+      // H on the look screen opened nothing behind it
+      expect(w.find('[data-test="help"]').exists()).toBe(false)
+      w.unmount()
+    })
+
+    it('shows the help for a new player at once, without waiting for the look to be saved', async () => {
+      api.wardrobe_.look = null
+      api.saveLook = () => new Promise(() => {})
+      const w = await startedWithHelp()
+      await w.find('[data-test="look-done"]').trigger('click')
+      await flushPromises()
+      expect(w.find('[data-test="game"]').exists()).toBe(true)
+      expect(w.find('[data-test="help"]').exists()).toBe(true)
+      w.unmount()
+    })
+
     it('goes straight to the town for someone who chose her look before', async () => {
       const w = await started()
       expect(w.find('[data-test="look-screen"]').exists()).toBe(false)

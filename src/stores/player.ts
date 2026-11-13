@@ -191,17 +191,23 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   /** Asks the server again: after time has passed, a building was left, or the connection came back. */
+  /** Counts states that came from elsewhere (a purchase in the Kleiderladen), so an older answer can't undo them */
+  let newer = 0
+
   async function refresh() {
     if (!api) return
     // The person asked for: the device may change hands while the answers are under way
     const owner = outboxKey
     await flush()
     if (owner !== outboxKey) return
+    const asked = newer
     const [state, filmList, stickerRows] = await Promise.allSettled([api.state(), api.films(), api.stickers()])
     if (owner !== outboxKey) return
-    // What fails keeps showing what we have; the next refresh tries again
-    if (state.status === 'fulfilled') apply(state.value)
-    else checkLogin(state.reason)
+    // What fails keeps showing what we have; the next refresh tries again. A newer state (a purchase) that came in
+    // while this one was under way wins over it
+    if (state.status === 'fulfilled') {
+      if (asked === newer) apply(state.value)
+    } else checkLogin(state.reason)
     if (filmList.status === 'fulfilled') films.value = filmList.value
     if (stickerRows.status === 'fulfilled') takeStickers(stickerRows.value)
   }
@@ -296,7 +302,10 @@ export const usePlayerStore = defineStore('player', () => {
     stars, savings, day, visitsToday, dailyGoal, playSeconds, playMinutes, goalReached, timeUp, loaded, pending,
     films, init, refresh, earn, buy, reportPlayTime,
     /** The server's numbers after something it did elsewhere (a purchase in the Kleiderladen) */
-    applyState: apply,
+    applyState: (state: ServerState) => {
+      newer += 1
+      apply(state)
+    },
     stickers, toCelebrate, unseen, visitFree, celebrated, sawAll,
   }
 })
