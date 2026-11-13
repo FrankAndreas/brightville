@@ -14,6 +14,9 @@ export function mergeIntents(...sources: IntentSource[]): IntentSource {
         jump: all.some(i => i.jump),
         interact: all.some(i => i.interact),
         leave: all.some(i => i.leave),
+        turn: clamp(all.reduce((sum, i) => sum + i.turn, 0)),
+        turnAround: all.some(i => i.turnAround),
+        lookHome: all.some(i => i.lookHome),
       }
     },
     reset: () => sources.forEach(s => s.reset()),

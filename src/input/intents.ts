@@ -10,6 +10,12 @@ export interface Intents {
   interact: boolean
   /** True in one read() per press */
   leave: boolean
+  /** Turning the view while held: -1 left … 1 right */
+  turn: number
+  /** True in one read() per press: turn the view around */
+  turnAround: boolean
+  /** True in one read() per press: look at the learning row again */
+  lookHome: boolean
 }
 
 export interface IntentSource {
@@ -19,7 +25,7 @@ export interface IntentSource {
   dispose(): void
 }
 
-type Press = 'jump' | 'interact' | 'leave'
+export type Press = 'jump' | 'interact' | 'leave' | 'turnAround' | 'lookHome'
 
 const PRESS_KEYS: Record<string, Press> = {
   Space: 'jump',
@@ -27,11 +33,15 @@ const PRESS_KEYS: Record<string, Press> = {
   NumpadEnter: 'interact',
   KeyE: 'interact',
   Escape: 'leave',
+  KeyK: 'turnAround',
+  KeyI: 'lookHome',
 }
 const LEFT = ['ArrowLeft', 'KeyA']
 const RIGHT = ['ArrowRight', 'KeyD']
 const AWAY = ['ArrowUp', 'KeyW']
 const NEAR = ['ArrowDown', 'KeyS']
+const TURN_LEFT = ['KeyJ']
+const TURN_RIGHT = ['KeyL']
 // Keys that would otherwise scroll the page
 const SCROLL_KEYS = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space'])
 
@@ -67,6 +77,9 @@ export function keyboardIntents(target: Window = window): IntentSource {
       jump: take('jump'),
       interact: take('interact'),
       leave: take('leave'),
+      turn: axis(TURN_LEFT, TURN_RIGHT),
+      turnAround: take('turnAround'),
+      lookHome: take('lookHome'),
     }),
     reset: forget,
     dispose() {

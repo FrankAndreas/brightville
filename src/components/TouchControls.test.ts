@@ -83,4 +83,22 @@ describe('TouchControls', () => {
     expect(source.read().jump).toBe(true)
     expect(source.read().jump).toBe(false)
   })
+
+  it('turns the view while a turn button is held, and stops when it is let go', async () => {
+    const { source, w } = open()
+    const left = w.find('[data-test="turn-left"]')
+    const right = w.find('[data-test="turn-right"]')
+    await left.trigger('pointerdown')
+    expect(source.read().turn).toBe(-1)
+    await left.trigger('pointerup')
+    expect(source.read().turn).toBe(0)
+    await right.trigger('pointerdown')
+    expect(source.read().turn).toBe(1)
+    // A finger sliding off the button stops too
+    await right.trigger('pointerleave')
+    expect(source.read().turn).toBe(0)
+    await right.trigger('pointerdown')
+    await right.trigger('pointercancel')
+    expect(source.read().turn).toBe(0)
+  })
 })

@@ -4,10 +4,11 @@ import type { IntentSource } from '@/input/intents'
 import { nearestDoor, type DoorDef } from './doors'
 import { createLoop } from './loop'
 import { GRAVITY, buildTown } from './world'
-import { TRAMPOLINE, buildProps } from './props'
+import { TRAMPOLINES, buildProps } from './props'
 import { createCharacter, type CharacterFrame } from './character'
 import { createBlob } from './blob'
 import { createFollowCamera } from './followCamera'
+import { createView, walkDirection } from './view'
 
 export interface CityOptions {
   canvas: HTMLCanvasElement
@@ -51,10 +52,11 @@ export async function createCity(opts: CityOptions): Promise<City> {
 
   const town = buildTown(RAPIER, world, opts.doors)
   const props = buildProps(RAPIER, world, town.scene)
-  const character = createCharacter(RAPIER, world, START, TRAMPOLINE)
+  const character = createCharacter(RAPIER, world, START, TRAMPOLINES)
   const blob = createBlob()
   town.scene.add(blob.object)
   const view = createFollowCamera()
+  const turning = createView()
 
   const resize = () => {
     const width = opts.canvas.clientWidth || window.innerWidth
@@ -73,16 +75,19 @@ export async function createCity(opts: CityOptions): Promise<City> {
   const loop = createLoop(opts.intents, (intents, dt) => {
     time += dt
     world.timestep = dt || 1 / 60
-    const f = character.step(intents, dt)
+    turning.step(intents, dt)
+    // The keys walk relative to the view: up is always away from the camera
+    const walk = walkDirection(turning.yaw, intents.moveX, intents.moveZ)
+    const f = character.step({ ...intents, moveX: walk.x, moveZ: walk.z }, dt)
     if (dt > 0) world.step()
-    if (f.event === 'bounce') props.bounce()
+    if (f.event === 'bounce') props.bounce(f.x, f.z)
     if (import.meta.env.DEV) debug.record(f)
 
     props.sync()
     props.update(dt)
     blob.update(f, dt)
     for (const door of town.doorVisuals) door.update(time)
-    view.follow(f, dt, first)
+    view.follow(f, dt, first, turning.yaw)
     first = false
     renderer.render(town.scene, view.camera)
 

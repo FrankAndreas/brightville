@@ -3,7 +3,7 @@
 A small, friendly town for a kindergarten-age child: walk a wobbly character around, go into buildings, and earn Stars there by learning and moving.
 Everything the child sees is pictures and a German voice; no reading is needed.
 
-The town square has a trampoline, balls to push and its buildings: learning at the back, making things on the left, playing on the right.
+The town square (60 m across) has balls to push, a playground at the front (three trampolines, a staircase of blocks up to a platform, hurdles to hop over) and its buildings: learning at the back, making things on the left, playing on the right.
 
 | Building | What happens inside | Stars |
 |---|---|---|
@@ -11,6 +11,8 @@ The town square has a trampoline, balls to push and its buildings: learning at t
 | ✏️ Schreiben | Two letters or digits, each traced three times with less help (touch screen only) | +1 per tracing, +4 for all six |
 | 🧘 Yoga Studio | The camera checks three poses | +3 per pose held |
 | 🔍 Unterschiede | Ten differences between two pictures | +1 per difference found without the lamp |
+| 📚 Bibliothek | A short story read aloud with pictures, then three picture questions | +3 per question |
+| 🧪 Farblabor | Two paint pots: which colour do they make? Five mixes | +2 per mix |
 | 🎨 Ausmalen | Twenty coloring pages: pick one, tap its parts to fill them | free |
 | 🖌️ Malen | Free drawing; each child's paintings are kept on the server | free |
 | 🃏 Arcade | Memory with six pairs of animals | costs 3 per round |
@@ -20,7 +22,7 @@ The town square has a trampoline, balls to push and its buildings: learning at t
 
 **Free** buildings are always open: before the day's learning, with no Stars, and after the play time. They neither give nor cost Stars and don't count as play time.
 
-**Learn first, play later:** the Arcade door stays locked until today's earning visits are done (School, Schreiben, Yoga or Unterschiede, in any mix; two unless a parent set another number). The slots next to the Star counter show how far the child is. A new day starts the slots over; Stars are kept.
+**Learn first, play later:** the Arcade door stays locked until today's earning visits are done (School, Schreiben, Yoga, Unterschiede, Bibliothek or Farblabor, in any mix; two unless a parent set another number). The slots next to the Star counter show how far the child is. A new day starts the slots over; Stars are kept.
 When a parent has set a play time per day, the Arcade door shows a moon once it is used up.
 
 **Each child has their own Stars**, kept by the game's server (`backend/`), so the laptop and the iPad show the same.
@@ -72,7 +74,8 @@ The camera only works on `localhost` or over HTTPS. On a plain `http://` address
 
 | Action | Keyboard | Touch screen |
 |---|---|---|
-| Walk | Arrow keys or W A S D | Drag a finger anywhere in the left half of the screen |
+| Walk | Arrow keys or W A S D (up always walks away from the camera) | Drag a finger anywhere in the left half of the screen |
+| Turn the view | J and L while held; K turns around; I looks at the learning row again | Hold one of the round arrows above the jump button |
 | Jump | Space | The yellow arrow button, bottom right |
 | Go into a building | Enter or E, in front of the glowing door | Tap the picture that appears at the door (a mouse click works too) |
 | Leave a building | Esc | The door button, top left (also for the mouse) |

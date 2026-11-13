@@ -11,8 +11,8 @@ export const CAPSULE_RADIUS = 0.4
 /** Feet to top of head */
 export const BODY_HEIGHT = 1.2
 const HALF_HEIGHT = BODY_HEIGHT / 2
-/** Upward speed off the trampoline: about 4 m high */
-const TRAMPOLINE_SPEED = Math.sqrt(2 * GRAVITY * 4)
+/** Upward speed that throws this high */
+const throwSpeed = (height: number) => Math.sqrt(2 * GRAVITY * height)
 // How quickly the ground speed follows the keys: soft starts and stops
 const ACCELERATION = 9
 const TURN_RATE = 10
@@ -42,8 +42,9 @@ export interface Character {
 }
 
 export function createCharacter(
-  R: Rapier, world: RAPIER.World, start: { x: number; z: number }, trampoline: Trampoline,
+  R: Rapier, world: RAPIER.World, start: { x: number; z: number }, trampolines: Trampoline | Trampoline[],
 ): Character {
+  const pads = Array.isArray(trampolines) ? trampolines : [trampolines]
   const body = world.createRigidBody(
     R.RigidBodyDesc.kinematicPositionBased().setTranslation(start.x, HALF_HEIGHT + 0.05, start.z),
   )
@@ -63,9 +64,9 @@ export function createCharacter(
   let peakY = HALF_HEIGHT
   let tumbleLeftMs = 0
 
+  /** The trampoline the character stands on, if any */
   const onTrampoline = (p: { x: number; y: number; z: number }) =>
-    Math.hypot(p.x - trampoline.x, p.z - trampoline.z) < trampoline.radius * 0.85 &&
-    p.y - HALF_HEIGHT < trampoline.top + 0.15
+    pads.find(t => Math.hypot(p.x - t.x, p.z - t.z) < t.radius * 0.85 && p.y - HALF_HEIGHT < t.top + 0.15)
 
   function startTumble() {
     tumbleLeftMs = TUMBLE_MS
@@ -169,8 +170,9 @@ export function createCharacter(
       const fall = peakY - next.y
       peakY = next.y
       // Standing on the trampoline always bounces: no key needed
-      if (onTrampoline(next)) {
-        v.y = TRAMPOLINE_SPEED
+      const pad = onTrampoline(next)
+      if (pad) {
+        v.y = throwSpeed(pad.height)
         grounded = false
         return frame('bounce', impact)
       }

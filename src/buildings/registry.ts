@@ -15,6 +15,8 @@ const arcade = () => import('./arcade/Arcade.vue')
 const ausmalen = () => import('./ausmalen/Ausmalen.vue')
 const malen = () => import('./malen/Malen.vue')
 const unterschiede = () => import('./unterschiede/Unterschiede.vue')
+const bibliothek = () => import('./bibliothek/Bibliothek.vue')
+const farblabor = () => import('./farblabor/Farblabor.vue')
 const schlange = () => import('./schlange/Schlange.vue')
 const bonbonjagd = () => import('./bonbonjagd/Bonbonjagd.vue')
 const kino = () => import('./kino/Kino.vue')
@@ -40,6 +42,14 @@ export const BUILDINGS: BuildingDef[] = [
   {
     id: 'unterschiede', spokenName: 'Unterschiede', icon: '🔍', kind: 'earn', needs: [], door: { x: 5, z: -24 },
     component: defineAsyncComponent(unterschiede), preload: unterschiede,
+  },
+  {
+    id: 'bibliothek', spokenName: 'Bibliothek', icon: '📚', kind: 'earn', needs: [], door: { x: 15, z: -24 },
+    component: defineAsyncComponent(bibliothek), preload: bibliothek,
+  },
+  {
+    id: 'farblabor', spokenName: 'Farblabor', icon: '🧪', kind: 'earn', needs: [], door: { x: 25, z: -24 },
+    component: defineAsyncComponent(farblabor), preload: farblabor,
   },
   {
     id: 'ausmalen', spokenName: 'Ausmalen', icon: '🎨', kind: 'free', needs: [], door: { x: -23, z: -12, side: 'left' },
