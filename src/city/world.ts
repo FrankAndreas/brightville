@@ -127,7 +127,8 @@ function doorBuilding(R: Rapier, world: RAPIER.World, scene: THREE.Scene, door: 
   // side houses hang their sign out from the wall, facing the camera, like a shop sign. It hangs on the
   // camera side of the door, so the sign of the next house along is behind the camera, not in the picture
   const board = new THREE.Group()
-  if (side === 'back') {
+  if (side === 'back' || side === 'front') {
+    // On the house, above the door: turned with it, so the front house shows its sign to a child who turned round
     board.position.set(0, 3.95, depth / 2 + 0.06)
     group.add(board)
   } else {

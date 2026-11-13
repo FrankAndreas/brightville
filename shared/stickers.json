@@ -1,0 +1,19 @@
+[
+  { "id": "rechenprofi", "emoji": "🧮", "color": "#ffd166", "name": "Rechenprofi", "for": "Für zehn Besuche in der Schule.", "rule": { "visits": 10, "buildings": ["school"] } },
+  { "id": "schreibprofi", "emoji": "✍️", "color": "#a0c4ff", "name": "Schreibprofi", "for": "Für zehn Besuche beim Schreiben.", "rule": { "visits": 10, "buildings": ["schreiben"] } },
+  { "id": "yogameister", "emoji": "🧘", "color": "#cdb4db", "name": "Yoga-Meister", "for": "Für zehn Besuche im Yoga.", "rule": { "visits": 10, "buildings": ["yoga"] } },
+  { "id": "adlerauge", "emoji": "🦅", "color": "#bde0fe", "name": "Adlerauge", "for": "Für zehn Besuche bei den Unterschieden.", "rule": { "visits": 10, "buildings": ["unterschiede"] } },
+  { "id": "buecherwurm", "emoji": "🐛", "color": "#caffbf", "name": "Bücherwurm", "for": "Für zehn Besuche in der Bibliothek.", "rule": { "visits": 10, "buildings": ["bibliothek"] } },
+  { "id": "farbzauber", "emoji": "🌈", "color": "#ffc6ff", "name": "Farbzauber", "for": "Für zehn Besuche im Farblabor.", "rule": { "visits": 10, "buildings": ["farblabor"] } },
+  { "id": "springfloh", "emoji": "🦘", "color": "#fdffb6", "name": "Springfloh", "for": "Für zehn Besuche in der Hüpfhalle.", "rule": { "visits": 10, "buildings": ["huepfhalle"] } },
+  { "id": "tanzstern", "emoji": "💃", "color": "#ffadad", "name": "Tanzstern", "for": "Für zehn Besuche im Tanzsaal.", "rule": { "visits": 10, "buildings": ["tanzsaal"] } },
+  { "id": "kunstwerk", "emoji": "🖼️", "color": "#ffd6a5", "name": "Kunstwerk", "for": "Für zehn Besuche beim Malen und Ausmalen.", "rule": { "visits": 10, "buildings": ["malen", "ausmalen"] } },
+  { "id": "entdecker", "emoji": "🗺️", "color": "#9bf6ff", "name": "Entdecker", "for": "Für sechs verschiedene Häuser, in denen du gelernt hast.", "rule": { "different": 6 } },
+  { "id": "dreiamstueck", "emoji": "🔥", "color": "#ffb4a2", "name": "Drei am Stück", "for": "Für drei Tage hintereinander, an denen du alles geschafft hast.", "rule": { "streak": 3 } },
+  { "id": "ganzewoche", "emoji": "🏅", "color": "#f1c0e8", "name": "Eine ganze Woche", "for": "Für eine ganze Woche, jeden Tag alles geschafft.", "rule": { "streak": 7 } },
+  { "id": "zweiwochen", "emoji": "🏆", "color": "#ffe5a0", "name": "Zwei Wochen", "for": "Für zwei Wochen, jeden Tag alles geschafft.", "rule": { "streak": 14 } },
+  { "id": "fleissigebiene", "emoji": "🐝", "color": "#fff3b0", "name": "Fleißige Biene", "for": "Für zehn Tage, an denen du alles geschafft hast.", "rule": { "goalDays": 10 } },
+  { "id": "superfleissig", "emoji": "👑", "color": "#e9c46a", "name": "Superfleißig", "for": "Für dreißig Tage, an denen du alles geschafft hast.", "rule": { "goalDays": 30 } },
+  { "id": "sternensammler", "emoji": "⭐", "color": "#fde68a", "name": "Sternensammler", "for": "Für hundert Sterne.", "rule": { "stars": 100 } },
+  { "id": "sternenhimmel", "emoji": "🌌", "color": "#b8c0ff", "name": "Sternenhimmel", "for": "Für fünfhundert Sterne.", "rule": { "stars": 500 } }
+]

@@ -86,11 +86,15 @@ describe('footprint', () => {
     expect(footprint({ x: -13, z: 4, side: 'left' })).toEqual({ minX: -19, maxX: -14, minZ: 0, maxZ: 8 })
     expect(footprint({ x: 13, z: 4, side: 'right' })).toEqual({ minX: 14, maxX: 19, minZ: 0, maxZ: 8 })
   })
+
+  it('puts a front building in front of its door, facing the back', () => {
+    expect(footprint({ x: -5, z: 24, side: 'front' })).toEqual({ minX: -9, maxX: -1, minZ: 25, maxZ: 30 })
+  })
 })
 
 describe('facingAngle', () => {
   it('turns a house built facing +z to face the middle of the square', () => {
-    const faces = (side: 'back' | 'left' | 'right') => {
+    const faces = (side: 'back' | 'left' | 'right' | 'front') => {
       const a = facingAngle(side)
       // Where the house's front (+z before turning) points afterwards
       return { x: Math.round(Math.sin(a)), z: Math.round(Math.cos(a)) }
@@ -98,6 +102,7 @@ describe('facingAngle', () => {
     expect(faces('back')).toEqual({ x: 0, z: 1 })
     expect(faces('left')).toEqual({ x: 1, z: 0 })
     expect(faces('right')).toEqual({ x: -1, z: 0 })
+    expect(faces('front')).toEqual({ x: 0, z: -1 })
   })
 })
 

@@ -272,4 +272,68 @@ describe('player store', () => {
     expect(await player.earn('school', 2)).toBe(true)
     expect(player.stars).toBe(6)
   })
+
+  describe('stickers', () => {
+    const row = (id: string, seen = false) => ({ id, earned_at: '2026-11-12T10:00:00+01:00', seen })
+
+    it('loads the stickers, and queues the ones not seen yet for celebrating', async () => {
+      api.stickers_ = [row('buecherwurm', true), row('rechenprofi')]
+      const player = await open()
+      expect(player.stickers.map(s => s.id)).toEqual(['buecherwurm', 'rechenprofi'])
+      expect(player.toCelebrate).toEqual(['rechenprofi'])
+      // Asking again doesn't queue it a second time
+      await player.refresh()
+      expect(player.toCelebrate).toEqual(['rechenprofi'])
+    })
+
+    it('queues a sticker an earning visit brought', async () => {
+      const player = await open()
+      api.earns_ = ['rechenprofi']
+      await player.earn('school', 3)
+      expect(player.toCelebrate).toEqual(['rechenprofi'])
+      expect(player.stickers.map(s => s.id)).toEqual(['rechenprofi'])
+    })
+
+    it('records a visit to a free building, and queues what it brought', async () => {
+      const player = await open()
+      api.earns_ = ['kunstwerk']
+      await player.visitFree('malen')
+      expect(api.calls).toContain('freeVisit malen')
+      expect(player.toCelebrate).toEqual(['kunstwerk'])
+    })
+
+    it('does not mind when a free visit cannot be sent', async () => {
+      const player = await open()
+      api.offline = true
+      await expect(player.visitFree('malen')).resolves.toBeUndefined()
+    })
+
+    it('marks celebrated stickers seen; the others wait in the album as new without another celebration', async () => {
+      api.stickers_ = [row('a'), row('b'), row('c'), row('d')]
+      const player = await open()
+      await player.celebrated(['a', 'b', 'c'])
+      expect(api.calls).toContain('stickersSeen a,b,c')
+      expect(player.toCelebrate).toEqual([])
+      expect(player.unseen).toEqual(['d'])
+      await player.refresh()
+      expect(player.toCelebrate).toEqual([])
+    })
+
+    it('marks every new sticker seen once the album was opened', async () => {
+      api.stickers_ = [row('a'), row('b')]
+      const player = await open()
+      await player.sawAll()
+      expect(player.unseen).toEqual([])
+      expect(api.stickers_.every(s => s.seen)).toBe(true)
+    })
+
+    it('forgets one child\'s stickers when another plays', async () => {
+      api.stickers_ = [row('a')]
+      const player = await open()
+      api.stickers_ = []
+      player.init(api, 2, storage)
+      expect(player.stickers).toEqual([])
+      expect(player.toCelebrate).toEqual([])
+    })
+  })
 })

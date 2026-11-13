@@ -9,6 +9,7 @@
   { "id": "tanzsaal", "kind": "earn", "maxStars": 10 },
   { "id": "ausmalen", "kind": "free" },
   { "id": "malen", "kind": "free" },
+  { "id": "haus", "kind": "free" },
   { "id": "arcade", "kind": "play", "cost": 3 },
   { "id": "schlange", "kind": "play", "cost": 3 },
   { "id": "bonbonjagd", "kind": "play", "cost": 3 },

@@ -94,6 +94,7 @@ One piece of logic used by both buildings: it watches the body frame by frame an
 
 - A free building like Malen: always open, no Stars either way, not counted as play time.
 - It gets the one door on the front side of the square, next to the playground, facing the learning row. **(call)** This needs `side: 'front'` in `doors.ts`. If the front row has no room that passes the layout tests, the house goes on the left side instead and the builder says so.
+- Built: the door is at (−5, 24). To make room, the small trampoline moved from (−5, 25) to (8, 15), beside the first one. **(call, made while building)**
 - Inside: a cosy room drawn in 2D with two big things to tap: a book on the table (📖 Tagebuch) and an album on the shelf (⭐ Stickerheft). A new sticker that hasn't been looked at yet makes the album glow.
 
 ### The logbook (Tagebuch)

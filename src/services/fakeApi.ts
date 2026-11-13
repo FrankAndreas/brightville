@@ -1,6 +1,8 @@
 // A stand-in for the server in tests: the same rules in memory (backend/app/game.py), for one person.
 import buildings from '../../shared/buildings.json'
-import { ApiError, type Api, type Film, type Me, type Person, type PlayerRow, type ServerState } from './api'
+import {
+  ApiError, type Api, type Film, type LogDay, type Me, type Person, type PlayerRow, type ServerState, type StickerRow,
+} from './api'
 
 export interface FakePainting { id: string; updated: number; image: string; thumb: string }
 
@@ -16,6 +18,10 @@ export interface FakeApi extends Api {
   rows: PlayerRow[]
   films_: Film[]
   paintings_: FakePainting[]
+  stickers_: StickerRow[]
+  /** Sticker ids the next visit or free visit earns */
+  earns_: string[]
+  logbook_: LogDay[]
   /** The server's calendar turns a page */
   newDay(day: string): void
 }
@@ -26,6 +32,13 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
   const state: ServerState = { stars: 0, day: '2026-11-12', visits: 0, daily_goal: 2, play_seconds: 0, play_minutes: null, ...start }
   const seen = new Set<string>()
   const find = (id: string) => buildings.find(b => b.id === id) as { id: string; kind: string; maxStars?: number; cost?: number } | undefined
+  /** Hands out what `earns_` holds, as the server's award does */
+  function award(): string[] {
+    const ids = api.earns_.filter(id => !api.stickers_.some(s => s.id === id))
+    api.earns_ = []
+    for (const id of ids) api.stickers_.push({ id, earned_at: `${state.day}T10:00:00+01:00`, seen: false })
+    return ids
+  }
   const api: FakeApi = {
     state_: state,
     me_: { mode: 'hub', person: KID, people: [], login_url: 'https://hub.test/?next=', logout_url: 'https://hub.test/logout?next=', ...me },
@@ -35,6 +48,9 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
     rows: [],
     films_: [],
     paintings_: [],
+    stickers_: [],
+    earns_: [],
+    logbook_: [],
     newDay(day) {
       Object.assign(state, { day, visits: 0, play_seconds: 0 })
     },
@@ -44,12 +60,12 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
       const b = find(building)
       // Buildings the tests make up give what they say
       const earned = Math.min(stars, b?.maxStars ?? stars)
-      if (earned <= 0 || seen.has(key)) return { state: { ...state }, goal_reached_now: false }
+      if (earned <= 0 || seen.has(key)) return { state: { ...state }, goal_reached_now: false, stickers: [] }
       seen.add(key)
       const before = state.visits >= state.daily_goal
       state.stars += earned
       state.visits += 1
-      return { state: { ...state }, goal_reached_now: !before && state.visits >= state.daily_goal }
+      return { state: { ...state }, goal_reached_now: !before && state.visits >= state.daily_goal, stickers: award() }
     }),
     play: (building, key) => run(`play ${building}`, () => {
       // A round key counts on the day it was bought only, as on the server
@@ -95,6 +111,20 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
       api.paintings_ = [...api.paintings_.filter(p => p.id !== id), { id, updated, image, thumb }]
       return { id, updated }
     }),
+    freeVisit: (building, key) => run(`freeVisit ${building}`, () => {
+      if (find(building)?.kind !== 'free') throw new ApiError(422, 'wrong_kind')
+      if (seen.has(key)) return { stickers: [] }
+      seen.add(key)
+      return { stickers: award() }
+    }),
+    stickers: () => run('stickers', () => api.stickers_.map(s => ({ ...s }))),
+    stickersSeen: ids => run(`stickersSeen ${ids.join(',')}`, () => {
+      for (const s of api.stickers_) if (ids.includes(s.id)) s.seen = true
+      return { ok: true }
+    }),
+    logbook: (before, days = 7) => run(`logbook ${before ?? ''} ${days}`.trim(), () =>
+      api.logbook_.filter(d => !before || d.day < before).slice(0, days)),
+    diary: personId => run(`diary ${personId}`, () => ({ days: api.logbook_.slice(0, 7), stickers: api.stickers_.map(s => ({ ...s })) })),
     removePainting: id => run(`removePainting ${id}`, () => {
       if (!api.paintings_.some(p => p.id === id)) throw new ApiError(404, 'unknown_painting')
       api.paintings_ = api.paintings_.filter(p => p.id !== id)

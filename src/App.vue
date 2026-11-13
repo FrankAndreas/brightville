@@ -12,6 +12,7 @@ import ParentArea from '@/components/ParentArea.vue'
 import ServerScreen from '@/components/ServerScreen.vue'
 import StarCounter from '@/components/StarCounter.vue'
 import StartGate from '@/components/StartGate.vue'
+import StickerParade from '@/components/StickerParade.vue'
 import WhoPlays from '@/components/WhoPlays.vue'
 import { numberWord } from '@/core/numbers'
 import { httpApi, type Api } from '@/services/api'
@@ -206,6 +207,8 @@ async function onFinished(result: BuildingResult) {
     restingId.value = building.id
     void player.refresh()
   }
+  // Malen and Ausmalen go into the logbook (and count towards a sticker); the house doesn't
+  if (building?.kind === 'free' && !building.unlogged) void player.visitFree(building.id)
   // Only earning buildings give Stars and count towards the daily goal
   if (building?.kind !== 'earn' || !(result.stars > 0)) return
   if (await player.earn(building.id, result.stars)) {
@@ -275,6 +278,10 @@ onBeforeUnmount(() => {
       :touch="fingersOnly" @enter="onEnter(near.id)"
     />
     <Confetti v-if="celebrating && !inside" />
+    <StickerParade
+      v-if="inTown && !celebrating && !helpOpen && player.toCelebrate.length"
+      :ids="player.toCelebrate.slice(0, 3)" @done="player.celebrated"
+    />
     <div v-if="inTown && !helpOpen" class="corner">
       <button v-if="session.isParent" class="round" data-test="parents-button" aria-label="Eltern" @click="parentsOpen = true">⚙️</button>
       <button class="round" data-test="help-button" aria-label="Hilfe" @pointerdown="helpOpen = true">?</button>

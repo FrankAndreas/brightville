@@ -1,6 +1,6 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
-import { ApiError, type Api, type Film, type ServerState } from '@/services/api'
+import { ApiError, type Api, type Film, type ServerState, type StickerRow } from '@/services/api'
 
 /** Why a round of play can't start: the server's reasons, or no answer from it */
 export type BuyResult = 'ok' | 'locked' | 'poor' | 'time_up' | 'offline'
@@ -35,6 +35,12 @@ export const usePlayerStore = defineStore('player', () => {
   const waiting = ref<PendingVisit[]>([])
   /** The server's day, as of its last answer */
   const day = ref('')
+  /** The stickers this person has */
+  const stickers = ref<StickerRow[]>([])
+  /** New stickers to celebrate in the town, oldest first */
+  const toCelebrate = ref<string[]>([])
+  /** Stickers queued once already: each is celebrated at most once per visit to the game */
+  const announced = new Set<string>()
 
   let api: Api | null = null
   let storage: Storage | undefined
@@ -59,6 +65,26 @@ export const usePlayerStore = defineStore('player', () => {
   const goalReached = computed(() => visitsToday.value >= dailyGoal.value)
   const timeUp = computed(() => playMinutes.value !== null && playSeconds.value >= playMinutes.value * 60)
   const pending = computed(() => waiting.value.length)
+  /** Stickers the child hasn't seen yet: the album glows */
+  const unseen = computed(() => stickers.value.filter(s => !s.seen).map(s => s.id))
+
+  /** Takes the server's list of stickers; the new ones, not yet seen, are queued for celebrating */
+  function takeStickers(rows: StickerRow[]) {
+    stickers.value = rows
+    for (const s of rows) {
+      if (s.seen || announced.has(s.id)) continue
+      announced.add(s.id)
+      toCelebrate.value = [...toCelebrate.value, s.id]
+    }
+  }
+
+  /** Stickers a visit just earned */
+  function earned(ids: string[] | undefined) {
+    const fresh = (ids ?? []).filter(id => !stickers.value.some(s => s.id === id))
+    if (fresh.length === 0) return
+    const at = new Date().toISOString()
+    takeStickers([...stickers.value, ...fresh.map(id => ({ id, earned_at: at, seen: false }))])
+  }
 
   function apply(state: ServerState) {
     stars.value = state.stars
@@ -108,6 +134,9 @@ export const usePlayerStore = defineStore('player', () => {
     loaded.value = false
     loginLost = onLoginLost
     unanswered.clear()
+    stickers.value = []
+    toCelebrate.value = []
+    announced.clear()
     // A send still under way belongs to the person before; it checks and stops by itself
     flushing = null
   }
@@ -129,6 +158,7 @@ export const usePlayerStore = defineStore('player', () => {
         waiting.value = waiting.value.slice(1)
         writeOutbox()
         apply(answer.state)
+        earned(answer.stickers)
       } catch (e) {
         if (owner !== outboxKey || checkLogin(e)) return
         // The server will never take this one (a building that no longer exists): let it go. Anything else,
@@ -155,6 +185,43 @@ export const usePlayerStore = defineStore('player', () => {
       films.value = await api.films()
     } catch {
       // The list of a moment ago stays; the next refresh tries again
+    }
+    try {
+      takeStickers(await api.stickers())
+    } catch {
+      // Stickers can wait for the next refresh
+    }
+  }
+
+  /** A visit to Malen or Ausmalen, for the logbook and the stickers. Lost when the server can't be reached. */
+  async function visitFree(building: string): Promise<void> {
+    if (!api) return
+    try {
+      earned((await api.freeVisit(building, newKey())).stickers)
+    } catch (e) {
+      checkLogin(e)
+    }
+  }
+
+  /** The town showed these: they are seen. Any others left in the queue wait in the album as new. */
+  async function celebrated(ids: string[]): Promise<void> {
+    toCelebrate.value = []
+    await markSeen(ids)
+  }
+
+  /** The album was opened: every sticker in it has been seen */
+  async function sawAll(): Promise<void> {
+    await markSeen(unseen.value)
+  }
+
+  async function markSeen(ids: string[]) {
+    if (ids.length === 0) return
+    stickers.value = stickers.value.map(s => (ids.includes(s.id) ? { ...s, seen: true } : s))
+    try {
+      await api?.stickersSeen(ids)
+    } catch (e) {
+      // Shown as new again next time at worst
+      checkLogin(e)
     }
   }
 
@@ -211,5 +278,6 @@ export const usePlayerStore = defineStore('player', () => {
   return {
     stars, visitsToday, dailyGoal, playSeconds, playMinutes, goalReached, timeUp, loaded, pending,
     films, init, refresh, earn, buy, reportPlayTime,
+    stickers, toCelebrate, unseen, visitFree, celebrated, sawAll,
   }
 })

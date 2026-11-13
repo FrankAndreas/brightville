@@ -29,6 +29,8 @@ export interface BuildingDef {
   needs: Need[]
   door: DoorSpot
   component: Component
+  /** A free building whose visits are not written into the logbook (the house itself) */
+  unlogged?: boolean
   /** Fetches the building's code. Awaited before entering, so a failed download never costs Stars. */
   preload?: () => Promise<unknown>
 }

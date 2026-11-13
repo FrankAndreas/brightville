@@ -1,11 +1,14 @@
-"""The database: SQLite in DATA_DIR. Three small tables, so plain sqlite3 without an ORM.
+"""The database: SQLite in DATA_DIR. A few small tables, so plain sqlite3 without an ORM.
 
 - people: a copy of who may play (from the hub, or LOCAL_PEOPLE), so a parent sees children who never played yet and
   someone who left is hidden, not deleted.
 - players: Stars, the numbers of `day`, and the parent's settings.
-- events: every earning visit and round bought, under the key the page made up, so a request sent twice counts once.
+- events: every earning visit, round bought and visit to Malen or Ausmalen, under the key the page made up, so a
+  request sent twice counts once.
 - films: the YouTube films the parents chose for the Cinema.
 - paintings: each child's paintings from Malen, picture and thumbnail.
+- stickers: the stickers each child has earned, and whether the child has seen them yet.
+- goal_days: the days a child reached the daily goal, with the goal of that day.
 """
 
 import os
@@ -60,6 +63,21 @@ CREATE TABLE paintings (
     thumb_type TEXT NOT NULL,
     updated INTEGER NOT NULL,
     PRIMARY KEY (person_id, id)
+);
+""",
+    """
+CREATE TABLE stickers (
+    person_id INTEGER NOT NULL,
+    sticker_id TEXT NOT NULL,
+    earned_at TEXT NOT NULL,
+    seen INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (person_id, sticker_id)
+);
+CREATE TABLE goal_days (
+    person_id INTEGER NOT NULL,
+    day TEXT NOT NULL,
+    goal INTEGER NOT NULL,
+    PRIMARY KEY (person_id, day)
 );
 """,
 ]

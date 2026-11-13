@@ -85,4 +85,22 @@ describe('httpApi', () => {
     ])
     expect(JSON.parse(calls[1][1].body as string)).toEqual({ image: 'data:image/png;base64,AA', thumb: 'data:image/jpeg;base64,BB' })
   })
+
+  it('knows free visits, stickers, the logbook and a child\'s diary', async () => {
+    const fetchFn = vi.fn(async () => json(200, []))
+    const api = httpApi(fetchFn)
+    await api.freeVisit('malen', 'k1')
+    await api.stickers()
+    await api.stickersSeen(['buecherwurm'])
+    await api.logbook()
+    await api.logbook('2026-11-06', 3)
+    await api.diary(2)
+    const calls = fetchFn.mock.calls.map(c => c as unknown as [string, RequestInit])
+    expect(calls.map(([url, init]) => [url, init.method])).toEqual([
+      ['/api/free-visits', 'POST'], ['/api/stickers', 'GET'], ['/api/stickers/seen', 'POST'],
+      ['/api/logbook?days=7', 'GET'], ['/api/logbook?days=3&before=2026-11-06', 'GET'], ['/api/players/2/diary', 'GET'],
+    ])
+    expect(JSON.parse(calls[0][1].body as string)).toEqual({ building: 'malen', key: 'k1' })
+    expect(JSON.parse(calls[2][1].body as string)).toEqual({ ids: ['buecherwurm'] })
+  })
 })
