@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { speak, stopSpeaking } from '@/services/tts'
+import { createEffort } from '../effort'
 import { onLeaveRequest } from '../leave'
 import type { BuildingResult } from '../types'
 import { BLANK, COLORS, PAGES, loadPage, type Page } from './pages'
@@ -15,6 +16,8 @@ const color = ref(COLORS[0])
 /** Fills to take back, newest last */
 const history: { el: Element; prev: string | null }[] = []
 const canUndo = ref(false)
+/** Fills over the whole visit, on every page: whether it goes into the logbook */
+const effort = createEffort()
 
 let closed = false
 /** Counts openings, so a page that arrives after the child went back is dropped */
@@ -38,6 +41,7 @@ function fill(e: Event) {
   history.push({ el: target, prev: target.getAttribute('fill') })
   canUndo.value = true
   target.setAttribute('fill', color.value)
+  effort.mark()
 }
 
 function undo() {
@@ -56,7 +60,7 @@ function back() {
     return
   }
   shutDown()
-  emit('finished', { stars: 0 })
+  emit('finished', { stars: 0, made: effort.counts() })
 }
 
 function onKey(e: KeyboardEvent) {

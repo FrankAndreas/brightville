@@ -105,6 +105,17 @@ def test_a_goal_reached_stays_reached_when_the_parents_raise_it_later(mia, papa,
     assert visit(mia, "c").json()["stickers"] == ["dreiamstueck"]
 
 
+def test_lowering_the_goal_later_does_not_make_old_days_count(mia, papa, monkeypatch):
+    # One visit a day, with the goal at 2: no goal day
+    for day in ("09", "10", "11"):
+        set_time(monkeypatch, f"2026-11-{day} 16:00")
+        visit(mia, day)
+    set_time(monkeypatch, "2026-11-12 09:00")
+    papa.put("/api/players/2", json={"daily_goal": 1, "play_minutes": None})
+    assert "dreiamstueck" not in stickers(mia)
+    assert not any(d["goal_reached"] for d in mia.get("/api/logbook").json())
+
+
 def test_history_from_before_stickers_counts_when_the_page_loads(mia):
     # Ten school visits as earlier stages recorded them: events only, no sticker given
     with database.connect() as db:

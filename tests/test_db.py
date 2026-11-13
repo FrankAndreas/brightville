@@ -7,6 +7,34 @@ from app import db
 from app.main import app
 
 
+def test_the_goal_days_from_before_they_were_kept_are_written_down_once(tmp_path, monkeypatch):
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    old = sqlite3.connect(tmp_path / "brightville.db")
+    for step in db.MIGRATIONS[:5]:
+        old.executescript(step)
+    # Mia (goal 3): three visits on the 10th, one on the 11th. Ben (no row in players: the default 2): two on the 10th
+    old.execute("INSERT INTO players (person_id, daily_goal) VALUES (2, 3)")
+    visits = [(2, "10")] * 3 + [(2, "11"), (3, "10"), (3, "10")]
+    for i, (person, day) in enumerate(visits):
+        old.execute(
+            "INSERT INTO events (person_id, key, kind, building, stars, at) VALUES (?, ?, 'visit', 'school', 3, ?)",
+            (person, f"k{i}", f"2026-11-{day}T16:00:00+01:00"),
+        )
+    # A round bought is no learning visit
+    old.execute(
+        "INSERT INTO events (person_id, key, kind, building, stars, at) VALUES (2, 'p', 'play', 'arcade', -3, ?)",
+        ("2026-11-11T17:00:00+01:00",),
+    )
+    old.execute("PRAGMA user_version = 5")
+    old.commit()
+    old.close()
+
+    connection = db.connect()
+    rows = connection.execute("SELECT person_id, day, goal FROM goal_days ORDER BY person_id, day").fetchall()
+    assert [tuple(r) for r in rows] == [(2, "2026-11-10", 3), (3, "2026-11-10", 2)]
+    connection.close()
+
+
 def test_a_migration_is_split_where_sqlite_says_a_statement_ends():
     script = """
 CREATE TABLE a (x TEXT DEFAULT 'semi;colon'); CREATE TABLE b (y INTEGER);

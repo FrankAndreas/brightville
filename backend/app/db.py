@@ -87,6 +87,16 @@ CREATE TABLE settings (
     value TEXT NOT NULL
 );
 """,
+    # The days from before goal_days was kept, written down once with each child's goal of now: from here on only
+    # what is written counts, so a goal lowered later can't make old days count (code review, stages 5-6)
+    """
+INSERT OR IGNORE INTO goal_days (person_id, day, goal)
+SELECT e.person_id, substr(e.at, 1, 10), COALESCE(p.daily_goal, 2)
+FROM events e LEFT JOIN players p ON p.person_id = e.person_id
+WHERE e.kind = 'visit'
+GROUP BY e.person_id, substr(e.at, 1, 10)
+HAVING COUNT(*) >= COALESCE(p.daily_goal, 2);
+""",
 ]
 VERSION = len(MIGRATIONS)
 

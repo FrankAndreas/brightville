@@ -1,4 +1,4 @@
-import { paintingUrl, type Api } from './api'
+import { ApiError, paintingUrl, type Api } from './api'
 import { deletePainting, listPaintings, loadPainting, newPaintingId, savePainting } from './paintings'
 
 // A child's paintings: kept on the server, so every device shows the same gallery. A painting the server
@@ -22,19 +22,31 @@ export interface PaintingStore {
   remove(id: string): Promise<void>
 }
 
+/** The server looked at the painting and won't take it, now or later (unlike a server that is away) */
+const isRefusal = (e: unknown) => e instanceof ApiError && (e.code === 'too_large' || e.code === 'not_a_picture')
+
 export function paintingStore(api: Api, owner: number): PaintingStore {
   /** The server's list from the last listing, for the picture addresses */
   let known = new Map<string, number>()
 
   const waiting = () => listPaintings(owner).catch(() => [])
 
+  /** Refused for good this visit (too large, not a picture): kept here, but not sent again and again */
+  const refused = new Set<string>()
+
   async function send() {
     for (const info of await waiting()) {
+      if (refused.has(info.id)) continue
       const painting = await loadPainting(owner, info.id).catch(() => undefined)
       if (!painting) continue
       try {
         await api.keepPainting(info.id, painting.image, painting.thumb)
-      } catch {
+      } catch (e) {
+        // Refused for good: it stays here, and the others don't wait behind it
+        if (isRefusal(e)) {
+          refused.add(info.id)
+          continue
+        }
         // Still away: everything else waits too
         return
       }

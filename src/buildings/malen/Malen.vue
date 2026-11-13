@@ -6,6 +6,7 @@ import type { Api } from '@/services/api'
 import { paintingStore, type GalleryItem } from '@/services/paintingStore'
 import { speak, stopSpeaking } from '@/services/tts'
 import { useSessionStore } from '@/stores/session'
+import { createEffort } from '../effort'
 import { onLeaveRequest } from '../leave'
 import type { BuildingResult } from '../types'
 
@@ -40,6 +41,9 @@ const TOOL_BUTTONS: { id: Tool; icon: string; label: string }[] = [
 const DOTS: Record<Size, number> = { S: 10, M: 20, L: 32 }
 const MIN_SHAPE = 6 // px; a shape dragged less than this was just a tap
 const THUMB_WIDTH = 320
+// What the server takes at most (backend/app/paintings.py, MAX_IMAGE_BYTES), and the JPEG used above it
+const MAX_IMAGE_BYTES = 6 * 1024 * 1024
+const JPEG_QUALITY = 0.92
 
 const screen = ref<'gallery' | 'sheet'>('gallery')
 const paintings = ref<GalleryItem[]>([])
@@ -52,6 +56,8 @@ const tool = ref<Tool>('brush')
 const size = ref<Size>('M')
 const color = ref(COLORS[2])
 const strokes = ref<Stroke[]>([])
+/** Strokes over the whole visit, on every sheet: whether it goes into the logbook */
+const effort = createEffort()
 
 let closed = false
 let paintingId: string | undefined
@@ -186,6 +192,7 @@ function onUp(e: PointerEvent) {
     }
   }
   strokes.value = [...strokes.value, done]
+  effort.mark()
   const ctx = context(paper.value)
   if (ctx) drawStroke(ctx, done)
   drawCurrent()
@@ -223,12 +230,22 @@ function thumbnail(canvas: HTMLCanvasElement): string {
   return t.toDataURL('image/jpeg', 0.7)
 }
 
+/**
+ * The sheet as PNG, which keeps every line sharp; a sheet too large for the server that way (a big, busy one on a
+ * sharp screen) as JPEG, which the server refuses never.
+ */
+function picture(canvas: HTMLCanvasElement): string {
+  const png = canvas.toDataURL('image/png')
+  const bytes = ((png.length - png.indexOf(',') - 1) * 3) / 4
+  return bytes <= MAX_IMAGE_BYTES ? png : canvas.toDataURL('image/jpeg', JPEG_QUALITY)
+}
+
 /** Keeps the sheet when something was drawn; the picture is taken now, while the canvas is still there. */
 function save(): Promise<void> {
   const canvas = paper.value
   if (!changed || !canvas) return saving
   changed = false
-  const painting = { id: paintingId, image: canvas.toDataURL('image/png'), thumb: thumbnail(canvas) }
+  const painting = { id: paintingId, image: picture(canvas), thumb: thumbnail(canvas) }
   saving = saving
     .then(() => store.save(painting))
     .then(id => { paintingId = id })
@@ -252,7 +269,7 @@ function back() {
     return
   }
   shutDown()
-  emit('finished', { stars: 0 })
+  emit('finished', { stars: 0, made: effort.counts() })
 }
 
 function onKey(e: KeyboardEvent) {

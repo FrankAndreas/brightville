@@ -817,14 +817,14 @@ describe('App', () => {
   describe('stickers and the logbook', () => {
     const row = (id: string) => ({ id, earned_at: '2026-11-12T10:00:00+01:00', seen: false })
 
-    it('records a visit to Malen for the logbook, but not one to the house', async () => {
+    it('records a visit to Malen in which something was made, but not an empty one, nor one to the house', async () => {
       const malen: BuildingDef = { ...stub, id: 'malen', spokenName: 'Malen', kind: 'free', door: { x: -8, z: -8 } }
       const haus: BuildingDef = { ...stub, id: 'haus', spokenName: 'Mein Haus', kind: 'free', unlogged: true, door: { x: 8, z: -8 } }
       const w = await started([malen, haus])
-      for (const id of ['malen', 'haus']) {
+      for (const [id, made] of [['malen', false], ['malen', true], ['haus', true]] as const) {
         cityOptions.onEnter(id)
         await flushPromises()
-        finishWith({ stars: 0 })
+        finishWith({ stars: 0, made })
         await flushPromises()
       }
       expect(api.calls.filter(c => c.startsWith('freeVisit'))).toEqual(['freeVisit malen'])

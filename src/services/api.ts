@@ -60,7 +60,6 @@ export function paintingUrl(row: PaintingRow, which: 'image' | 'thumb'): string 
   return `/api/paintings/${encodeURIComponent(row.id)}/${which}?v=${row.updated}`
 }
 
-/** Why a request failed: the server's code, or 'offline' when there was no usable answer. */
 /** A sticker a child has: `seen` once the child was shown it */
 export interface StickerRow {
   id: string
@@ -68,6 +67,7 @@ export interface StickerRow {
   seen: boolean
 }
 
+/** Why a request failed: the server's code, or 'offline' when there was no usable answer. */
 export class ApiError extends Error {
   constructor(public status: number, public code: string, public loginUrl: string | null = null) {
     super(`api ${status} ${code}`)

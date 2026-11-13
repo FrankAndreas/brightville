@@ -114,8 +114,10 @@ describe('Huepfhalle', () => {
   it('shows that she is not seen and keeps the meter where it was', async () => {
     const w = await settled()
     await reps(ARMS_UP, 4)
+    expect(w.find('[data-test="mirror"]').attributes('data-seen')).toBe('true')
     seen = null
     await run(1700)
+    expect(w.find('[data-test="mirror"]').attributes('data-seen')).toBe('false')
     expect(w.find('[data-test="lost"]').exists()).toBe(true)
     expect(meter(w)).toBe(4)
     expect(speak).toHaveBeenLastCalledWith('Ich sehe dich nicht. Stell dich vor die Kamera.')

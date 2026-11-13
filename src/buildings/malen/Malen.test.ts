@@ -143,10 +143,10 @@ describe('Malen', () => {
     w.unmount()
   })
 
-  it('goes back to the town from the gallery, once, with no Stars', async () => {
+  it('goes back to the town from the gallery, once, with no Stars and nothing for the logbook', async () => {
     const w = await open()
     requestLeave()
-    expect(w.emitted('finished')).toEqual([[{ stars: 0 }]])
+    expect(w.emitted('finished')).toEqual([[{ stars: 0, made: false }]])
     requestLeave()
     press('Escape')
     expect(w.emitted('finished')).toHaveLength(1)

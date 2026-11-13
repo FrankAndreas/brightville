@@ -35,14 +35,23 @@ These were tested with automated tests and in a desktop browser, but not where t
 - Only the MediaPipe WebAssembly build the game loads is copied.
 - The backend's memory limit is now 192 MB. **The NAS's own `compose.yaml` isn't updated by the scripts:** change `mem_limit: 128m` there by hand.
 
-**Still open:** no code-level review has been run over stages 5 and 6 (PRs #5–#11). Worth doing before building more.
+**Code review of stages 5 and 6 (PRs #5–#11), Nov 13, 2026: done.** Its ten findings were fixed:
+
+- Lowering the daily goal no longer makes old days count. Days from before `goal_days` was kept were written down once, with each child's goal at that update.
+- A painting the server refuses for good no longer holds up the others. A sheet too large as PNG is saved as JPEG.
+- A sticker seen in the album isn't celebrated again in the town.
+- Answers that arrive after the device changed hands are dropped.
+- Stickers are worked out without the write lock unless one is due. The logbook reads only the days it shows.
+- The frame around the camera picture in the Hüpfhalle and Tanzsaal is green while the child is seen and orange while not. The music still waits 1.5 s before stopping.
+- A visit to Malen or Ausmalen counts only with something made: at least ten strokes or fills and a minute inside.
 
 ## Calls made without asking, which may be worth revisiting
 
 - The Cinema costs 3 Stars per film, not per minute; one film list for all children.
 - The Hüpfhalle pays 3 Stars per round (at most 9), not the gameplay document's 5.
 - No version without a camera for the Hüpfhalle and Tanzsaal: their doors stay closed on a device without one, like Yoga's.
-- Stickers: the list of 17 in `shared/stickers.json`. Past days count as "goal reached" against today's goal, because earlier goals weren't kept.
+- Stickers: the list of 17 in `shared/stickers.json`. Days from before goal days were kept count as "goal reached" against each child's goal at the update that wrote them down.
+- A visit to Malen or Ausmalen counts with at least ten strokes or fills and a minute inside, the same for every child (not a parent setting): the bar only keeps walking in and out from counting. A five-year-old typically stays with one activity for about 10–15 minutes, far above it.
 - A visit to Malen or Ausmalen made while the server can't be reached isn't kept for later.
 
 ## Left from the gameplay document

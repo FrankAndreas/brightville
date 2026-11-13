@@ -174,32 +174,28 @@ export const usePlayerStore = defineStore('player', () => {
   /** Asks the server again: after time has passed, a building was left, or the connection came back. */
   async function refresh() {
     if (!api) return
+    // The person asked for: the device may change hands while the answers are under way
+    const owner = outboxKey
     await flush()
-    try {
-      apply(await api.state())
-    } catch (e) {
-      // Keep showing what we have; the next refresh tries again
-      checkLogin(e)
-    }
-    try {
-      films.value = await api.films()
-    } catch {
-      // The list of a moment ago stays; the next refresh tries again
-    }
-    try {
-      takeStickers(await api.stickers())
-    } catch {
-      // Stickers can wait for the next refresh
-    }
+    if (owner !== outboxKey) return
+    const [state, filmList, stickerRows] = await Promise.allSettled([api.state(), api.films(), api.stickers()])
+    if (owner !== outboxKey) return
+    // What fails keeps showing what we have; the next refresh tries again
+    if (state.status === 'fulfilled') apply(state.value)
+    else checkLogin(state.reason)
+    if (filmList.status === 'fulfilled') films.value = filmList.value
+    if (stickerRows.status === 'fulfilled') takeStickers(stickerRows.value)
   }
 
   /** A visit to Malen or Ausmalen, for the logbook and the stickers. Lost when the server can't be reached. */
   async function visitFree(building: string): Promise<void> {
     if (!api) return
+    const owner = outboxKey
     try {
-      earned((await api.freeVisit(building, newKey())).stickers)
+      const answer = await api.freeVisit(building, newKey())
+      if (owner === outboxKey) earned(answer.stickers)
     } catch (e) {
-      checkLogin(e)
+      if (owner === outboxKey) checkLogin(e)
     }
   }
 
@@ -217,6 +213,8 @@ export const usePlayerStore = defineStore('player', () => {
   async function markSeen(ids: string[]) {
     if (ids.length === 0) return
     stickers.value = stickers.value.map(s => (ids.includes(s.id) ? { ...s, seen: true } : s))
+    // Seen in the album: the town doesn't celebrate them again afterwards
+    toCelebrate.value = toCelebrate.value.filter(id => !ids.includes(id))
     try {
       await api?.stickersSeen(ids)
     } catch (e) {

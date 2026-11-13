@@ -325,6 +325,20 @@ describe('player store', () => {
       await player.sawAll()
       expect(player.unseen).toEqual([])
       expect(api.stickers_.every(s => s.seen)).toBe(true)
+      // Seen in the album: the town doesn't celebrate them afterwards
+      expect(player.toCelebrate).toEqual([])
+    })
+
+    it('drops answers that arrive after the device changed hands', async () => {
+      api.stickers_ = []
+      const player = await open(1)
+      // Child 1's refresh is under way when child 2 takes over
+      api.stickers_ = [row('rechenprofi')]
+      const late = player.refresh()
+      player.init(api, 2, storage)
+      await late
+      expect(player.stickers).toEqual([])
+      expect(player.toCelebrate).toEqual([])
     })
 
     it('forgets one child\'s stickers when another plays', async () => {

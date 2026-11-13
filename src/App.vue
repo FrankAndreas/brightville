@@ -207,8 +207,8 @@ async function onFinished(result: BuildingResult) {
     restingId.value = building.id
     void player.refresh()
   }
-  // Malen and Ausmalen go into the logbook (and count towards a sticker); the house doesn't
-  if (building?.kind === 'free' && !building.unlogged) void player.visitFree(building.id)
+  // Malen and Ausmalen go into the logbook (and count towards a sticker) when something was made; the house doesn't
+  if (building?.kind === 'free' && !building.unlogged && result.made) void player.visitFree(building.id)
   // Only earning buildings give Stars and count towards the daily goal
   if (building?.kind !== 'earn' || !(result.stars > 0)) return
   if (await player.earn(building.id, result.stars)) {
