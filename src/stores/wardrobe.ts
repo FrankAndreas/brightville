@@ -4,6 +4,7 @@ import { DEFAULT_LOOK, isLook, type Dress, type Look } from '@/core/look'
 import type { Place } from '@/core/outfits'
 import { ApiError, type Api, type WardrobeState } from '@/services/api'
 import { usePlayerStore } from './player'
+import { useRoomStore } from './room'
 
 /** Why a purchase didn't happen: the server's code, or 'offline' (nothing was taken) */
 export type BuyResult = 'ok' | 'offline' | 'locked' | 'bought_today' | 'shelf_locked' | 'owned' | 'poor' | 'not_for_sale' | 'unknown'
@@ -217,6 +218,8 @@ export const useWardrobeStore = defineStore('wardrobe', () => {
       if (owner !== key) return 'offline'
       usePlayerStore().applyState(answer.state)
       take(answer.wardrobe)
+      // One purchase a day across both shops
+      useRoomStore().boughtToday = true
       return 'ok'
     } catch (e) {
       if (e instanceof ApiError && e.code !== 'offline' && e.status !== 0) {

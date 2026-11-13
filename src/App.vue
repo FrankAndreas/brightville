@@ -25,6 +25,7 @@ import { renewOnce } from '@/services/renew'
 import { unlockAudio } from '@/services/sound'
 import { forgetInstruction, speak } from '@/services/tts'
 import { usePlayerStore } from '@/stores/player'
+import { useRoomStore } from '@/stores/room'
 import { useWardrobeStore } from '@/stores/wardrobe'
 import { useSessionStore } from '@/stores/session'
 
@@ -36,6 +37,7 @@ const props = withDefaults(defineProps<{ buildings?: BuildingDef[]; api?: Api }>
 const session = useSessionStore()
 const player = usePlayerStore()
 const wardrobe = useWardrobeStore()
+const room = useRoomStore()
 const device = detectDevice()
 /** The device, and whether the parents chose films for the Cinema */
 const caps = computed(() => ({ ...device, films: player.films.length > 0 }))
@@ -114,6 +116,9 @@ watch(() => (session.status === 'ready' ? session.person?.id : undefined), async
   // A login that ended shows as such: the hub's login, or the closed door
   player.init(props.api, id, undefined, () => void session.retry())
   wardrobe.init(props.api, id)
+  room.init(props.api, id)
+  // The room is only needed in the house and the Möbelhaus: the game doesn't wait for it
+  void room.load()
   await Promise.all([player.refresh(), wardrobe.load()])
   offerHelp()
 }, { immediate: true })
@@ -262,6 +267,7 @@ const refresh = () => {
     void player.refresh()
     // Sends what waited on the device, then takes the server's wardrobe
     void wardrobe.load()
+    void room.load()
   }
 }
 let refreshTimer: ReturnType<typeof setInterval> | undefined
