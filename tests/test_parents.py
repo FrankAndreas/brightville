@@ -29,6 +29,7 @@ def test_a_parent_sees_everyone_who_may_play_children_first(papa, mia):
         "play_minutes": None,
         "savings": 0,
         "owned": [],
+        "furniture": [],
     }
 
 

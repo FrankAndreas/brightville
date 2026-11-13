@@ -6,7 +6,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Optional, Protocol
 
-from . import game, wardrobe
+from . import game, room, wardrobe
 from .db import writing
 
 
@@ -68,5 +68,11 @@ def listing(db: sqlite3.Connection) -> list[dict]:
         "SELECT id, name, role, color FROM people WHERE active = 1 ORDER BY role = 'PARENT', name COLLATE NOCASE"
     ).fetchall()
     return [
-        {**dict(row), **game.state(db, row["id"]).as_dict(), "owned": wardrobe.owned_ids(db, row["id"])} for row in rows
+        {
+            **dict(row),
+            **game.state(db, row["id"]).as_dict(),
+            "owned": wardrobe.owned_ids(db, row["id"]),
+            "furniture": room.owned_ids(db, row["id"]),
+        }
+        for row in rows
     ]

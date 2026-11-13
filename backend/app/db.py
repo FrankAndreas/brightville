@@ -12,6 +12,7 @@
 - settings: what the database itself must remember, e.g. `mode` (see claim_mode).
 - looks: each player's look (colour, hair, glasses) and what she wears, as JSON.
 - outfits: the add-ons each player owns, bought in the Kleiderladen or given with a sticker.
+- furniture, rooms: the furniture each player owns (Möbelhaus) and what stands on each spot of her room.
 """
 
 import os
@@ -114,6 +115,19 @@ CREATE TABLE outfits (
     how TEXT NOT NULL,
     got_at TEXT NOT NULL,
     PRIMARY KEY (person_id, item_id)
+);
+""",
+    # Stage 8: her room's furniture, and what stands on each spot
+    """
+CREATE TABLE furniture (
+    person_id INTEGER NOT NULL,
+    item_id TEXT NOT NULL,
+    got_at TEXT NOT NULL,
+    PRIMARY KEY (person_id, item_id)
+);
+CREATE TABLE rooms (
+    person_id INTEGER PRIMARY KEY,
+    placed TEXT NOT NULL DEFAULT '{}'
 );
 """,
 ]

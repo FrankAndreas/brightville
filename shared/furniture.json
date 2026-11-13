@@ -1,0 +1,20 @@
+[
+  { "id": "sonnenbild", "name": "Sonnenbild", "article": "das", "emoji": "🌞", "spot": "bild", "shelf": 1, "price": 15 },
+  { "id": "kaktus", "name": "Kaktus", "article": "der", "emoji": "🌵", "spot": "pflanze", "shelf": 1, "price": 15 },
+  { "id": "teppichrund", "name": "runder Teppich", "article": "der", "emoji": "⭕", "spot": "teppich", "shelf": 1, "price": 20 },
+  { "id": "punktevorhang", "name": "Punktevorhang", "article": "der", "emoji": "🔵", "spot": "vorhang", "shelf": 1, "price": 20 },
+  { "id": "pilzlampe", "name": "Pilzlampe", "article": "die", "emoji": "🍄", "spot": "lampe", "shelf": 1, "price": 25 },
+  { "id": "holzbett", "name": "Holzbett", "article": "das", "emoji": "🛏️", "spot": "bett", "shelf": 1, "price": 25 },
+  { "id": "einhornbild", "name": "Einhornbild", "article": "das", "emoji": "🦄", "spot": "bild", "shelf": 2, "price": 40 },
+  { "id": "sonnenblume", "name": "Sonnenblume", "article": "die", "emoji": "🌻", "spot": "pflanze", "shelf": 2, "price": 40 },
+  { "id": "regenbogenteppich", "name": "Regenbogenteppich", "article": "der", "emoji": "🌈", "spot": "teppich", "shelf": 2, "price": 45 },
+  { "id": "sternenvorhang", "name": "Sternenvorhang", "article": "der", "emoji": "⭐", "spot": "vorhang", "shelf": 2, "price": 50 },
+  { "id": "teddykiste", "name": "Teddykiste", "article": "die", "emoji": "🧸", "spot": "spielzeug", "shelf": 2, "price": 55 },
+  { "id": "zeltbett", "name": "Zeltbett", "article": "das", "emoji": "🏕️", "spot": "bett", "shelf": 2, "price": 60 },
+  { "id": "weltallbild", "name": "Weltallbild", "article": "das", "emoji": "🪐", "spot": "bild", "shelf": 3, "price": 90 },
+  { "id": "palme", "name": "Palme", "article": "die", "emoji": "🌴", "spot": "pflanze", "shelf": 3, "price": 90 },
+  { "id": "fliegenderteppich", "name": "fliegender Teppich", "article": "der", "emoji": "🧞", "spot": "teppich", "shelf": 3, "price": 100 },
+  { "id": "mondlampe", "name": "Mondlampe", "article": "die", "emoji": "🌙", "spot": "lampe", "shelf": 3, "price": 100 },
+  { "id": "burgbett", "name": "Burgbett", "article": "das", "emoji": "🏰", "spot": "bett", "shelf": 3, "price": 120 },
+  { "id": "riesenteddy", "name": "Riesenteddy", "article": "der", "emoji": "🐻", "spot": "spielzeug", "shelf": 3, "price": 110 }
+]
