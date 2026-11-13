@@ -6,7 +6,7 @@ import { numberWord } from '@/core/numbers'
 import { SIZE, createSnake, step, tickMs, turn, type SnakeState } from '@/core/snake'
 import { useGameLoop } from '@/services/gameLoop'
 import { fillRoundRect } from '@/services/roundRect'
-import { speak, stopSpeaking } from '@/services/tts'
+import { instruct, speak, stopSpeaking } from '@/services/tts'
 import { onLeaveRequest } from '../leave'
 import { useSteering } from '../steering'
 import type { BuildingResult } from '../types'
@@ -158,7 +158,7 @@ function draw() {
 onMounted(async () => {
   window.addEventListener('keydown', onEscape)
   stopLeaveRequests = onLeaveRequest(leave)
-  void speak(theme.say)
+  void instruct(theme.say)
   await nextTick()
   if (typeof ResizeObserver !== 'undefined' && fieldWrap.value) {
     resizer = new ResizeObserver(fitCanvas)
@@ -201,7 +201,8 @@ onBeforeUnmount(shutDown)
   user-select: none;
 }
 .score {
-  padding: 22px 16px 6px;
+  /* The board starts below the leave and 🔊 buttons in the top-left corner */
+  padding: calc(56px + env(safe-area-inset-top)) 16px 6px;
   text-align: center;
   font-size: 1.6rem;
   font-weight: bold;

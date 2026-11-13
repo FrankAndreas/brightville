@@ -48,6 +48,8 @@ async function add() {
 }
 
 async function remove(film: Film) {
+  // Asked first: one tap must not take a film away from every child (UX review)
+  if (!window.confirm(`${film.title || 'Diesen Film'} aus dem Kino entfernen?`)) return
   try {
     await props.api.removeFilm(film.id)
     films.value = films.value.filter(f => f.id !== film.id)

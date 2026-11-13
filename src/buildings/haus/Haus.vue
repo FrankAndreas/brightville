@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import type { Api } from '@/services/api'
-import { speak, stopSpeaking } from '@/services/tts'
+import { instruct, stopSpeaking } from '@/services/tts'
 import { usePlayerStore } from '@/stores/player'
 import { useSessionStore } from '@/stores/session'
 import { onLeaveRequest } from '../leave'
@@ -49,7 +49,7 @@ function onKey(e: KeyboardEvent) {
 onMounted(() => {
   window.addEventListener('keydown', onKey)
   stopLeaveRequests = onLeaveRequest(leave)
-  void speak('Willkommen zu Hause!')
+  void instruct('Willkommen zu Hause! Tipp auf das Buch oder auf den Stern.')
 })
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKey)

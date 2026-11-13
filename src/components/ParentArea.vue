@@ -110,12 +110,13 @@ onMounted(load)
           Heute: {{ row.visits }} von {{ row.daily_goal }} Lernbesuchen, {{ minutes(row.play_seconds) }} Minuten gespielt
         </p>
         <div class="fields">
-          <label>Tagesziel
+          <!-- A parent has no daily goal or play time to keep (UX review): only their Stars -->
+          <label v-if="row.role !== 'PARENT'">Tagesziel
             <select v-model.number="drafts[row.id].daily_goal" data-test="goal">
               <option v-for="n in 5" :key="n" :value="n">{{ n }} {{ n === 1 ? 'Besuch' : 'Besuche' }}</option>
             </select>
           </label>
-          <label>Spielzeit pro Tag
+          <label v-if="row.role !== 'PARENT'">Spielzeit pro Tag
             <select v-model="drafts[row.id].play_minutes" data-test="minutes">
               <option v-for="m in PLAY_CHOICES" :key="String(m)" :value="m">{{ m === null ? 'Ohne Grenze' : `${m} Minuten` }}</option>
             </select>

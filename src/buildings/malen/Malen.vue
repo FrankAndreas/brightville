@@ -4,7 +4,7 @@ import { COLORS, PAPER, SIZES, drawStroke, isShape, type Point, type Size, type 
 import { createPenFilter, penEnd, penStart } from '@/core/penFilter'
 import type { Api } from '@/services/api'
 import { paintingStore, type GalleryItem } from '@/services/paintingStore'
-import { speak, stopSpeaking } from '@/services/tts'
+import { instruct, stopSpeaking } from '@/services/tts'
 import { useSessionStore } from '@/stores/session'
 import { createEffort } from '../effort'
 import { onLeaveRequest } from '../leave'
@@ -85,7 +85,7 @@ async function openSheet(id?: string) {
   current = null
   filter = createPenFilter()
   screen.value = 'sheet'
-  void speak(ON_SHEET)
+  void instruct(ON_SHEET)
   await nextTick()
   resize()
   if (!id) return
@@ -291,7 +291,7 @@ onMounted(() => {
   window.addEventListener('keydown', onKey)
   window.addEventListener('resize', resize)
   stopLeaveRequests = onLeaveRequest(back)
-  void speak(HELLO)
+  void instruct(HELLO)
   void refresh()
 })
 // Before unmounting, while the canvas is still there: keep what was drawn
@@ -303,7 +303,10 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="malen">
-    <div v-if="screen === 'gallery'" class="gallery" data-test="gallery" :data-loaded="loaded">
+    <div
+      v-if="screen === 'gallery'" class="gallery" data-test="gallery" :data-loaded="loaded"
+      :data-empty="loaded && paintings.length === 0"
+    >
       <button class="new" data-test="new" aria-label="Neues Bild" @click="openSheet()">➕</button>
       <div v-for="p in paintings" :key="p.id" class="painting" data-test="painting">
         <img :src="p.thumb" alt="Bild" @click="openSheet(p.id)" />
@@ -372,6 +375,9 @@ onBeforeUnmount(() => {
   border: 3px dashed #26a69a;
   cursor: pointer;
 }
+/* No painting yet: the one thing to tap is big, in the middle (UX review) */
+.gallery[data-empty='true'] { grid-template-columns: min(60vw, 440px); place-content: center; height: 100%; box-sizing: border-box; }
+.gallery[data-empty='true'] .new { font-size: 6rem; border-width: 5px; }
 .painting { background: white; border: 3px solid #cfe9e6; box-shadow: 0 3px 0 #b8dcd8; }
 .painting img { width: 100%; height: 100%; object-fit: cover; display: block; cursor: pointer; }
 .delete {

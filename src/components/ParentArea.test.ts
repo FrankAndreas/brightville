@@ -4,8 +4,8 @@ import { fakeApi } from '@/services/fakeApi'
 import ParentArea from './ParentArea.vue'
 
 const ROWS = [
-  { id: 2, name: 'Mia', role: 'CHILD' as const, color: '#ff66aa', stars: 4, day: '2026-11-12', visits: 1, daily_goal: 2, play_seconds: 125, play_minutes: null },
-  { id: 1, name: 'Papa', role: 'PARENT' as const, color: null, stars: 0, day: '2026-11-12', visits: 0, daily_goal: 2, play_seconds: 0, play_minutes: 30 },
+  { id: 2, name: 'Mia', role: 'CHILD' as const, color: '#ff66aa', stars: 4, day: '2026-11-12', visits: 1, daily_goal: 2, play_seconds: 125, play_minutes: 30 },
+  { id: 1, name: 'Papa', role: 'PARENT' as const, color: null, stars: 0, day: '2026-11-12', visits: 0, daily_goal: 2, play_seconds: 0, play_minutes: null },
 ]
 
 async function open(props: Record<string, unknown> = {}) {
@@ -24,7 +24,11 @@ describe('ParentArea', () => {
     expect(card(w, 2).text()).toContain('Mia')
     expect(card(w, 2).text()).toContain('Heute: 1 von 2 Lernbesuchen, 2 Minuten gespielt')
     expect((card(w, 2).find('[data-test="stars-input"]').element as HTMLInputElement).value).toBe('4')
-    expect((card(w, 1).find('[data-test="minutes"]').element as HTMLSelectElement).value).toBe('30')
+    expect((card(w, 2).find('[data-test="minutes"]').element as HTMLSelectElement).value).toBe('30')
+    // A parent keeps only their Stars here: no daily goal, no play time
+    expect(card(w, 1).find('[data-test="goal"]').exists()).toBe(false)
+    expect(card(w, 1).find('[data-test="minutes"]').exists()).toBe(false)
+    expect(card(w, 1).find('[data-test="stars-input"]').exists()).toBe(true)
   })
 
   it('saves the settings of one person', async () => {
@@ -42,13 +46,13 @@ describe('ParentArea', () => {
   it('can take the limit off again', async () => {
     const { api, w } = await open()
     // the first choice, "Ohne Grenze"
-    const select = card(w, 1).find('[data-test="minutes"]')
+    const select = card(w, 2).find('[data-test="minutes"]')
     ;(select.element as HTMLSelectElement).selectedIndex = 0
     await select.trigger('change')
-    await card(w, 1).find('[data-test="save"]').trigger('click')
+    await card(w, 2).find('[data-test="save"]').trigger('click')
     await flushPromises()
     // The Stars weren't touched: they aren't sent, so Stars earned meanwhile stay
-    expect(api.calls.at(-1)).toBe('setRules 1 {"daily_goal":2,"play_minutes":null}')
+    expect(api.calls.at(-1)).toBe('setRules 2 {"daily_goal":2,"play_minutes":null}')
   })
 
   it('does not send a Star count out of range', async () => {

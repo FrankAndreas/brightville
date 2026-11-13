@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { fakeApi } from '@/services/fakeApi'
 import FilmList from './FilmList.vue'
@@ -46,8 +46,14 @@ describe('FilmList', () => {
     expect(w.emitted('changed')).toBeUndefined()
   })
 
-  it('removes a film', async () => {
+  it('removes a film after asking, and keeps it when the parent says no', async () => {
     const { api, w } = await open()
+    const ask = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    await rows(w)[0].find('[data-test="film-remove"]').trigger('click')
+    await flushPromises()
+    expect(ask).toHaveBeenCalledTimes(1)
+    expect(api.films_).toHaveLength(1)
+    ask.mockReturnValue(true)
     await rows(w)[0].find('[data-test="film-remove"]').trigger('click')
     await flushPromises()
     expect(api.films_).toEqual([])

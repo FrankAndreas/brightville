@@ -24,7 +24,8 @@ export interface SchoolState {
 
 /** Things for the screen to do; the flow itself touches no browser API. */
 export type SchoolEffect =
-  | { type: 'speak'; text: string }
+  /** `ask`: an instruction, kept for the 🔊 button */
+  | { type: 'speak'; text: string; ask?: boolean }
   | { type: 'chime' }
   /** Count this many objects aloud, one by one, then call recountDone() */
   | { type: 'recount'; amount: number }
@@ -49,7 +50,7 @@ export function createSchoolFlow(tasks: Task[], things: Thing[]): SchoolFlow {
     index: 0, task: tasks[0] ?? null, wrong: [], counted: 0, solved: 0, stars: 0,
     phase: tasks.length > 0 ? 'asking' : 'done',
   }
-  const ask = (task: Task): SchoolEffect[] => [{ type: 'speak', text: questionText(task, things[task.kind % things.length]) }]
+  const ask = (task: Task): SchoolEffect[] => [{ type: 'speak', text: questionText(task, things[task.kind % things.length]), ask: true }]
 
   return {
     state,

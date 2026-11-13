@@ -54,6 +54,18 @@ These were tested with automated tests and in a desktop browser, but not where t
 - At most two paintings are read at once, so uploads can't exhaust the backend's memory.
 - On the NAS, `ALLOWED_HOSTS` should name the game's address (see `docs/deploy-nas.md`).
 
+**UX review, walkthrough (Nov 13, 2026): done.** Every building and the town at iPad and laptop size, with screenshots and what the voice says. Fixed:
+
+- The town's camera looks a few metres ahead of the character: the buildings and their signs sit in the middle of the picture instead of under the Star bar.
+- A 🔊 button next to the door button in every building says its instruction again.
+- The Arcade says what to do; the Bonbonjagd asks for the speed; Mein Haus says what to tap.
+- The controls at the start are read one at a time, each picture lighting up.
+- White paint in the Farblabor looks like paint; the empty Malen gallery has a big ➕ in the middle; one or two films in the Kino sit in the middle.
+- The Arcade, Schlange and Bonbonjagd start below the two buttons in the corner.
+- The parents' page: no daily goal or play time for a parent; removing a film asks first.
+
+**Still open:** the second half of the UX review, from watching the child play stage 6: where she hesitates, what she ignores, what she keeps going back to.
+
 ## Calls made without asking, which may be worth revisiting
 
 - The Cinema costs 3 Stars per film, not per minute; one film list for all children.

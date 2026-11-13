@@ -8,7 +8,14 @@ import { requestLeave } from '../leave'
 import Schreiben from './Schreiben.vue'
 
 vi.mock('@/services/sound', () => ({ playBeat: vi.fn(), unlockAudio: vi.fn() }))
-vi.mock('@/services/tts', () => ({ speak: vi.fn(() => Promise.resolve()), stopSpeaking: vi.fn() }))
+vi.mock('@/services/tts', async () => {
+  const { ref } = await import('vue')
+  const speak = vi.fn<(text?: string) => Promise<void>>(() => Promise.resolve())
+  // An instruction is spoken like anything else, and kept for the 🔊 button
+  const instruction = ref<string | null>(null)
+  const instruct = vi.fn((text: string) => { instruction.value = text; return speak(text) })
+  return { speak, stopSpeaking: vi.fn(), instruct, instruction, forgetInstruction: vi.fn(() => { instruction.value = null }) }
+})
 
 // Without a layout the board maps a pixel to a letter unit, so points can be sent as they are
 const TASKS: WritingTask[] = [{ glyph: 'I', help: 'full' }, { glyph: 'L', help: 'start' }]

@@ -6,7 +6,7 @@ import { BOX, GLYPHS, fitView, viewBox, type Glyph, type Point } from '@/core/wr
 import { buildWritingSession, starsFor, type Help, type WritingTask } from '@/core/writing/session'
 import { createTracer, penDown, penMove, penUp, type MissReason, type Tracer } from '@/core/writing/tracing'
 import { playBeat } from '@/services/sound'
-import { speak, stopSpeaking } from '@/services/tts'
+import { instruct, speak, stopSpeaking } from '@/services/tts'
 import { onLeaveRequest } from '../leave'
 import type { BuildingResult } from '../types'
 import { drawLetter, drawLines } from './letterCanvas'
@@ -182,7 +182,7 @@ function finishLetter() {
       return
     }
     startTask()
-    void speak(letter === finished ? `Und nochmal ${letter.say}.` : `Jetzt ${letter!.say}.`)
+    void instruct(letter === finished ? `Und nochmal ${letter.say}.` : `Jetzt ${letter!.say}.`)
   }, AFTER_CHEER_MS))
 }
 
@@ -223,7 +223,7 @@ onMounted(() => {
   stopLeaveRequests = onLeaveRequest(leave)
   startTask()
   resize()
-  void speak(`Schreib ${letter!.say}! Fang beim grünen Punkt an.`)
+  void instruct(`Schreib ${letter!.say}! Fang beim grünen Punkt an.`)
 })
 onBeforeUnmount(shutDown)
 </script>

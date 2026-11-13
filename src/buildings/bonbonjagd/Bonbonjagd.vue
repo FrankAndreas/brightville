@@ -6,7 +6,7 @@ import type { Direction } from '@/core/direction'
 import { MAZES, createGame, position, setDirection, update, type MazeGame, type Speed } from '@/core/maze'
 import { useGameLoop } from '@/services/gameLoop'
 import { fillRoundRect } from '@/services/roundRect'
-import { speak, stopSpeaking } from '@/services/tts'
+import { instruct, instruction, speak, stopSpeaking } from '@/services/tts'
 import { useSessionStore } from '@/stores/session'
 import { onLeaveRequest } from '../leave'
 import { useSteering } from '../steering'
@@ -104,6 +104,8 @@ function onDir(dir: Direction) {
   setDirection(game, dir)
   if (phase.value === 'ready') {
     phase.value = 'playing'
+    // The speed is chosen: from now on the goal is what to hear again
+    instruction.value = theme.say
     loop.start()
   }
 }
@@ -213,7 +215,7 @@ function draw() {
 onMounted(async () => {
   window.addEventListener('keydown', onEscape)
   stopLeaveRequests = onLeaveRequest(leave)
-  void speak(theme.say)
+  void instruct(`${theme.say} Wie schnell willst du sein? Tipp auf ein Tier.`)
   await nextTick()
   if (typeof ResizeObserver !== 'undefined' && fieldWrap.value) {
     resizer = new ResizeObserver(fitCanvas)
@@ -261,7 +263,8 @@ onBeforeUnmount(shutDown)
   user-select: none;
 }
 .lives {
-  padding: 22px 16px 6px;
+  /* The maze starts below the leave and 🔊 buttons in the top-left corner */
+  padding: calc(56px + env(safe-area-inset-top)) 16px 6px;
   text-align: center;
   font-size: 1.6rem;
   letter-spacing: 4px;

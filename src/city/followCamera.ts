@@ -4,6 +4,9 @@ import * as THREE from 'three'
 const BACK = 9
 const HEIGHT = 6
 const LOOK_HEIGHT = 1
+// The camera looks at a spot this far ahead of the character, not at the character: she stands in the lower part of
+// the picture, and the buildings with their signs sit in the middle instead of under the Star bar (UX review)
+const LOOK_AHEAD = 6
 const FOLLOW_RATE = 5
 
 export function createFollowCamera(): {
@@ -23,7 +26,7 @@ export function createFollowCamera(): {
       focus.z += (target.z - focus.z) * blend
       focus.y += (target.y * 0.5 - focus.y) * blend
       camera.position.set(focus.x + Math.sin(yaw) * BACK, focus.y + HEIGHT, focus.z + Math.cos(yaw) * BACK)
-      camera.lookAt(focus.x, focus.y + LOOK_HEIGHT, focus.z)
+      camera.lookAt(focus.x - Math.sin(yaw) * LOOK_AHEAD, focus.y + LOOK_HEIGHT, focus.z - Math.cos(yaw) * LOOK_AHEAD)
     },
     resize(width, height) {
       camera.aspect = width / Math.max(1, height)

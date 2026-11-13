@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue'
-import { speak, stopSpeaking } from '@/services/tts'
+import { instruct, stopSpeaking } from '@/services/tts'
 import { createEffort } from '../effort'
 import { onLeaveRequest } from '../leave'
 import type { BuildingResult } from '../types'
@@ -32,7 +32,7 @@ async function openPage(p: Page) {
   canUndo.value = false
   svg.value = source
   page.value = p
-  void speak(p.say)
+  void instruct(`${p.say}! Nimm eine Farbe und tipp auf das Bild.`)
 }
 
 function fill(e: Event) {
@@ -80,7 +80,7 @@ function shutDown() {
 onMounted(() => {
   window.addEventListener('keydown', onKey)
   stopLeaveRequests = onLeaveRequest(back)
-  void speak('Such dir ein Bild aus.')
+  void instruct('Such dir ein Bild aus.')
 })
 onBeforeUnmount(shutDown)
 </script>

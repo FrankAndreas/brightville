@@ -5,7 +5,7 @@ import { standing } from '@/core/pose/fixtures'
 import { danceDef } from '@/core/moves/dance'
 import { BARS_PER_SONG } from '@/core/moves/tunes'
 import { playBeat, playNote } from '@/services/sound'
-import { speak } from '@/services/tts'
+import { instruct, speak } from '@/services/tts'
 import { useCameraLoop, type CameraEvent } from '../cameraLoop'
 import MoveFigure from '../MoveFigure.vue'
 import NoCamera from '../NoCamera.vue'
@@ -36,7 +36,7 @@ function send(event: CameraEvent) {
   const effects = flow.send(event)
   Object.assign(view, flow.state, { hits: [...flow.state.hits] })
   for (const effect of effects) {
-    if (effect.type === 'speak') void speak(effect.text)
+    if (effect.type === 'speak') void (effect.ask ? instruct : speak)(effect.text)
     else if (effect.type === 'note') {
       beat.value += 1
       if (effect.downbeat) playBeat('drum')

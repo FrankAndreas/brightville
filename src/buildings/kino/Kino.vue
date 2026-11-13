@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import type { Film } from '@/services/api'
-import { speak, stopSpeaking } from '@/services/tts'
+import { instruct, stopSpeaking } from '@/services/tts'
 import { usePlayerStore } from '@/stores/player'
 import { onLeaveRequest } from '../leave'
 import type { BuildingResult } from '../types'
@@ -71,7 +71,7 @@ onMounted(() => {
   window.addEventListener('message', onMessage)
   window.addEventListener('keydown', onKey)
   stopLeaveRequests = onLeaveRequest(leave)
-  if (films.length) void speak('Such dir einen Film aus.')
+  if (films.length) void instruct('Such dir einen Film aus.')
 })
 onBeforeUnmount(shutDown)
 </script>
@@ -120,7 +120,8 @@ const PAGE_ORIGIN = window.location.origin
 }
 .wall {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(280px, 42vw), 340px));
+  /* auto-fit, not auto-fill: no empty columns, so one or two films sit in the middle (UX review) */
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 42vw), 340px));
   justify-content: center;
   align-content: center;
   gap: 18px;
