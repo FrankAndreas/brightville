@@ -66,7 +66,8 @@ const playing = computed(() => session.status === 'ready' && player.loaded && wa
 const designing = computed(() => playing.value && wardrobe.known && wardrobe.look === null)
 /** The controls, shown over the paused town */
 const helpOpen = ref(false)
-const inTown = computed(() => started.value && playing.value && inside.value === null && !parentsOpen.value)
+// Not while she designs her look: the town's keys, its help and the hub's renewal wait until she is in the town
+const inTown = computed(() => started.value && playing.value && !designing.value && inside.value === null && !parentsOpen.value)
 
 // The controls are explained once per person on this device, before their first Star
 const helpSeenKey = () => `brightville.helped.${session.person?.id ?? 0}`
@@ -95,8 +96,9 @@ function stickersShown(ids: string[]) {
   void wardrobe.load()
 }
 
-async function lookChosen(look: Look) {
-  await wardrobe.saveLook(look)
+function lookChosen(look: Look) {
+  // The look shows at once; saving it (or keeping it here until the server answers) needn't hold up the help
+  void wardrobe.saveLook(look)
   offerHelp()
 }
 
