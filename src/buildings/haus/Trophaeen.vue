@@ -42,7 +42,7 @@ function say(s: StickerDef) {
 .trophies { display: flex; flex-direction: column; gap: 0.6vh; }
 .row { display: flex; justify-content: center; gap: 0; }
 .plank { display: block; height: 10px; border-radius: 5px; background: #9c6b3e; box-shadow: 0 4px 0 #7d5530; }
-/* At least 44 px to tap, however small the cup is drawn; six fit on the shelf */
+/* Wider than the cup to tap: at least 44 px on every iPad (on a phone the six share a narrower shelf) */
 .trophy {
   flex: 1 1 0;
   min-width: 0;

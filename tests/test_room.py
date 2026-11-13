@@ -156,7 +156,7 @@ def test_migration_adds_the_tables(tmp_path, monkeypatch):
 
 def test_a_broken_stored_room_counts_as_empty(mia):
     learn(mia)
-    for broken in ("{not json", "[1, 2]", '"bett"'):
+    for broken in ("{not json", "[1, 2]", '"bett"', '{"bett": [1]}', '{"bett": {"a": 1}}'):
         with database.connect() as connection:
             connection.execute(
                 "INSERT INTO rooms (person_id, placed) VALUES (2, ?)"
@@ -212,3 +212,8 @@ def test_one_purchase_in_each_shop_at_the_same_moment_buys_once(mia):
     assert sorted(results) == ["bought_today", "ok"]
     state = mia.get("/api/state").json()
     assert state["stars"] in (200 - 15, 200 - 20)
+
+
+def test_long_ids_in_what_she_wears_are_refused(mia):
+    assert mia.put("/api/worn", json={"worn": {"neck": "x" * 41}}).status_code == 422
+    assert mia.put("/api/worn", json={"worn": {"n" * 41: None}}).status_code == 422

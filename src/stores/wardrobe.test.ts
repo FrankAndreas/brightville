@@ -63,6 +63,25 @@ describe('wardrobe store', () => {
     expect(api.wardrobe_.worn).toEqual({ head: 'krone' })
   })
 
+  it('keeps a second change on screen when the first one\'s answer arrives before it', async () => {
+    api.wardrobe_.owned = [
+      { id: 'schleife', how: 'bought', got_at: '2026-11-12T10:00:00+01:00' },
+      { id: 'schal', how: 'bought', got_at: '2026-11-12T10:00:00+01:00' },
+    ]
+    const { wardrobe } = await open()
+    const send = api.setWorn
+    const answers: (() => void)[] = []
+    api.setWorn = worn => new Promise((resolve, reject) => { answers.push(() => { send(worn).then(resolve, reject) }) })
+    const first = wardrobe.wear('head', 'schleife')
+    const second = wardrobe.wear('neck', 'schal')
+    answers[0]()
+    await first
+    expect(wardrobe.worn).toEqual({ head: 'schleife', neck: 'schal' })
+    answers[1]()
+    await second
+    expect(wardrobe.worn).toEqual({ head: 'schleife', neck: 'schal' })
+  })
+
   it('buys: Stars from the server, the add-on owned and worn; then nothing more today', async () => {
     const { wardrobe, player } = await open()
     expect(await wardrobe.buy('schal')).toBe('ok')

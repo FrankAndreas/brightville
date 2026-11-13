@@ -61,6 +61,7 @@ export const useWardrobeStore = defineStore('wardrobe', () => {
     loaded.value = false
     known.value = false
     unanswered.clear()
+    changes = 0
   }
 
   /** The server's state, with what still waits on this device laid over it (it is sent with the next load) */
@@ -159,16 +160,16 @@ export const useWardrobeStore = defineStore('wardrobe', () => {
   async function saveLook(next: Look): Promise<void> {
     look.value = next
     const owner = key
+    // Waits on the device until the server has it, for the child who chose it (as wear, and the room's place)
+    writeWaiting(owner, { ...readWaiting(owner), look: next })
     try {
       const state = await api!.saveLook(next)
-      changes += 1
+      sent(owner, { look: next })
       if (owner !== key) return
-      // Through: an older look still waiting here is outdated
-      writeWaiting(owner, { ...readWaiting(owner), look: undefined })
+      changes += 1
       take(state)
-    } catch {
-      // Kept for the child who chose it, even if the device changed hands meanwhile
-      writeWaiting(owner, { ...readWaiting(owner), look: next })
+    } catch (e) {
+      if (refused(e)) sent(owner, { look: next })
     }
   }
 
@@ -179,22 +180,22 @@ export const useWardrobeStore = defineStore('wardrobe', () => {
     else next[place] = id
     worn.value = next
     const owner = key
+    // Waits on the device until the server has it: an answer to an earlier change then keeps this one on screen, and
+    // if the server is away it is kept for the child who made it, even if the device changes hands meanwhile
+    const waiting = readWaiting(owner)
+    writeWaiting(owner, { ...waiting, worn: { ...(waiting.worn ?? {}), [place]: id } })
     try {
       const state = await api!.setWorn({ [place]: id })
-      changes += 1
+      sent(owner, { worn: { [place]: id } })
       if (owner !== key) return
-      // Through: what waited for this place is outdated
-      const waiting = readWaiting(owner)
-      if (waiting.worn && place in waiting.worn) {
-        const rest = { ...waiting.worn }
-        delete rest[place]
-        writeWaiting(owner, { ...waiting, worn: rest })
-      }
+      changes += 1
       take(state)
-    } catch {
-      // Kept for the child who made it, even if the device changed hands meanwhile
-      const waiting = readWaiting(owner)
-      writeWaiting(owner, { ...waiting, worn: { ...(waiting.worn ?? {}), [place]: id } })
+    } catch (e) {
+      // Refused for good: let it go, and show the server's wardrobe again
+      if (refused(e)) {
+        sent(owner, { worn: { [place]: id } })
+        if (owner === key) void load()
+      }
     }
   }
 
@@ -214,8 +215,8 @@ export const useWardrobeStore = defineStore('wardrobe', () => {
     try {
       const answer = await api.buy(item, buyKey)
       unanswered.delete(item)
-      changes += 1
       if (owner !== key) return 'offline'
+      changes += 1
       usePlayerStore().applyState(answer.state)
       take(answer.wardrobe)
       // One purchase a day across both shops

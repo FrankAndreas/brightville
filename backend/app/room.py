@@ -39,7 +39,10 @@ def _placed(db: sqlite3.Connection, person_id: int, mine: Optional[set[str]] = N
     return {
         spot: item_id
         for spot, item_id in stored.items()
-        if item_id in mine and (p := furniture.piece(item_id)) is not None and p.spot == spot
+        if isinstance(item_id, str)
+        and item_id in mine
+        and (p := furniture.piece(item_id)) is not None
+        and p.spot == spot
     }
 
 

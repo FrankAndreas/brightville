@@ -172,6 +172,15 @@ describe('the Möbelhaus', () => {
     w.unmount()
   })
 
+  it('is refused by the fake server, as by the real one, when a key bought something else today', async () => {
+    const { w } = await open()
+    await api.buyFurniture('kaktus', 'k')
+    api.wardrobe_.bought_today = false
+    await expect(api.buyFurniture('holzbett', 'k')).rejects.toMatchObject({ code: 'key_used' })
+    await expect(api.buy('schal', 'k')).rejects.toMatchObject({ code: 'key_used' })
+    w.unmount()
+  })
+
   it('sends a purchase whose answer got lost again under the same key: it buys once', async () => {
     const { w, player } = await open()
     await item(w, 'kaktus').trigger('click')

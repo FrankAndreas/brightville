@@ -187,6 +187,21 @@ describe('the Kleiderladen', () => {
     w.unmount()
   })
 
+  it('celebrates a purchase whose answer got lost even when her room never answers', async () => {
+    const { w } = await open()
+    const room = useRoomStore()
+    room.init(api, 1)
+    await room.load()
+    await item(w, 'schal').trigger('click')
+    const buyOnce = api.buy
+    api.buy = async (it, key) => { await buyOnce(it, key); throw new ApiError(0, 'offline') }
+    api.room = () => new Promise(() => {})
+    await w.find('[data-test="buy"]').trigger('click')
+    await flushPromises()
+    expect(lastSaid()).toBe('Der Schal ist deiner!')
+    w.unmount()
+  })
+
   it('says when the server can\'t be reached, and takes nothing', async () => {
     const { w, player } = await open()
     await item(w, 'schal').trigger('click')

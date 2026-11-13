@@ -55,6 +55,7 @@ export const useRoomStore = defineStore('room', () => {
     loaded.value = false
     known.value = false
     unanswered.clear()
+    changes = 0
   }
 
   function readWaiting(at: string): Waiting {
@@ -149,13 +150,16 @@ export const useRoomStore = defineStore('room', () => {
     writeWaiting(owner, { placed: { ...(readWaiting(owner).placed ?? {}), [spot]: id } })
     try {
       const state = await api!.setPlaced({ [spot]: id })
-      changes += 1
       sent(owner, { [spot]: id })
       if (owner !== key) return
+      changes += 1
       take(state)
     } catch (e) {
-      // Refused for good: let it go (the next load takes the server's room)
-      if (refused(e)) sent(owner, { [spot]: id })
+      // Refused for good: let it go, and show the server's room again
+      if (refused(e)) {
+        sent(owner, { [spot]: id })
+        if (owner === key) void load()
+      }
     }
   }
 
@@ -169,8 +173,8 @@ export const useRoomStore = defineStore('room', () => {
     try {
       const answer = await api.buyFurniture(item, buyKey)
       unanswered.delete(item)
-      changes += 1
       if (owner !== key) return 'offline'
+      changes += 1
       usePlayerStore().applyState(answer.state)
       take(answer.room)
       // One purchase a day across both shops

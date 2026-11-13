@@ -39,6 +39,13 @@ const KID: Person = { id: 1, name: 'Mia', role: 'CHILD', color: '#ff66aa' }
 export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}): FakeApi {
   const state: ServerState = { stars: 0, day: '2026-11-12', visits: 0, daily_goal: 2, play_seconds: 0, play_minutes: null, savings: 0, ...start }
   const seen = new Set<string>()
+  /** Purchase keys of the day and what each bought: the same key for another item is key_used, as on the server */
+  const purchases = new Map<string, string>()
+  const replay = (key: string, item: string) => {
+    const was = purchases.get(`${state.day} ${key}`)
+    if (was !== undefined && was !== item) throw new ApiError(409, 'key_used')
+    return was !== undefined
+  }
   const find = (id: string) => buildings.find(b => b.id === id) as { id: string; kind: string; maxStars?: number; cost?: number } | undefined
   /** Hands out what `earns_` holds, as the server's award does */
   function award(): string[] {
@@ -157,7 +164,7 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
     }),
     // The server's rules (backend/app/wardrobe.py buy), in the same order
     buy: (item, key) => run(`buy ${item}`, () => {
-      if (seen.has(`${state.day} ${key}`)) return { state: { ...state }, wardrobe: copy(api.wardrobe_) }
+      if (replay(key, item)) return { state: { ...state }, wardrobe: copy(api.wardrobe_) }
       const def = outfitDef(item)
       if (!def) throw new ApiError(404, 'unknown')
       if (def.price === undefined || def.shelf === undefined) throw new ApiError(409, 'not_for_sale')
@@ -168,7 +175,7 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
       if (!shelfOpen(def.shelf, owned)) throw new ApiError(409, 'shelf_locked')
       const paid = pay(def.price, state.stars, state.savings)
       if (!paid) throw new ApiError(409, 'poor')
-      seen.add(`${state.day} ${key}`)
+      purchases.set(`${state.day} ${key}`, item)
       Object.assign(state, paid)
       api.wardrobe_.owned.push({ id: item, how: 'bought', got_at: `${state.day}T10:00:00+01:00` })
       api.wardrobe_.worn[def.place] = item
@@ -186,7 +193,7 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
     }),
     // The server's rules (backend/app/room.py buy through shop.purchase), in the same order
     buyFurniture: (item, key) => run(`buyFurniture ${item}`, () => {
-      if (seen.has(`${state.day} ${key}`)) return { state: { ...state }, room: roomCopy() }
+      if (replay(key, item)) return { state: { ...state }, room: roomCopy() }
       const def = furnitureDef(item)
       if (!def) throw new ApiError(404, 'unknown')
       const owned = api.room_.owned.map(o => o.id)
@@ -196,7 +203,7 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
       if (!furnitureShelfOpen(def.shelf, owned)) throw new ApiError(409, 'shelf_locked')
       const paid = pay(def.price, state.stars, state.savings)
       if (!paid) throw new ApiError(409, 'poor')
-      seen.add(`${state.day} ${key}`)
+      purchases.set(`${state.day} ${key}`, item)
       Object.assign(state, paid)
       api.room_.owned.push({ id: item, got_at: `${state.day}T10:00:00+01:00` })
       api.room_.placed[def.spot] = item
