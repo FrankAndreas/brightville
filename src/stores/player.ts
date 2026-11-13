@@ -27,6 +27,8 @@ export const usePlayerStore = defineStore('player', () => {
   const playSeconds = ref(0)
   /** Minutes of play per day; null for no limit */
   const playMinutes = ref<number | null>(null)
+  /** Stars saved before the shop came: they count half there (core/outfits.ts) */
+  const savings = ref(0)
   /** True once the server has answered */
   const loaded = ref(false)
   /** The Cinema's films, the same for everyone */
@@ -92,6 +94,7 @@ export const usePlayerStore = defineStore('player', () => {
     dailyGoal.value = state.daily_goal
     playSeconds.value = state.play_seconds
     playMinutes.value = state.play_minutes
+    savings.value = state.savings ?? 0
     day.value = state.day
     loaded.value = true
     // What still waits is not in the server's numbers yet
@@ -290,7 +293,7 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   return {
-    stars, visitsToday, dailyGoal, playSeconds, playMinutes, goalReached, timeUp, loaded, pending,
+    stars, savings, visitsToday, dailyGoal, playSeconds, playMinutes, goalReached, timeUp, loaded, pending,
     films, init, refresh, earn, buy, reportPlayTime,
     /** The server's numbers after something it did elsewhere (a purchase in the Kleiderladen) */
     applyState: apply,

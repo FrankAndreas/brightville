@@ -98,9 +98,16 @@ describe('building registry', () => {
     const MOVING = ['huepfhalle', 'tanzsaal']
     for (const b of BUILDINGS) {
       const side = b.door.side ?? 'back'
-      const expected = b.id === 'haus' ? 'front' : MOVING.includes(b.id) ? 'left' : { earn: 'back', free: 'left', play: 'right' }[b.kind]
+      const expected = b.id === 'haus' ? 'front' : MOVING.includes(b.id) ? 'left' : { earn: 'back', free: 'left', play: 'right', shop: 'front' }[b.kind]
       expect(side, b.id).toBe(expected)
     }
+  })
+
+  it('lists the Kleiderladen at the front, next to the house, as the one shop', () => {
+    const laden = BUILDINGS.filter(b => b.kind === 'shop')
+    expect(laden).toHaveLength(1)
+    expect(laden[0]).toMatchObject({ id: 'laden', spokenName: 'Kleiderladen', icon: '👗', needs: [], door: { x: -21, z: 24, side: 'front' } })
+    expect(laden[0].preload).toBeTypeOf('function')
   })
 
   it('lists the house at the front, free, needing nothing, and kept out of the logbook', () => {

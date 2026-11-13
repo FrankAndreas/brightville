@@ -120,7 +120,7 @@ function onKey(e: KeyboardEvent) {
 function doorLine(b: BuildingDef): string {
   const cost = numberWord(b.cost ?? 0)
   switch (stateFor(b)) {
-    case 'locked': return 'Erst lernen, dann spielen!'
+    case 'locked': return b.kind === 'shop' ? 'Erst lernen, dann einkaufen!' : 'Erst lernen, dann spielen!'
     case 'timeUp': return 'Für heute ist genug gespielt. Morgen wieder!'
     case 'poor': return `Du brauchst ${cost} Sterne.`
     case 'open': return b.kind === 'play' && b.cost ? `${b.spokenName}. Das kostet ${cost} Sterne.` : b.spokenName

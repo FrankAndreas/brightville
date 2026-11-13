@@ -23,6 +23,7 @@ const kino = () => import('./kino/Kino.vue')
 const huepfhalle = () => import('./huepfhalle/Huepfhalle.vue')
 const tanzsaal = () => import('./tanzsaal/Tanzsaal.vue')
 const haus = () => import('./haus/Haus.vue')
+const laden = () => import('./laden/Laden.vue')
 
 /**
  * Every building in the town: learning at the back, making things and moving on the left, playing on the right,
@@ -93,6 +94,12 @@ export const BUILDINGS: BuildingDef[] = [
     // The child's own: the logbook and the sticker book
     id: 'haus', spokenName: 'Mein Haus', icon: '🏠', kind: 'free', needs: [], door: { x: -5, z: 24, side: 'front' },
     unlogged: true, component: defineAsyncComponent(haus), preload: haus,
+  },
+  {
+    // Add-ons for her character, after today's learning: at the front, next to the house with her wardrobe (the right
+    // side has no room for a fifth door, and the front right is between the Cinema and the playground)
+    id: 'laden', spokenName: 'Kleiderladen', icon: '👗', kind: 'shop', needs: [], door: { x: -21, z: 24, side: 'front' },
+    component: defineAsyncComponent(laden), preload: laden,
   },
 ]
 
