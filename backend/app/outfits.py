@@ -50,16 +50,23 @@ def shelf_open(shelf: int, owned: Iterable[str]) -> bool:
     return from_above >= TO_OPEN
 
 
+def _paired(savings: int) -> int:
+    """Savings count in pairs: a lone saved Star left over counts like a new one, so it isn't worth nothing for good."""
+    return savings - savings % 2
+
+
 def shop_money(stars: int, savings: int) -> int:
     """What she can spend in the shop: saved Stars count half, Stars earned since count fully."""
-    return savings // 2 + (stars - savings)
+    saved = _paired(savings)
+    return saved // 2 + (stars - saved)
 
 
 def pay(price: int, stars: int, savings: int) -> Optional[tuple[int, int]]:
     """Pays from the savings first, two saved Stars per price Star, the rest from Stars earned since. The new
     (stars, savings), or None when it isn't enough."""
-    from_savings = min(savings // 2, price)
+    saved = _paired(savings)
+    from_savings = min(saved // 2, price)
     rest = price - from_savings
-    if rest > stars - savings:
+    if rest > stars - saved:
         return None
-    return stars - 2 * from_savings - rest, savings - 2 * from_savings
+    return stars - 2 * from_savings - rest, saved - 2 * from_savings

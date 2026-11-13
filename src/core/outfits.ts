@@ -35,9 +35,13 @@ export function shelfOpen(shelf: 1 | 2 | 3, owned: string[]): boolean {
   return fromAbove >= TO_OPEN
 }
 
+/** Savings count in pairs: a lone saved Star left over counts like a new one, so it isn't worth nothing for good */
+const paired = (savings: number) => savings - (savings % 2)
+
 /** What she can spend in the shop: saved Stars count half, Stars earned since count fully */
 export function shopMoney(stars: number, savings: number): number {
-  return Math.floor(savings / 2) + (stars - savings)
+  const saved = paired(savings)
+  return saved / 2 + (stars - saved)
 }
 
 /**
@@ -45,8 +49,9 @@ export function shopMoney(stars: number, savings: number): number {
  * The new Stars and savings, or null when it isn't enough.
  */
 export function pay(price: number, stars: number, savings: number): { stars: number; savings: number } | null {
-  const fromSavings = Math.min(Math.floor(savings / 2), price)
+  const saved = paired(savings)
+  const fromSavings = Math.min(saved / 2, price)
   const rest = price - fromSavings
-  if (rest > stars - savings) return null
-  return { stars: stars - 2 * fromSavings - rest, savings: savings - 2 * fromSavings }
+  if (rest > stars - saved) return null
+  return { stars: stars - 2 * fromSavings - rest, savings: saved - 2 * fromSavings }
 }

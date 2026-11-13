@@ -38,12 +38,15 @@ describe('the outfit catalogue', () => {
   it('counts saved Stars half in the shop', () => {
     expect(shopMoney(90, 60)).toBe(60)
     expect(shopMoney(10, 0)).toBe(10)
-    expect(shopMoney(1, 1)).toBe(0)
+    expect(shopMoney(1, 1)).toBe(1)
+    // A lone saved Star left over counts like a new one: it isn't worth nothing for good
+    expect(shopMoney(21, 1)).toBe(21)
   })
 
   it('pays from the savings first, two for one, then from new Stars', () => {
     expect(pay(20, 90, 60)).toEqual({ stars: 50, savings: 20 })
-    expect(pay(20, 21, 1)).toEqual({ stars: 1, savings: 1 })
+    expect(pay(20, 21, 1)).toEqual({ stars: 1, savings: 0 })
+    expect(pay(20, 41, 21)).toEqual({ stars: 11, savings: 0 })
     expect(pay(20, 19, 0)).toBeNull()
     expect(pay(100, 150, 150)).toBeNull()
     expect(pay(20, 40, 30)).toEqual({ stars: 5, savings: 0 })

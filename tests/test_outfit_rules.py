@@ -35,12 +35,15 @@ def test_a_shelf_opens_with_two_from_the_shelf_above_and_gifts_do_not_count():
 def test_saved_stars_count_half():
     assert outfits.shop_money(90, 60) == 60
     assert outfits.shop_money(10, 0) == 10
-    assert outfits.shop_money(1, 1) == 0
+    assert outfits.shop_money(1, 1) == 1
+    # A lone saved Star left over counts like a new one: it isn't worth nothing for good
+    assert outfits.shop_money(21, 1) == 21
 
 
 def test_paying_takes_savings_first_two_for_one():
     assert outfits.pay(20, 90, 60) == (50, 20)
-    assert outfits.pay(20, 21, 1) == (1, 1)
+    assert outfits.pay(20, 21, 1) == (1, 0)
+    assert outfits.pay(20, 41, 21) == (11, 0)
     assert outfits.pay(20, 19, 0) is None
     assert outfits.pay(100, 150, 150) is None
     assert outfits.pay(20, 40, 30) == (5, 0)
