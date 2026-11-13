@@ -185,7 +185,8 @@ onBeforeUnmount(() => {
   background: rgb(255 255 255 / 40%);
 }
 .shelf[data-open='false'] .item { filter: grayscale(1); opacity: 0.45; }
-.lock { position: absolute; inset: 0; display: grid; place-items: center; font-size: min(8vh, 64px); pointer-events: none; }
+/* In the shelf's corner, so it hides no add-on */
+.lock { position: absolute; top: -18px; left: -18px; font-size: min(6vh, 44px); pointer-events: none; }
 .item {
   width: min(10.5vw, 96px);
   aspect-ratio: 1;
