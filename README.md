@@ -21,8 +21,9 @@ The town square (60 m across) has balls to push, three trampolines, a playground
 | 🐍 Schlange | The snake collects treasures until it bites itself | costs 3 per round |
 | 🍬 Bonbonjagd | Collect every sweet in a maze; chasers wander, a power-up turns the tables | costs 3 per round |
 | 🎬 Kino | One of the YouTube films the parents chose | costs 3 per film |
-| 🏠 Mein Haus | The logbook (Tagebuch), the sticker book (Stickerheft) and her wardrobe (Kleiderschrank) | free |
-| 👗 Kleiderladen | Add-ons for her character on three shelves; after today's learning, one a day | 15–120 per add-on |
+| 🏠 Mein Haus | Her room: the logbook (Tagebuch), the sticker book (Stickerheft), her trophies, her wardrobe (Kleiderschrank) and her furniture | free |
+| 👗 Kleiderladen | Add-ons for her character on three shelves; after today's learning, one purchase a day across both shops | 15–120 per add-on |
+| 🛋️ Möbelhaus | Furniture for her room on three shelves; the same rules as the Kleiderladen | 15–120 per piece |
 
 **Free** buildings are always open: before the day's learning, with no Stars, and after the play time. They neither give nor cost Stars and don't count as play time.
 
@@ -45,6 +46,7 @@ Stage 4 (family login, server, parents) has a [design](docs/superpowers/specs/20
 Stage 5 (the rest of Spielzeugkiste) has a [design](docs/superpowers/specs/2026-11-12-brightville-stage5-design.md), and its third part (Cinema, paintings on the server, a bigger town) [another](docs/superpowers/specs/2026-11-12-brightville-stage5-part3-design.md).
 Stage 6 (Hüpfhalle, Tanzsaal, the house, stickers) has a [design](docs/superpowers/specs/2026-11-13-brightville-stage6-design.md) and a [plan](docs/superpowers/plans/2026-11-13-brightville-stage6.md).
 Stage 7 (her own character, the Kleiderladen, the wardrobe) has a [design](docs/superpowers/specs/2026-11-13-brightville-stage7-design.md) and a [plan](docs/superpowers/plans/2026-11-13-brightville-stage7.md).
+Stage 8 (her room: trophies, furniture, the Möbelhaus) has a [design](docs/superpowers/specs/2026-11-13-brightville-stage8-design.md) and a [plan](docs/superpowers/plans/2026-11-13-brightville-stage8.md).
 
 ## Run it
 
@@ -166,11 +168,13 @@ The tracking model (`public/mediapipe/pose_landmarker_lite.task`, from Google's 
 
 ## Mein Haus, the logbook and stickers
 
-The house at the front of the square holds three things to tap:
+The house at the front of the square is her room: a wall with a window, a floor, a table with the logbook and the sticker book, a trophy shelf, her wardrobe and seven spots for furniture.
 
 - **Tagebuch:** one page per day the child did something, newest first. It shows the icon of each building visited with the Stars earned (green) or spent (grey), a sun when the daily goal was reached, the stickers earned and the paintings made that day. The voice reads the date, and tapping an entry says it ("Schule, sieben Sterne."). It is built from what the server has recorded since stage 4; visits to Malen and Ausmalen are recorded from stage 6 on, and only those in which something was made: at least ten strokes or fills and a minute inside (`src/buildings/effort.ts`).
 - **Stickerheft:** a space for each of the 17 stickers, earned ones in colour, the rest as grey outlines. Tapping one says what it is for.
-- **Kleiderschrank (wardrobe):** everything she owns, to put on and take off as often as she likes; ✏️ changes her look. Empty, it points to the Kleiderladen.
+- **Trophies:** the shelf next to the album holds all 17 stickers as trophies: earned ones in their colour, the others as faint outlines of what is still to get. Tapping an earned one says its name and what it is for; any other, what it is for.
+- **Kleiderschrank (wardrobe):** a big wooden wardrobe; inside, everything she owns, to put on and take off as often as she likes; ✏️ changes her look. Empty, it points to the Kleiderladen.
+- **Her furniture:** seven fixed spots (picture, curtain, lamp, bed, rug, plant, toy), dashed while empty. Tapping a spot shows the pieces she owns for it and 🚫; a tap puts one there or takes it away, as often as she likes. Pieces she swapped out stay hers.
 
 **Stickers** are rare milestones, never spent: ten visits to a building, six different learning buildings, the daily goal 3, 7 or 14 days in a row or on 10 or 30 days, 100 or 500 Stars. The list is `shared/stickers.json`, read by the page and the server; the server decides (`backend/app/stickers.py`), after each visit and when the page loads, so earlier history counts. A new sticker is celebrated in the town (at most three in a row; any more wait in the album, which glows).
 
@@ -186,6 +190,12 @@ The house at the front of the square holds three things to tap:
 - **Sticker gifts:** four add-ons are never sold but come with a sticker (Sternensammler, Yoga-Meister, Tanzstern, Eine ganze Woche), also for stickers earned before.
 
 The catalogue is `shared/outfits.json`, read by the page and the server; never rename or remove an add-on's id, as owned ones are kept by id.
+
+## The Möbelhaus
+
+**The Möbelhaus** (🛋️, at the front right, past the playground) sells furniture for her room: 18 pieces on three shelves, 15–25 ⭐, 40–60 ⭐ and 90–120 ⭐, each for one of the seven spots. It follows the Kleiderladen's rules: learn first, open after the play time, two pieces from a shelf open the one below, saved Stars count half, and **one purchase a day across both shops** (a Schal today means no bed until tomorrow). Tapping a piece shows it on its spot in a small picture of her room, with what else stands there; ✔️ buys it and puts it there at once. What stood on that spot stays hers, to put back in her room.
+
+Both shops share their code (`src/buildings/shop/`) and, on the server, their rules (`backend/app/shop.py`). The catalogue is `shared/furniture.json`; never rename or remove a piece's id, and no piece may share an id with an add-on. The logbook shows a furniture purchase like a clothes purchase, and the parents' page shows her furniture under her clothes.
 
 ## How the code is organised
 

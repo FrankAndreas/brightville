@@ -155,6 +155,18 @@ describe('Haus', () => {
       expect(lastSaid()).toBe('Schal gekauft, zwanzig Sterne.')
     })
 
+    it('shows a purchase in the Möbelhaus with its piece, as Stars spent', async () => {
+      api.logbook_ = [day('2026-11-12', { entries: [{ building: 'holzbett', kind: 'buy', stars: -25, at: '16:00' }] })]
+      const w = await open()
+      await w.find('[data-test="open-book"]').trigger('click')
+      await flushPromises()
+      const entry = w.find('[data-test="entry"]')
+      expect(entry.text()).toBe('🛏️−25')
+      expect(entry.attributes('data-spent')).toBe('true')
+      await entry.trigger('click')
+      expect(lastSaid()).toBe('Holzbett gekauft, 25 Sterne.')
+    })
+
     it('says an entry when it is tapped', async () => {
       api.logbook_ = [day('2026-11-12', {
         entries: [

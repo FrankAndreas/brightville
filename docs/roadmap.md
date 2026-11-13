@@ -13,6 +13,7 @@ The six stages of the roadmap in [the stage 1 design](superpowers/specs/2026-11-
 5. Spielzeugkiste's games as buildings (Ausmalen, Malen, Unterschiede, Schlange, Bonbonjagd), Bibliothek, Farblabor, Cinema, paintings on the server, turning (J K L I), playground, 60 m square
 6. Hüpfhalle, Tanzsaal, Mein Haus with logbook and sticker book, stickers
 7. Her own character (look on the first visit), the Kleiderladen (three shelves, one purchase a day, saved Stars count half), sticker gifts, the wardrobe in Mein Haus (PRs #18–#20)
+8. Her room in Mein Haus: a trophy shelf, a proper wardrobe, furniture on seven spots, the Möbelhaus (one purchase a day across both shops) (PRs #22–#24)
 
 Each stage has its design in `docs/superpowers/specs/`; what the game does now is in the README.
 
@@ -80,13 +81,15 @@ These were tested with automated tests and in a desktop browser, but not where t
 - Stage 7, saved Stars: the Stars at the update count half in the shop; any spending (the Arcade, a parent lowering the count) takes new Stars first, so the savings last longer at half value. A single leftover saved Star counts like a new one.
 - Stage 7: the Kleiderladen stands at the front left next to Mein Haus, not with the play buildings (no room there), and its closed door says "Erst lernen, dann einkaufen!".
 - Stage 7: add-on prices, the look's colours and the 3D models are first guesses; the shelves' prices are in `shared/outfits.json`.
+- Stage 8: no spot near Mein Haus had room for the Möbelhaus, so it stands at the front right, past the playground, and the square grew by a metre to 62 m for it (`HALF_SIZE` 31).
+- Stage 8: the furniture, its prices and spots, and the room's drawing are first guesses (`shared/furniture.json`, `src/buildings/haus/RoomPicture.vue`). The trophies are the stickers, not something new to earn.
 
 ## Left from the gameplay document
 
 Not planned as stages yet. Roughly by how much they would add for a five-year-old:
 
 1. ~~Dressing up the character~~: done in stage 7.
-2. **Decorating the house:** furniture and a trophy shelf.
+2. ~~Decorating the house~~: done in stage 8.
 3. **Harder tasks as she grows:** age tiers, and difficulty that adapts (three right in a row step up, two misses step down). The hub knows no age or birthday: the child's age (or tier) becomes a per-child setting in Brightville's parent area, next to the daily goal, not a field in the hub (decided in the architecture review).
 4. **More learning buildings:** Language Café (first English words), World Tower (flags, animals of the world), Building Yard (physics blocks to stack and knock over), Code Workshop (for older children).
 5. **For parents:** a weekly report, playing hours (e.g. not after 19:30), the camera on or off per child.

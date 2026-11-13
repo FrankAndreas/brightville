@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { entrySaid, shortDate, spokenDate, type LogDay, type LogEntry } from '@/core/diary'
 import { stickerDef } from '@/core/stickers'
 import { paintingUrl, type Api } from '@/services/api'
+import { furnitureDef } from '@/core/furniture'
 import { outfitDef } from '@/core/outfits'
 import { speak } from '@/services/tts'
 import { BUILDINGS } from '../registry'
@@ -23,10 +24,12 @@ const page = computed(() => days.value[index.value] ?? null)
 const canOlder = computed(() => index.value < days.value.length - 1 || more.value)
 
 const building = (id: string) => BUILDINGS.find(b => b.id === id)
-// A purchase names its add-on where a visit names its building
+// A purchase names what was bought (an add-on or a piece of furniture: their ids never clash) where a visit names its
+// building
+const bought = (id: string) => outfitDef(id) ?? furnitureDef(id)
 const nameOf = (id: string, kind?: LogEntry['kind']) =>
-  (kind === 'buy' ? outfitDef(id)?.name : building(id)?.spokenName) ?? id
-const iconOf = (id: string, kind?: LogEntry['kind']) => (kind === 'buy' ? outfitDef(id)?.emoji : building(id)?.icon) ?? '❓'
+  (kind === 'buy' ? bought(id)?.name : building(id)?.spokenName) ?? id
+const iconOf = (id: string, kind?: LogEntry['kind']) => (kind === 'buy' ? bought(id)?.emoji : building(id)?.icon) ?? '❓'
 
 async function fetchMore(): Promise<number> {
   if (fetching) return 0

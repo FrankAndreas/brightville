@@ -41,6 +41,16 @@ describe('ParentArea', () => {
     expect(card(w, 1).find('[data-test="owned"]').exists()).toBe(false)
   })
 
+  it('shows a child\'s furniture next to her clothes, leaving out pieces the catalogue doesn\'t know', async () => {
+    const api = fakeApi()
+    api.rows = ROWS.map(r => (r.id === 2 ? { ...r, owned: ['schleife'], furniture: ['kaktus', 'gibtsnicht'] } : { ...r }))
+    const w = mount(ParentArea, { props: { api } })
+    await flushPromises()
+    expect(card(w, 2).find('[data-test="furniture"]').text()).toBe('🌵')
+    expect(card(w, 2).find('[data-test="owned"]').text()).toBe('🎀')
+    expect(card(w, 1).find('[data-test="furniture"]').exists()).toBe(false)
+  })
+
   it('saves the settings of one person', async () => {
     const { api, w } = await open()
     await card(w, 2).find('[data-test="goal"]').setValue(3)
