@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from . import auth, films, game, hub, local, paintings, people, stickers, wardrobe
+from . import auth, films, game, hub, local, paintings, people, room, stickers, wardrobe
 from . import db as database
 from .auth import error, get_db
 from .buildings import Building, all_buildings
@@ -155,6 +155,10 @@ class WornIn(BaseModel):
 class BuyIn(BaseModel):
     item: str = Field(max_length=40)
     key: str = Field(min_length=1, max_length=64)
+
+
+class PlacedIn(BaseModel):
+    placed: dict[str, Optional[str]] = Field(max_length=10)
 
 
 class ChooseIn(BaseModel):
@@ -345,6 +349,30 @@ def shop_buy(
     except game.Refused as refused:
         raise error(404 if refused.code == "unknown" else 409, refused.code) from None
     return {"state": now.as_dict(), "wardrobe": wardrobe.state(db, person.id)}
+
+
+@app.get("/api/room")
+def room_state(person: Person = Depends(auth.current_person), db: sqlite3.Connection = Depends(get_db)) -> dict:
+    return room.state(db, person.id)
+
+
+@app.put("/api/room/placed")
+def set_placed(
+    body: PlacedIn, person: Person = Depends(auth.current_person), db: sqlite3.Connection = Depends(get_db)
+) -> dict:
+    room.place(db, person.id, body.placed)
+    return room.state(db, person.id)
+
+
+@app.post("/api/moebel/buy")
+def moebel_buy(
+    body: BuyIn, person: Person = Depends(auth.current_person), db: sqlite3.Connection = Depends(get_db)
+) -> dict:
+    try:
+        now = room.buy(db, person.id, body.item, body.key)
+    except game.Refused as refused:
+        raise error(404 if refused.code == "unknown" else 409, refused.code) from None
+    return {"state": now.as_dict(), "room": room.state(db, person.id)}
 
 
 @app.get("/api/films")

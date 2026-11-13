@@ -7,7 +7,7 @@ import json
 import sqlite3
 from typing import Optional
 
-from . import clock, game, outfits
+from . import clock, game, outfits, shop
 from .db import writing
 
 # The same lists as src/core/look.ts: a look with anything else is refused
@@ -58,14 +58,6 @@ def owned_ids(db: sqlite3.Connection, person_id: int) -> list[str]:
     return [r["item_id"] for r in rows if outfits.outfit(r["item_id"]) is not None]
 
 
-def _bought_today(db: sqlite3.Connection, person_id: int) -> bool:
-    row = db.execute(
-        "SELECT 1 FROM events WHERE person_id = ? AND kind = 'buy' AND substr(at, 1, 10) = ?",
-        (person_id, clock.today()),
-    ).fetchone()
-    return row is not None
-
-
 def state(db: sqlite3.Connection, person_id: int) -> dict:
     look, worn = _row(db, person_id)
     rows = db.execute(
@@ -77,7 +69,7 @@ def state(db: sqlite3.Connection, person_id: int) -> dict:
         "owned": [
             {"id": r["item_id"], "how": r["how"], "got_at": r["got_at"]} for r in rows if outfits.outfit(r["item_id"])
         ],
-        "bought_today": _bought_today(db, person_id),
+        "bought_today": shop.bought_today(db, person_id),
     }
 
 
@@ -107,16 +99,10 @@ def wear(db: sqlite3.Connection, person_id: int, changes: dict[str, Optional[str
 
 
 def buy(db: sqlite3.Connection, person_id: int, item_id: str, key: str) -> game.State:
-    """Buys one add-on and puts it on. Refused (game.Refused) with: unknown, not_for_sale, owned, locked,
-    bought_today, shelf_locked, poor; key_used for a key from another day. The same key today buys once."""
-    with writing(db):
-        now = game._row(db, person_id)
-        # The same purchase sent again buys once; a key that stands for something else buys nothing
-        seen = db.execute("SELECT kind, at FROM events WHERE person_id = ? AND key = ?", (person_id, key)).fetchone()
-        if seen is not None and seen["kind"] == "buy" and seen["at"][:10] == clock.today():
-            return now
-        if seen is not None:
-            raise game.Refused("key_used")
+    """Buys one add-on and puts it on. Refused (game.Refused) with: unknown, not_for_sale, owned, then as
+    shop.purchase (locked, bought_today, shelf_locked, poor, key_used). The same key today buys once."""
+
+    def offer() -> shop.Offer:
         item = outfits.outfit(item_id)
         if item is None:
             raise game.Refused("unknown")
@@ -125,27 +111,20 @@ def buy(db: sqlite3.Connection, person_id: int, item_id: str, key: str) -> game.
         mine = owned_ids(db, person_id)
         if item_id in mine:
             raise game.Refused("owned")
-        if not now.goal_reached():
-            raise game.Refused("locked")
-        if _bought_today(db, person_id):
-            raise game.Refused("bought_today")
-        if not outfits.shelf_open(item.shelf, mine):
-            raise game.Refused("shelf_locked")
-        paid = outfits.pay(item.price, now.stars, now.savings)
-        if paid is None:
-            raise game.Refused("poor")
-        taken = now.stars - paid[0]
-        now.stars, now.savings = paid
-        game._store(db, person_id, now)
-        db.execute(
-            "INSERT INTO outfits (person_id, item_id, how, got_at) VALUES (?, ?, 'bought', ?)",
-            (person_id, item_id, clock.now().isoformat(timespec="seconds")),
-        )
-        look, worn = _row(db, person_id)
-        worn[item.place] = item_id
-        _store(db, person_id, look, worn)
-        game._log(db, person_id, key, "buy", item_id, -taken)
-        return now
+        shelf, place = item.shelf, item.place
+
+        def record() -> None:
+            db.execute(
+                "INSERT INTO outfits (person_id, item_id, how, got_at) VALUES (?, ?, 'bought', ?)",
+                (person_id, item_id, clock.now().isoformat(timespec="seconds")),
+            )
+            look, worn = _row(db, person_id)
+            worn[place] = item_id
+            _store(db, person_id, look, worn)
+
+        return shop.Offer(item_id, item.price, lambda: outfits.shelf_open(shelf, mine), record)
+
+    return shop.purchase(db, person_id, key, offer)
 
 
 def give_gifts(db: sqlite3.Connection, person_id: int) -> list[str]:
