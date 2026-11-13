@@ -44,6 +44,21 @@ describe('createSight', () => {
     expect(said).toBe(true)
   })
 
+  it('at the start, waits a while before saying she is not seen, so the first instruction is heard out', () => {
+    const sight = createSight()
+    let said = false
+    let lost = false
+    for (let t = 0; t < LOST_AFTER_MS + SAY_AGAIN_MS - 1000; t += 50) {
+      const now = sight.update(null, 50)
+      said ||= now.sayLost
+      lost ||= now.lost
+    }
+    expect(lost).toBe(true)
+    expect(said).toBe(false)
+    for (let t = 0; t < 1000; t += 50) said ||= sight.update(null, 50).sayLost
+    expect(said).toBe(true)
+  })
+
   it('learns her standing height again after being lost', () => {
     const sight = createSight()
     frames(sight, standing(), SETTLE_MS + 100)

@@ -42,6 +42,8 @@ export function createSight(): Sight {
   let unseenMs = 0
   let sinceSaid = 0
   let samples = 0
+  /** Seen and settled at least once in this visit */
+  let wasReady = false
   const state: SightState = { seen: false, ready: false, lost: false, sayLost: false, standY: 0, unit: 0 }
 
   return {
@@ -61,7 +63,8 @@ export function createSight(): Sight {
         } else if (unseenMs >= LOST_AFTER_MS) {
           state.lost = true
           state.ready = false
-          state.sayLost = true
+          // At the very start the building has just asked her to step in: let that be heard out first
+          state.sayLost = wasReady
           sinceSaid = 0
           samples = 0
         }
@@ -79,6 +82,7 @@ export function createSight(): Sight {
         state.unit += (width - state.unit) / samples
         seenMs += dt
         state.ready = seenMs >= SETTLE_MS
+        wasReady ||= state.ready
       } else if (Math.abs(y - state.standY) < DRIFT_WITHIN * state.unit) {
         const k = Math.min(1, dt / DRIFT_MS)
         state.standY += (y - state.standY) * k

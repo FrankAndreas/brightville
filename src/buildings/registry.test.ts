@@ -94,11 +94,21 @@ describe('building registry', () => {
     expect(canServe(kino!, { ...device, films: true })).toBe(true)
   })
 
-  it('puts learning at the back, making on the left and playing on the right', () => {
+  it('puts learning at the back, making and moving on the left and playing on the right', () => {
+    const MOVING = ['huepfhalle', 'tanzsaal']
     for (const b of BUILDINGS) {
       const side = b.door.side ?? 'back'
-      expect(side).toBe({ earn: 'back', free: 'left', play: 'right' }[b.kind])
+      expect(side, b.id).toBe(MOVING.includes(b.id) ? 'left' : { earn: 'back', free: 'left', play: 'right' }[b.kind])
     }
+  })
+
+  it('lists the Hüpfhalle and the Tanzsaal on the left as earning buildings that need a camera', () => {
+    expect(BUILDINGS.find(x => x.id === 'huepfhalle')).toMatchObject({
+      spokenName: 'Hüpfhalle', icon: '🦘', kind: 'earn', needs: ['camera'], door: { x: -23, z: 8, side: 'left' },
+    })
+    expect(BUILDINGS.find(x => x.id === 'tanzsaal')).toMatchObject({
+      spokenName: 'Tanzsaal', icon: '🪩', kind: 'earn', needs: ['camera'], door: { x: -23, z: 18, side: 'left' },
+    })
   })
 
   it('lists the writing building, which earns and needs a touch screen', () => {

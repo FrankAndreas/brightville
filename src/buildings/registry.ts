@@ -20,9 +20,11 @@ const farblabor = () => import('./farblabor/Farblabor.vue')
 const schlange = () => import('./schlange/Schlange.vue')
 const bonbonjagd = () => import('./bonbonjagd/Bonbonjagd.vue')
 const kino = () => import('./kino/Kino.vue')
+const huepfhalle = () => import('./huepfhalle/Huepfhalle.vue')
+const tanzsaal = () => import('./tanzsaal/Tanzsaal.vue')
 
 /**
- * Every building in the town: learning at the back, making things on the left, playing on the right.
+ * Every building in the town: learning at the back, making things and moving on the left, playing on the right.
  * A door's x and z are the spot in front of it; its house stands behind that, facing the middle.
  */
 export const BUILDINGS: BuildingDef[] = [
@@ -58,6 +60,15 @@ export const BUILDINGS: BuildingDef[] = [
   {
     id: 'malen', spokenName: 'Malen', icon: '🖌️', kind: 'free', needs: [], door: { x: -23, z: -2, side: 'left' },
     component: defineAsyncComponent(malen), preload: malen,
+  },
+  {
+    // Moving: the camera counts jumps and dance moves
+    id: 'huepfhalle', spokenName: 'Hüpfhalle', icon: '🦘', kind: 'earn', needs: ['camera'], door: { x: -23, z: 8, side: 'left' },
+    component: defineAsyncComponent(huepfhalle), preload: huepfhalle,
+  },
+  {
+    id: 'tanzsaal', spokenName: 'Tanzsaal', icon: '🪩', kind: 'earn', needs: ['camera'], door: { x: -23, z: 18, side: 'left' },
+    component: defineAsyncComponent(tanzsaal), preload: tanzsaal,
   },
   {
     id: 'arcade', spokenName: 'Spielhalle', icon: '🃏', kind: 'play', cost: 3, needs: [], door: { x: 23, z: -12, side: 'right' },
