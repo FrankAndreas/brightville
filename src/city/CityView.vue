@@ -6,12 +6,15 @@ import { mergeIntents } from '@/input/merge'
 import { touchIntents } from '@/input/touch'
 import { createCity, type City } from './city'
 import type { DoorDef } from './doors'
+import type { Dress } from '@/core/look'
 
 const props = defineProps<{
   doors: DoorDef[]
   paused: boolean
   /** Shows the stick and the jump button */
   touch?: boolean
+  /** Her look and what she wears */
+  dress?: Dress
 }>()
 const emit = defineEmits<{ 'near-door': [id: string | null]; enter: [id: string] }>()
 
@@ -41,6 +44,7 @@ onMounted(async () => {
   // The doors may have changed while the town was loading
   if (props.doors !== initialDoors) city.setDoors(props.doors)
   if (props.paused) city.pause()
+  if (props.dress) city.setDress(props.dress)
 })
 
 watch(() => props.paused, paused => {
@@ -49,6 +53,7 @@ watch(() => props.paused, paused => {
 })
 
 watch(() => props.doors, doors => city?.setDoors(doors))
+watch(() => props.dress, dress => { if (dress) city?.setDress(dress) }, { deep: true })
 
 onBeforeUnmount(() => {
   unmounted = true

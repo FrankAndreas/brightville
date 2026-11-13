@@ -1,7 +1,9 @@
 // A stand-in for the server in tests: the same rules in memory (backend/app/game.py), for one person.
 import buildings from '../../shared/buildings.json'
+import { outfitDef, pay, shelfOpen, type Place } from '@/core/outfits'
 import {
   ApiError, type Api, type Film, type LogDay, type Me, type Person, type PlayerRow, type ServerState, type StickerRow,
+  type WardrobeState,
 } from './api'
 
 export interface FakePainting { id: string; updated: number; image: string; thumb: string }
@@ -22,6 +24,8 @@ export interface FakeApi extends Api {
   /** Sticker ids the next visit or free visit earns */
   earns_: string[]
   logbook_: LogDay[]
+  /** Her look and add-ons, as the server keeps them */
+  wardrobe_: WardrobeState
   /** The server's calendar turns a page */
   newDay(day: string): void
 }
@@ -29,7 +33,7 @@ export interface FakeApi extends Api {
 const KID: Person = { id: 1, name: 'Mia', role: 'CHILD', color: '#ff66aa' }
 
 export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}): FakeApi {
-  const state: ServerState = { stars: 0, day: '2026-11-12', visits: 0, daily_goal: 2, play_seconds: 0, play_minutes: null, ...start }
+  const state: ServerState = { stars: 0, day: '2026-11-12', visits: 0, daily_goal: 2, play_seconds: 0, play_minutes: null, savings: 0, ...start }
   const seen = new Set<string>()
   const find = (id: string) => buildings.find(b => b.id === id) as { id: string; kind: string; maxStars?: number; cost?: number } | undefined
   /** Hands out what `earns_` holds, as the server's award does */
@@ -51,8 +55,10 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
     stickers_: [],
     earns_: [],
     logbook_: [],
+    wardrobe_: { look: null, worn: {}, owned: [], bought_today: false },
     newDay(day) {
       Object.assign(state, { day, visits: 0, play_seconds: 0 })
+      api.wardrobe_.bought_today = false
     },
     me: () => run('me', () => ({ ...api.me_ })),
     state: () => run('state', () => ({ ...state })),
@@ -130,6 +136,39 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
       api.paintings_ = api.paintings_.filter(p => p.id !== id)
       return { ok: true }
     }),
+    wardrobe: () => run('wardrobe', () => copy(api.wardrobe_)),
+    saveLook: look => run('saveLook', () => {
+      api.wardrobe_.look = { ...look }
+      return copy(api.wardrobe_)
+    }),
+    setWorn: worn => run(`setWorn ${JSON.stringify(worn)}`, () => {
+      const owned = api.wardrobe_.owned.map(o => o.id)
+      for (const [place, id] of Object.entries(worn) as [Place, string | null][]) {
+        if (id === null) delete api.wardrobe_.worn[place]
+        else if (owned.includes(id) && outfitDef(id)?.place === place) api.wardrobe_.worn[place] = id
+      }
+      return copy(api.wardrobe_)
+    }),
+    // The server's rules (backend/app/wardrobe.py buy), in the same order
+    buy: (item, key) => run(`buy ${item}`, () => {
+      if (seen.has(`${state.day} ${key}`)) return { state: { ...state }, wardrobe: copy(api.wardrobe_) }
+      const def = outfitDef(item)
+      if (!def) throw new ApiError(404, 'unknown')
+      if (def.price === undefined || def.shelf === undefined) throw new ApiError(409, 'not_for_sale')
+      const owned = api.wardrobe_.owned.map(o => o.id)
+      if (owned.includes(item)) throw new ApiError(409, 'owned')
+      if (state.visits < state.daily_goal) throw new ApiError(409, 'locked')
+      if (api.wardrobe_.bought_today) throw new ApiError(409, 'bought_today')
+      if (!shelfOpen(def.shelf, owned)) throw new ApiError(409, 'shelf_locked')
+      const paid = pay(def.price, state.stars, state.savings)
+      if (!paid) throw new ApiError(409, 'poor')
+      seen.add(`${state.day} ${key}`)
+      Object.assign(state, paid)
+      api.wardrobe_.owned.push({ id: item, how: 'bought', got_at: `${state.day}T10:00:00+01:00` })
+      api.wardrobe_.worn[def.place] = item
+      api.wardrobe_.bought_today = true
+      return { state: { ...state }, wardrobe: copy(api.wardrobe_) }
+    }),
     choose: id => run(`choose ${id}`, () => {
       const person = api.me_.people.find(p => p.id === id)
       if (!person) throw new ApiError(404, 'unknown_person')
@@ -137,6 +176,7 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
       return { ok: true }
     }),
   }
+  const copy = (w: WardrobeState): WardrobeState => JSON.parse(JSON.stringify(w))
   async function run<T>(name: string, fn: () => T): Promise<T> {
     api.calls.push(name)
     if (api.offline) throw new ApiError(0, 'offline')

@@ -9,7 +9,7 @@ vi.mock('./city', () => ({ createCity: vi.fn() }))
 const doors: DoorDef[] = [{ id: 'yoga', x: 0, z: -14, open: true }]
 
 describe('CityView', () => {
-  const city = { pause: vi.fn(), resume: vi.fn(), dispose: vi.fn(), setDoors: vi.fn() }
+  const city = { pause: vi.fn(), resume: vi.fn(), dispose: vi.fn(), setDoors: vi.fn(), setDress: vi.fn() }
   let options: CityOptions
 
   beforeEach(() => {

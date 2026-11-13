@@ -1,4 +1,6 @@
 import type { LogDay } from '@/core/diary'
+import type { Look } from '@/core/look'
+import type { Place } from '@/core/outfits'
 
 export type { LogDay, LogEntry } from '@/core/diary'
 
@@ -30,6 +32,17 @@ export interface ServerState {
   play_seconds: number
   /** Minutes of play per day; null for no limit */
   play_minutes: number | null
+  /** Stars saved before the shop came: they count half there (core/outfits.ts shopMoney) */
+  savings: number
+}
+
+/** Her look and her add-ons (backend/app/wardrobe.py) */
+export interface WardrobeState {
+  /** null until she chose one */
+  look: Look | null
+  worn: Partial<Record<Place, string>>
+  owned: { id: string; how: 'bought' | 'gift'; got_at: string }[]
+  bought_today: boolean
 }
 
 export interface Rules {
@@ -39,7 +52,8 @@ export interface Rules {
   stars?: number
 }
 
-export type PlayerRow = Person & ServerState
+/** For the parents' page; `owned`: the add-ons a player has (stage 7) */
+export type PlayerRow = Person & ServerState & { owned?: string[] }
 
 /** A film the parents chose for the Cinema */
 export interface Film {
@@ -110,6 +124,12 @@ export interface Api {
   /** Keeps a painting under its id (new, or painted further). Rejects with 'too_large' or 'not_a_picture'. */
   keepPainting(id: string, image: string, thumb: string): Promise<PaintingRow>
   removePainting(id: string): Promise<unknown>
+  wardrobe(): Promise<WardrobeState>
+  saveLook(look: Look): Promise<WardrobeState>
+  /** Puts on or (null) takes off, place by place */
+  setWorn(worn: Partial<Record<Place, string | null>>): Promise<WardrobeState>
+  /** Rejects with 'locked', 'bought_today', 'shelf_locked', 'owned', 'poor', 'not_for_sale' or 'unknown' */
+  buy(item: string, key: string): Promise<{ state: ServerState; wardrobe: WardrobeState }>
 }
 
 type Fetch = (url: string, init: RequestInit) => Promise<Response>
@@ -170,5 +190,9 @@ export function httpApi(fetchFn: Fetch = (url, init) => fetch(url, init), onRene
     stickersSeen: ids => call('POST', '/api/stickers/seen', { ids }),
     logbook: (before, days = 7) => call('GET', `/api/logbook?days=${days}${before ? `&before=${before}` : ''}`),
     diary: personId => call('GET', `/api/players/${personId}/diary`),
+    wardrobe: () => call('GET', '/api/wardrobe'),
+    saveLook: look => call('PUT', '/api/look', { look }),
+    setWorn: worn => call('PUT', '/api/worn', { worn }),
+    buy: (item, key) => call('POST', '/api/shop/buy', { item, key }),
   }
 }

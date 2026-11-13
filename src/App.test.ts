@@ -24,7 +24,7 @@ vi.mock('./services/tts', async () => {
 const device = vi.hoisted(() => ({ camera: true, touch: false, keyboard: true }))
 vi.mock('./services/device', () => ({ detectDevice: () => ({ ...device }) }))
 
-const city = { pause: vi.fn(), resume: vi.fn(), dispose: vi.fn(), setDoors: vi.fn() }
+const city = { pause: vi.fn(), resume: vi.fn(), dispose: vi.fn(), setDoors: vi.fn(), setDress: vi.fn() }
 let cityOptions: CityOptions
 
 // A building that finishes with whatever the test tells it to

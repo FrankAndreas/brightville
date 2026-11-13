@@ -23,6 +23,7 @@ import { renewOnce } from '@/services/renew'
 import { unlockAudio } from '@/services/sound'
 import { forgetInstruction, speak } from '@/services/tts'
 import { usePlayerStore } from '@/stores/player'
+import { useWardrobeStore } from '@/stores/wardrobe'
 import { useSessionStore } from '@/stores/session'
 
 const props = withDefaults(defineProps<{ buildings?: BuildingDef[]; api?: Api }>(), {
@@ -32,6 +33,7 @@ const props = withDefaults(defineProps<{ buildings?: BuildingDef[]; api?: Api }>
 
 const session = useSessionStore()
 const player = usePlayerStore()
+const wardrobe = useWardrobeStore()
 const device = detectDevice()
 /** The device, and whether the parents chose films for the Cinema */
 const caps = computed(() => ({ ...device, films: player.films.length > 0 }))
@@ -93,7 +95,8 @@ watch(() => (session.status === 'ready' ? session.person?.id : undefined), async
   if (id === undefined) return
   // A login that ended shows as such: the hub's login, or the closed door
   player.init(props.api, id, undefined, () => void session.retry())
-  await player.refresh()
+  wardrobe.init(props.api, id)
+  await Promise.all([player.refresh(), wardrobe.load()])
   offerHelp()
 }, { immediate: true })
 
@@ -265,7 +268,7 @@ onBeforeUnmount(() => {
   <ServerScreen v-else-if="session.status === 'no_access'" kind="no_access" />
   <main v-else-if="playing" class="game" data-test="game">
     <CityView
-      :doors="doors" :paused="inside !== null || helpOpen || parentsOpen" :touch="device.touch"
+      :doors="doors" :paused="inside !== null || helpOpen || parentsOpen" :touch="device.touch" :dress="wardrobe.dress"
       @near-door="onNearDoor" @enter="onEnter"
     />
     <div class="hud">

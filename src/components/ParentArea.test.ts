@@ -4,8 +4,8 @@ import { fakeApi } from '@/services/fakeApi'
 import ParentArea from './ParentArea.vue'
 
 const ROWS = [
-  { id: 2, name: 'Mia', role: 'CHILD' as const, color: '#ff66aa', stars: 4, day: '2026-11-12', visits: 1, daily_goal: 2, play_seconds: 125, play_minutes: 30 },
-  { id: 1, name: 'Papa', role: 'PARENT' as const, color: null, stars: 0, day: '2026-11-12', visits: 0, daily_goal: 2, play_seconds: 0, play_minutes: null },
+  { id: 2, name: 'Mia', role: 'CHILD' as const, color: '#ff66aa', stars: 4, day: '2026-11-12', visits: 1, daily_goal: 2, play_seconds: 125, play_minutes: 30, savings: 0 },
+  { id: 1, name: 'Papa', role: 'PARENT' as const, color: null, stars: 0, day: '2026-11-12', visits: 0, daily_goal: 2, play_seconds: 0, play_minutes: null, savings: 0 },
 ]
 
 async function open(props: Record<string, unknown> = {}) {
