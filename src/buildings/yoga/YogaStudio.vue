@@ -7,7 +7,7 @@ import { keyboardIntents, type IntentSource } from '@/input/intents'
 import { closeCamera, onCameraLost, openCamera } from '@/services/camera'
 import { createPoseTracker, type PoseTracker } from '@/services/poseTracker'
 import { playBeat } from '@/services/sound'
-import { speak, stopSpeaking } from '@/services/tts'
+import { instruct, speak, stopSpeaking } from '@/services/tts'
 import { onLeaveRequest } from '../leave'
 import type { BuildingResult } from '../types'
 import HoldRing from './HoldRing.vue'
@@ -61,7 +61,7 @@ function send(event: YogaEvent) {
     stream = null
   }
   for (const effect of effects) {
-    if (effect.type === 'speak') void speak(effect.text)
+    if (effect.type === 'speak') void (effect.ask ? instruct : speak)(effect.text)
     else if (effect.type === 'chime') playBeat('chime')
     else if (effect.type === 'confetti') doneTimer = setTimeout(leave, CONFETTI_MS)
   }

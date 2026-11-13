@@ -16,7 +16,7 @@ const solve = (flow: SchoolFlow) => {
 describe('school flow', () => {
   it('asks the first question on start', () => {
     const flow = createSchoolFlow(TEST_TASKS, TEST_THINGS)
-    expect(flow.start()).toEqual([{ type: 'speak', text: 'Wie viele Äpfel?' }])
+    expect(flow.start()).toEqual([{ type: 'speak', text: 'Wie viele Äpfel?', ask: true }])
     expect(flow.state).toMatchObject({ index: 0, phase: 'asking', stars: 0, solved: 0, wrong: [], counted: 0 })
     expect(flow.state.task).toBe(TEST_TASKS[0])
   })
@@ -34,7 +34,7 @@ describe('school flow', () => {
     const flow = start()
     expect(flow.answer(3)).toEqual([{ type: 'chime' }, { type: 'speak', text: 'Super! Drei!' }])
     expect(flow.state).toMatchObject({ phase: 'cheering', stars: STARS_PER_TASK, solved: 1 })
-    expect(flow.next()).toEqual([{ type: 'speak', text: 'Wie viele Punkte?' }])
+    expect(flow.next()).toEqual([{ type: 'speak', text: 'Wie viele Punkte?', ask: true }])
     expect(flow.state).toMatchObject({ index: 1, phase: 'asking', counted: 0, wrong: [] })
   })
 

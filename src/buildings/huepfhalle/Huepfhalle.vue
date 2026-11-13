@@ -6,7 +6,7 @@ import { standing } from '@/core/pose/fixtures'
 import { ARMS_UP, BEND, HOP, SQUAT } from '@/core/moves/fixtures'
 import type { MoveId } from '@/core/moves/reps'
 import { playBeat, playNote } from '@/services/sound'
-import { speak } from '@/services/tts'
+import { instruct, speak } from '@/services/tts'
 import { useCameraLoop, type CameraEvent } from '../cameraLoop'
 import MoveFigure from '../MoveFigure.vue'
 import NoCamera from '../NoCamera.vue'
@@ -48,7 +48,7 @@ function send(event: CameraEvent) {
   const effects = flow.send(event)
   Object.assign(view, flow.state)
   for (const effect of effects) {
-    if (effect.type === 'speak') void speak(effect.text)
+    if (effect.type === 'speak') void (effect.ask ? instruct : speak)(effect.text)
     else if (effect.type === 'beat') playNote(SCALE[Math.min(SCALE.length, flow.state.count) - 1])
     else if (effect.type === 'chime') playBeat('chime')
     else if (effect.type === 'confetti') doneTimer = setTimeout(leave, CONFETTI_MS)

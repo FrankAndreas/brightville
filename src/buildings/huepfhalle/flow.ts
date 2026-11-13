@@ -46,7 +46,8 @@ export type JumpEvent =
   | { type: 'frame'; body: Body | null; dtMs: number }
 
 export type JumpEffect =
-  | { type: 'speak'; text: string }
+  /** `ask`: an instruction, kept for the 🔊 button */
+  | { type: 'speak'; text: string; ask?: boolean }
   | { type: 'beat' }
   | { type: 'chime' }
   | { type: 'confetti' }
@@ -70,7 +71,7 @@ export function createJumpFlow(moves: MoveId[]): JumpFlow {
     state.count = 0
     state.phase = 'moving'
     reps = createReps(move)
-    return [{ type: 'speak', text: moveDef(move).voice }]
+    return [{ type: 'speak', text: moveDef(move).voice, ask: true }]
   }
 
   function counted(): JumpEffect[] {
@@ -115,7 +116,7 @@ export function createJumpFlow(moves: MoveId[]): JumpFlow {
         case 'cameraReady':
           if (state.phase !== 'starting') return []
           state.phase = 'settling'
-          return [{ type: 'speak', text: SAY_STEP_IN }]
+          return [{ type: 'speak', text: SAY_STEP_IN, ask: true }]
         case 'cameraFailed':
           state.phase = 'noCamera'
           return [{ type: 'speak', text: SAY_NO_CAMERA }]

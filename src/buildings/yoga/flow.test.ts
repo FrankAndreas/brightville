@@ -41,7 +41,7 @@ describe('yoga flow', () => {
   it('asks the child to step into view once the camera is ready', () => {
     const flow = createYogaFlow(poses)
     expect(flow.send({ type: 'cameraReady' })).toEqual([
-      { type: 'speak', text: 'Stell dich so hin, dass ich dich ganz sehe!' },
+      { type: 'speak', text: 'Stell dich so hin, dass ich dich ganz sehe!', ask: true },
     ])
     expect(flow.state.phase).toBe('calibrating')
   })
@@ -59,11 +59,11 @@ describe('yoga flow', () => {
     const flow = createYogaFlow(poses)
     flow.send({ type: 'cameraReady' })
     const first = feed(flow, standing(), 1000)
-    expect(first).toEqual([{ type: 'speak', text: 'Mach einen Stern!' }])
+    expect(first).toEqual([{ type: 'speak', text: 'Mach einen Stern!', ask: true }])
     expect(flow.state).toMatchObject({ phase: 'posing', pose: 'stern', poseNumber: 1 })
 
     expect(feed(flow, FIXTURES.stern, 5000)).toEqual([
-      { type: 'chime' }, { type: 'speak', text: 'Hock dich hin wie ein Frosch!' },
+      { type: 'chime' }, { type: 'speak', text: 'Hock dich hin wie ein Frosch!', ask: true },
     ])
     expect(flow.state).toMatchObject({ pose: 'frosch', poseNumber: 2, stars: 3, progress: 0 })
 
@@ -85,7 +85,7 @@ describe('yoga flow', () => {
   it('gives no stars for a pose that times out and moves on', () => {
     const flow = calibrated()
     const effects = feed(flow, standing(), 30000)
-    expect(effects).toEqual([{ type: 'speak', text: 'Hock dich hin wie ein Frosch!' }])
+    expect(effects).toEqual([{ type: 'speak', text: 'Hock dich hin wie ein Frosch!', ask: true }])
     expect(flow.state).toMatchObject({ phase: 'posing', pose: 'frosch', poseNumber: 2, stars: 0 })
   })
 

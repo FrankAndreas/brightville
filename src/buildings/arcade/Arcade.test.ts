@@ -8,7 +8,14 @@ import Arcade from './Arcade.vue'
 import { ANIMALS, COLUMNS, PAIRS_PER_ROUND } from './cards'
 
 vi.mock('@/services/sound', () => ({ playBeat: vi.fn(), unlockAudio: vi.fn() }))
-vi.mock('@/services/tts', () => ({ speak: vi.fn(() => Promise.resolve()), stopSpeaking: vi.fn() }))
+vi.mock('@/services/tts', async () => {
+  const { ref } = await import('vue')
+  const speak = vi.fn<(text?: string) => Promise<void>>(() => Promise.resolve())
+  // An instruction is spoken like anything else, and kept for the 🔊 button
+  const instruction = ref<string | null>(null)
+  const instruct = vi.fn((text: string) => { instruction.value = text; return speak(text) })
+  return { speak, stopSpeaking: vi.fn(), instruct, instruction, forgetInstruction: vi.fn(() => { instruction.value = null }) }
+})
 
 // A deck in a known order: the two cards of a pair lie next to each other
 const deck: Card[] = ANIMALS.slice(0, PAIRS_PER_ROUND).flatMap(p => [{ ...p, key: `${p.id}-a` }, { ...p, key: `${p.id}-b` }])

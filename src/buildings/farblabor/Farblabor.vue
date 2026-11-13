@@ -4,7 +4,7 @@ import Confetti from '@/components/Confetti.vue'
 import { COLORS, LAB_TASKS, buildLab, type ColorId, type LabTask } from '@/core/colorMixes'
 import { createQuiz } from '@/core/quiz'
 import { playBeat } from '@/services/sound'
-import { speak, stopSpeaking } from '@/services/tts'
+import { instruct, speak, stopSpeaking } from '@/services/tts'
 import { onLeaveRequest } from '../leave'
 import type { BuildingResult } from '../types'
 
@@ -42,7 +42,7 @@ const sync = () => Object.assign(view, quiz.state)
 
 function ask() {
   const t = task.value
-  if (t) void speak(`${name(t.mix.a)} und ${name(t.mix.b)}. Was gibt das?`)
+  if (t) void instruct(`${name(t.mix.a)} und ${name(t.mix.b)}. Was gibt das?`)
 }
 
 function pick(choice: number) {
@@ -156,7 +156,12 @@ onBeforeUnmount(shutDown)
   border: 6px solid #5c7fa8;
   background: linear-gradient(to top, var(--paint) 70%, #fff 70%);
 }
-.pot { border-radius: 14px 14px 30px 30px; }
+/* The empty glass above the paint is pale blue-grey and the paint has a surface line, so white paint shows as paint,
+   not as an empty pot (UX review) */
+.pot {
+  border-radius: 14px 14px 30px 30px;
+  background: linear-gradient(to top, var(--paint) 0 67%, rgb(40 60 90 / 30%) 67% 71%, #dce6f1 71%);
+}
 .bowl {
   border-radius: 0 0 50% 50%;
   display: grid;

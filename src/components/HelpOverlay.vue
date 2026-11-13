@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { speak, stopSpeaking } from '@/services/tts'
 
 // The controls as pictures, read aloud. The few words are for a grown-up
@@ -10,15 +10,29 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ close: [] }>()
 
-const SPOKEN =
-  'Mit den Pfeiltasten läufst du. Mit der Leertaste springst du. ' +
-  'Mit Enter gehst du durch die leuchtende Tür. Mit Escape gehst du wieder hinaus. ' +
-  'Mit J und L drehst du dich. Mit K schaust du nach hinten.'
+// One line per picture, said while that picture lights up: five things at once are too many for a young child
+// (UX review, Nov 2026)
+const SPOKEN = [
+  'Mit den Pfeiltasten läufst du.',
+  'Mit der Leertaste springst du.',
+  'Mit Enter gehst du durch die leuchtende Tür.',
+  'Mit Escape gehst du wieder hinaus.',
+  'Mit J und L drehst du dich. Mit K schaust du nach hinten.',
+]
 
-const SPOKEN_TOUCH =
-  'Zieh mit dem Finger, dann läufst du. Tipp auf den Pfeil, dann springst du. ' +
-  'Tipp auf das Bild an der leuchtenden Tür, dann gehst du hinein. Mit der Tür oben links gehst du wieder hinaus. ' +
-  'Halte einen runden Pfeil, dann drehst du dich.'
+const SPOKEN_TOUCH = [
+  'Zieh mit dem Finger, dann läufst du.',
+  'Tipp auf den Pfeil, dann springst du.',
+  'Tipp auf das Bild an der leuchtenden Tür, dann gehst du hinein.',
+  'Mit der Tür oben links gehst du wieder hinaus.',
+  'Halte einen runden Pfeil, dann drehst du dich.',
+]
+// A breath between two lines
+const PAUSE_MS = 500
+
+/** The row being explained; -1 before and after */
+const active = ref(-1)
+let gone = false
 
 const close = () => emit('close')
 
@@ -29,11 +43,24 @@ function onKey(e: KeyboardEvent) {
   close()
 }
 
+async function explain() {
+  const lines = props.touch ? SPOKEN_TOUCH : SPOKEN
+  for (let i = 0; i < lines.length; i++) {
+    if (gone) return
+    active.value = i
+    await speak(lines[i])
+    if (gone) return
+    await new Promise(resolve => setTimeout(resolve, PAUSE_MS))
+  }
+  active.value = -1
+}
+
 onMounted(() => {
-  void speak(props.touch ? SPOKEN_TOUCH : SPOKEN)
+  void explain()
   window.addEventListener('keydown', onKey)
 })
 onBeforeUnmount(() => {
+  gone = true
   stopSpeaking()
   window.removeEventListener('keydown', onKey)
 })
@@ -42,7 +69,7 @@ onBeforeUnmount(() => {
 <template>
   <div class="help" data-test="help" @pointerdown="close">
     <div class="card">
-      <div class="row" data-test="help-row">
+      <div class="row" data-test="help-row" :data-active="active === 0" :data-dim="active >= 0 && active !== 0">
         <svg v-if="touch" class="keys" data-test="help-touch" viewBox="0 0 150 100" aria-hidden="true">
           <circle cx="75" cy="50" r="42" class="pad" /><circle cx="92" cy="40" r="18" class="thumb" />
           <path d="M75 50 L92 40" class="dash" />
@@ -60,7 +87,7 @@ onBeforeUnmount(() => {
         <span class="word">Laufen</span>
       </div>
 
-      <div class="row" data-test="help-row">
+      <div class="row" data-test="help-row" :data-active="active === 1" :data-dim="active >= 0 && active !== 1">
         <svg v-if="touch" class="keys" data-test="help-touch" viewBox="0 0 150 100" aria-hidden="true">
           <circle cx="75" cy="50" r="40" class="button" /><path d="M75 72 V32 M58 47 L75 30 L92 47" class="glyph-line" />
         </svg>
@@ -76,7 +103,7 @@ onBeforeUnmount(() => {
         <span class="word">Springen</span>
       </div>
 
-      <div class="row" data-test="help-row">
+      <div class="row" data-test="help-row" :data-active="active === 2" :data-dim="active >= 0 && active !== 2">
         <svg v-if="touch" class="keys" data-test="help-touch" viewBox="0 0 150 100" aria-hidden="true">
           <rect x="20" y="18" width="110" height="64" rx="20" class="pad" />
           <circle cx="75" cy="46" r="17" class="ripple" /><circle cx="75" cy="46" r="6" class="eye" />
@@ -94,7 +121,7 @@ onBeforeUnmount(() => {
         <span class="word">Hineingehen</span>
       </div>
 
-      <div class="row" data-test="help-row">
+      <div class="row" data-test="help-row" :data-active="active === 3" :data-dim="active >= 0 && active !== 3">
         <svg v-if="touch" class="keys" data-test="help-touch" viewBox="0 0 150 100" aria-hidden="true">
           <circle cx="75" cy="50" r="40" class="pad" />
           <path d="M72 28 H96 V72 H72" class="frame" /><path d="M82 50 H50 M62 38 L50 50 L62 62" class="dash" />
@@ -111,7 +138,7 @@ onBeforeUnmount(() => {
         <span class="word">Hinausgehen</span>
       </div>
 
-      <div class="row wide" data-test="help-row">
+      <div class="row wide" data-test="help-row" :data-active="active === 4" :data-dim="active >= 0 && active !== 4">
         <svg v-if="touch" class="keys" data-test="help-touch" viewBox="0 0 150 100" aria-hidden="true">
           <circle cx="45" cy="50" r="34" class="pad" /><circle cx="105" cy="50" r="34" class="pad" />
           <path d="M57 38 A16 16 0 1 0 61 56 M57 26 V38 H45" class="dash" />
@@ -153,6 +180,10 @@ onBeforeUnmount(() => {
   box-shadow: 0 10px 0 rgb(0 0 0 / 15%);
 }
 .row.wide { grid-column: 1 / -1; }
+/* The row being explained stands out; the others step back until the voice is done */
+.row { transition: opacity 0.25s ease, transform 0.25s ease; border-radius: 18px; }
+.row[data-dim='true'] { opacity: 0.35; }
+.row[data-active='true'] { transform: scale(1.06); background: #fff3c4; }
 .row { display: grid; grid-template-columns: auto auto; grid-template-rows: auto auto; align-items: center; justify-items: center; gap: 4px 18px; }
 .keys { width: min(17vw, 190px); }
 .what { width: min(11vw, 120px); }

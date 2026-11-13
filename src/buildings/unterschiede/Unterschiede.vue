@@ -11,7 +11,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import Confetti from '@/components/Confetti.vue'
 import { REF_WIDTH, REST_MS, buildRound, createTapRest, edgeScale, hitTest, type Round } from '@/core/differences'
 import { playBeat } from '@/services/sound'
-import { speak, stopSpeaking } from '@/services/tts'
+import { instruct, speak, stopSpeaking } from '@/services/tts'
 import { onLeaveRequest } from '../leave'
 import type { BuildingResult } from '../types'
 import { loadScene, pickScene } from './scenes'
@@ -74,7 +74,7 @@ async function start() {
   if (closed) return
   round.value = buildRound(svg, COUNT, Math.random, lastRounds.get(scene) ?? [])
   lastRounds.set(scene, round.value.hotspots)
-  void speak('Finde die zehn Unterschiede! Tipp sie in einem der Bilder an.')
+  void instruct('Finde die zehn Unterschiede! Tipp sie in einem der Bilder an.')
 }
 
 function onTap(e: PointerEvent) {

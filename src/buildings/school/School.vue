@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import Confetti from '@/components/Confetti.vue'
 import { buildSession, dicePips, looseLayout, numberWord, seededRandom, type Task, type Thing } from '@/core/numbers'
 import { playBeat } from '@/services/sound'
-import { speak, stopSpeaking } from '@/services/tts'
+import { instruct, speak, stopSpeaking } from '@/services/tts'
 import { onLeaveRequest } from '../leave'
 import type { BuildingResult } from '../types'
 import { createSchoolFlow, type SchoolEffect } from './flow'
@@ -53,7 +53,7 @@ function run(effects: SchoolEffect[]) {
   sync()
   let spoken: Promise<void> = Promise.resolve()
   for (const effect of effects) {
-    if (effect.type === 'speak') spoken = speak(effect.text)
+    if (effect.type === 'speak') spoken = (effect.ask ? instruct : speak)(effect.text)
     else if (effect.type === 'chime') playBeat('chime')
     else if (effect.type === 'confetti') later(leave, CONFETTI_MS)
     else if (effect.type === 'recount') recount(effect.amount, spoken)

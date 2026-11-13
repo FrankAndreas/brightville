@@ -6,7 +6,14 @@ import { requestLeave } from '../leave'
 import Ausmalen from './Ausmalen.vue'
 import { BLANK, COLORS, PAGES, loadPage } from './pages'
 
-vi.mock('@/services/tts', () => ({ speak: vi.fn(() => Promise.resolve()), stopSpeaking: vi.fn() }))
+vi.mock('@/services/tts', async () => {
+  const { ref } = await import('vue')
+  const speak = vi.fn<(text?: string) => Promise<void>>(() => Promise.resolve())
+  // An instruction is spoken like anything else, and kept for the 🔊 button
+  const instruction = ref<string | null>(null)
+  const instruct = vi.fn((text: string) => { instruction.value = text; return speak(text) })
+  return { speak, stopSpeaking: vi.fn(), instruct, instruction, forgetInstruction: vi.fn(() => { instruction.value = null }) }
+})
 
 const press = (code: string) => window.dispatchEvent(new KeyboardEvent('keydown', { code }))
 const tiles = (w: VueWrapper) => w.findAll('[data-test="page"]')
@@ -62,7 +69,7 @@ describe('Ausmalen', () => {
     await openPage(w, 'lion')
     expect(tiles(w)).toHaveLength(0)
     expect(regions(w).length).toBeGreaterThan(5)
-    expect(speak).toHaveBeenLastCalledWith('Der Löwe')
+    expect(speak).toHaveBeenLastCalledWith('Der Löwe! Nimm eine Farbe und tipp auf das Bild.')
     w.unmount()
   })
 

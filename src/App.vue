@@ -10,6 +10,7 @@ import HelpOverlay from '@/components/HelpOverlay.vue'
 import LeaveButton from '@/components/LeaveButton.vue'
 import ParentArea from '@/components/ParentArea.vue'
 import ParentGate from '@/components/ParentGate.vue'
+import SayAgain from '@/components/SayAgain.vue'
 import ServerScreen from '@/components/ServerScreen.vue'
 import StarCounter from '@/components/StarCounter.vue'
 import StartGate from '@/components/StartGate.vue'
@@ -20,7 +21,7 @@ import { httpApi, type Api } from '@/services/api'
 import { detectDevice } from '@/services/device'
 import { renewOnce } from '@/services/renew'
 import { unlockAudio } from '@/services/sound'
-import { speak } from '@/services/tts'
+import { forgetInstruction, speak } from '@/services/tts'
 import { usePlayerStore } from '@/stores/player'
 import { useSessionStore } from '@/stores/session'
 
@@ -180,6 +181,9 @@ function reportPlay() {
   playSince = now
   void player.reportPlayTime(seconds)
 }
+// A building's instruction is its own: none is left over for the next building or the town
+watch(inside, () => forgetInstruction())
+
 watch(inside, (building, before) => {
   if (before?.kind === 'play') {
     clearInterval(playClock)
@@ -295,6 +299,7 @@ onBeforeUnmount(() => {
     <section v-if="inside" class="building">
       <component :is="inside.component" @finished="onFinished" />
       <LeaveButton />
+      <SayAgain />
     </section>
   </main>
 </template>

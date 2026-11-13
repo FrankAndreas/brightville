@@ -69,7 +69,8 @@ export type DanceEvent =
   | { type: 'frame'; body: Body | null; dtMs: number }
 
 export type DanceEffect =
-  | { type: 'speak'; text: string }
+  /** `ask`: an instruction, kept for the 🔊 button (only stepping in: the moves change every bar) */
+  | { type: 'speak'; text: string; ask?: boolean }
   /** A beat: a pitch to play, or null for a rest; the first beat of a bar gets a drum */
   | { type: 'note'; freq: number | null; downbeat: boolean }
   | { type: 'hit' }
@@ -205,7 +206,7 @@ export function createDanceFlow(songs: DanceSong[]): DanceFlow {
         case 'cameraReady':
           if (state.phase !== 'starting') return []
           state.phase = 'settling'
-          return [{ type: 'speak', text: SAY_STEP_IN }]
+          return [{ type: 'speak', text: SAY_STEP_IN, ask: true }]
         case 'cameraFailed':
           state.phase = 'noCamera'
           return [{ type: 'speak', text: SAY_NO_CAMERA }]

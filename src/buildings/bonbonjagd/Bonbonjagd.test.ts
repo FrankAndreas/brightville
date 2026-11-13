@@ -5,7 +5,14 @@ import { requestLeave } from '../leave'
 import Bonbonjagd from './Bonbonjagd.vue'
 import { MAZE_THEMES } from './themes'
 
-vi.mock('@/services/tts', () => ({ speak: vi.fn(() => Promise.resolve()), stopSpeaking: vi.fn() }))
+vi.mock('@/services/tts', async () => {
+  const { ref } = await import('vue')
+  const speak = vi.fn<(text?: string) => Promise<void>>(() => Promise.resolve())
+  // An instruction is spoken like anything else, and kept for the 🔊 button
+  const instruction = ref<string | null>(null)
+  const instruct = vi.fn((text: string) => { instruction.value = text; return speak(text) })
+  return { speak, stopSpeaking: vi.fn(), instruct, instruction, forgetInstruction: vi.fn(() => { instruction.value = null }) }
+})
 
 const fakeContext = new Proxy({}, { get: () => () => undefined, set: () => true }) as unknown as CanvasRenderingContext2D
 const run = (ms: number) => vi.advanceTimersByTimeAsync(ms)
@@ -46,7 +53,8 @@ describe('Bonbonjagd', () => {
     const w = open()
     await run(1000)
     expect(phase(w)).toBe('ready')
-    expect(said()[0]).toBe(MAZE_THEMES[0].say)
+    // The goal, then the speed to choose first
+    expect(said()[0]).toBe(`${MAZE_THEMES[0].say} Wie schnell willst du sein? Tipp auf ein Tier.`)
     expect(w.findAll('[data-test="life"]')).toHaveLength(5)
     key('ArrowLeft')
     await run(10)

@@ -79,6 +79,9 @@ The camera only works on `localhost` or over HTTPS. On a plain `http://` address
 
 ## Controls
 
+In every building, next to the door button at the top left, a 🔊 button says the building's instruction again (the question in the School, the colours in the Farblabor, the letter in Schreiben …), for a child who missed it. The Bibliothek has its own 🔁 for the story.
+
+
 | Action | Keyboard | Touch screen |
 |---|---|---|
 | Walk | Arrow keys or W A S D (up always walks away from the camera) | Drag a finger anywhere in the left half of the screen |
@@ -90,7 +93,7 @@ The camera only works on `localhost` or over HTTPS. On a plain `http://` address
 
 Keys and fingers work at the same time. The stick and the jump button appear only on a device with a touch screen.
 
-A new player (0 Stars) sees the controls as pictures at the start, read aloud; any key or tap closes them. A device with touch and no mouse gets the finger pictures instead of the keys.
+A new player (0 Stars) sees the controls as pictures at the start, read aloud one at a time while each picture lights up; any key or tap closes them. A device with touch and no mouse gets the finger pictures instead of the keys.
 
 The trampoline bounces by itself. A long fall makes the character tumble for a moment; nothing is ever lost.
 

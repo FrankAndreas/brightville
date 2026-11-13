@@ -3,7 +3,7 @@ import { onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import Confetti from '@/components/Confetti.vue'
 import { buildDeck, createMemory, pickPairs, type Card } from '@/core/memory'
 import { playBeat } from '@/services/sound'
-import { speak, stopSpeaking } from '@/services/tts'
+import { instruct, speak, stopSpeaking } from '@/services/tts'
 import { onLeaveRequest } from '../leave'
 import type { BuildingResult } from '../types'
 import { ANIMALS, COLUMNS, PAIRS_PER_ROUND } from './cards'
@@ -100,6 +100,7 @@ const isUp = (key: string) => view.open.includes(key) || view.matched.includes(k
 onMounted(() => {
   window.addEventListener('keydown', onKey)
   stopLeaveRequests = onLeaveRequest(leave)
+  void instruct('Finde die Paare! Tipp auf zwei Karten.')
 })
 onBeforeUnmount(shutDown)
 </script>
@@ -123,7 +124,8 @@ onBeforeUnmount(shutDown)
   inset: 0;
   display: grid;
   place-items: center;
-  padding: 4vh 4vw;
+  /* Below the leave and 🔊 buttons in the top-left corner (88 px) */
+  padding: calc(100px + env(safe-area-inset-top)) 4vw 4vh;
   box-sizing: border-box;
   background: #fff3c4;
 }

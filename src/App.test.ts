@@ -5,7 +5,7 @@ import { defineComponent, h, nextTick } from 'vue'
 import App from './App.vue'
 import { createCity, type CityOptions } from './city/city'
 import { unlockAudio } from './services/sound'
-import { speak } from './services/tts'
+import { forgetInstruction, speak } from './services/tts'
 import type { BuildingDef, BuildingResult } from './buildings/types'
 import { fakeApi, type FakeApi } from './services/fakeApi'
 import { ApiError } from './services/api'
@@ -14,7 +14,13 @@ import { useSessionStore } from './stores/session'
 
 vi.mock('./city/city', () => ({ createCity: vi.fn() }))
 vi.mock('./services/sound', () => ({ unlockAudio: vi.fn(), playBeat: vi.fn() }))
-vi.mock('./services/tts', () => ({ speak: vi.fn(() => Promise.resolve()), stopSpeaking: vi.fn() }))
+vi.mock('./services/tts', async () => {
+  const { ref } = await import('vue')
+  const speak = vi.fn<(text?: string) => Promise<void>>(() => Promise.resolve())
+  const instruction = ref<string | null>(null)
+  const instruct = vi.fn((text: string) => { instruction.value = text; return speak(text) })
+  return { speak, stopSpeaking: vi.fn(), instruct, instruction, forgetInstruction: vi.fn(() => { instruction.value = null }) }
+})
 const device = vi.hoisted(() => ({ camera: true, touch: false, keyboard: true }))
 vi.mock('./services/device', () => ({ detectDevice: () => ({ ...device }) }))
 
@@ -821,6 +827,18 @@ describe('App', () => {
 
   describe('stickers and the logbook', () => {
     const row = (id: string) => ({ id, earned_at: '2026-11-12T10:00:00+01:00', seen: false })
+
+    it('forgets a building\'s instruction when the child goes in and when she comes out', async () => {
+      const w = await started()
+      vi.mocked(forgetInstruction).mockClear()
+      cityOptions.onEnter('stub')
+      await flushPromises()
+      expect(forgetInstruction).toHaveBeenCalledTimes(1)
+      finishWith({ stars: 0 })
+      await flushPromises()
+      expect(forgetInstruction).toHaveBeenCalledTimes(2)
+      w.unmount()
+    })
 
     it('records a visit to Malen in which something was made, but not an empty one, nor one to the house', async () => {
       const malen: BuildingDef = { ...stub, id: 'malen', spokenName: 'Malen', kind: 'free', door: { x: -8, z: -8 } }

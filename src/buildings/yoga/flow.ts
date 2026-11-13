@@ -44,7 +44,8 @@ export type YogaEvent =
 
 /** Things for the screen to do; the flow itself touches no browser API. */
 export type YogaEffect =
-  | { type: 'speak'; text: string }
+  /** `ask`: an instruction, kept for the 🔊 button */
+  | { type: 'speak'; text: string; ask?: boolean }
   | { type: 'chime' }
   | { type: 'confetti' }
 
@@ -71,7 +72,7 @@ export function createYogaFlow(poses: PoseId[]): YogaFlow {
     state.pose = pose
     state.poseNumber += 1
     hold = createHold()
-    return [{ type: 'speak', text: poseDef(pose).voice }]
+    return [{ type: 'speak', text: poseDef(pose).voice, ask: true }]
   }
 
   function onFrame(body: Body | null, dtMs: number): YogaEffect[] {
@@ -99,7 +100,7 @@ export function createYogaFlow(poses: PoseId[]): YogaFlow {
         case 'cameraReady':
           if (state.phase !== 'starting') return []
           state.phase = 'calibrating'
-          return [{ type: 'speak', text: SAY_STEP_IN }]
+          return [{ type: 'speak', text: SAY_STEP_IN, ask: true }]
         case 'cameraFailed':
           state.phase = 'noCamera'
           state.pose = null
