@@ -420,6 +420,20 @@ describe('App', () => {
       w.unmount()
     })
 
+    it('keeps a building that needs films closed until the parents chose some', async () => {
+      const kino: BuildingDef = { ...play, id: 'kino', spokenName: 'Kino', needs: ['films'], door: { x: 8, z: -8 } }
+      Object.assign(api.state_, { stars: 10, visits: 2 })
+      const w = await started([stub, kino])
+      const kinoDoor = () => ((city.setDoors.mock.calls.at(-1)?.[0] ?? cityOptions.doors) as { id: string; open: boolean }[])
+        .find(d => d.id === 'kino')
+      expect(kinoDoor()).toMatchObject({ open: false })
+      api.films_ = [{ id: 1, youtube_id: 'dQw4w9WgXcQ', title: '' }]
+      await usePlayerStore().refresh()
+      await nextTick()
+      expect(kinoDoor()).toMatchObject({ open: true })
+      w.unmount()
+    })
+
     it('opens a free building before the goal, with no Stars and after the play time, and asks the server nothing', async () => {
       vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] })
       try {

@@ -159,3 +159,51 @@ def test_a_round_bought_yesterday_is_not_free_today(mia, monkeypatch):
     answer = play(mia, "p1")
     assert answer.status_code == 409
     assert answer.json()["detail"]["code"] == "locked"
+
+
+def test_the_new_buildings_earn_and_sell_like_the_old(mia):
+    assert visit(mia, 50, "u1", "unterschiede").json()["state"]["stars"] == 10
+    visit(mia, 1, "v2")
+    for building in ("schlange", "bonbonjagd"):
+        assert play(mia, f"p-{building}", building).status_code == 200
+    assert mia.get("/api/state").json()["stars"] == 11 - 6
+
+
+def test_requests_at_the_same_moment_all_get_answers(mia):
+    # Leaving a play building sends the play time and asks for the Stars at once
+    from concurrent.futures import ThreadPoolExecutor
+
+    visit(mia, 1, "v1")
+
+    def ask(i):
+        if i % 2:
+            return mia.post("/api/playtime", json={"seconds": 1}).status_code
+        return mia.get("/api/state").status_code
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        codes = list(pool.map(ask, range(80)))
+    assert codes == [200] * 80
+    assert mia.get("/api/state").json()["play_seconds"] == 40
+
+
+def test_a_connection_opened_in_one_worker_thread_works_in_another():
+    # FastAPI may run the get_db dependency and the request in different threads of its pool
+    import threading
+
+    from app.auth import get_db
+
+    opening = get_db()
+    connection = next(opening)
+    errors = []
+
+    def use():
+        try:
+            connection.execute("SELECT 1").fetchone()
+        except Exception as e:  # noqa: BLE001
+            errors.append(e)
+
+    worker = threading.Thread(target=use)
+    worker.start()
+    worker.join()
+    opening.close()
+    assert errors == []

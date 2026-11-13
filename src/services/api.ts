@@ -1,4 +1,4 @@
-// The game's server (backend/): who is playing, their Stars and today's numbers, the parents' settings.
+// The game's server (backend/): who is playing, their Stars and today's numbers, the parents' settings, the films.
 
 export interface Person {
   id: number
@@ -37,6 +37,25 @@ export interface Rules {
 
 export type PlayerRow = Person & ServerState
 
+/** A film the parents chose for the Cinema */
+export interface Film {
+  id: number
+  youtube_id: string
+  title: string
+}
+
+/** A painting from Malen on the server; its pictures are at paintingUrl() */
+export interface PaintingRow {
+  id: string
+  /** Milliseconds; changes when painted further */
+  updated: number
+}
+
+/** Where a painting's picture or thumbnail is; `updated` makes a changed painting a new address */
+export function paintingUrl(row: PaintingRow, which: 'image' | 'thumb'): string {
+  return `/api/paintings/${encodeURIComponent(row.id)}/${which}?v=${row.updated}`
+}
+
 /** Why a request failed: the server's code, or 'offline' when there was no usable answer. */
 export class ApiError extends Error {
   constructor(public status: number, public code: string, public loginUrl: string | null = null) {
@@ -56,6 +75,15 @@ export interface Api {
   players(): Promise<PlayerRow[]>
   setRules(personId: number, rules: Rules): Promise<ServerState>
   choose(personId: number): Promise<unknown>
+  films(): Promise<Film[]>
+  /** Parents only. Rejects with 'not_youtube', 'already_there' or 'too_many'. */
+  addFilm(url: string, title: string): Promise<Film>
+  removeFilm(id: number): Promise<unknown>
+  /** The person's paintings, newest first */
+  paintings(): Promise<PaintingRow[]>
+  /** Keeps a painting under its id (new, or painted further). Rejects with 'too_large' or 'not_a_picture'. */
+  keepPainting(id: string, image: string, thumb: string): Promise<PaintingRow>
+  removePainting(id: string): Promise<unknown>
 }
 
 type Fetch = (url: string, init: RequestInit) => Promise<Response>
@@ -100,5 +128,11 @@ export function httpApi(fetchFn: Fetch = (url, init) => fetch(url, init), onRene
     players: () => call('GET', '/api/players'),
     setRules: (personId, rules) => call('PUT', `/api/players/${personId}`, rules),
     choose: personId => call('POST', '/api/local/choose', { id: personId }),
+    films: () => call('GET', '/api/films'),
+    addFilm: (url, title) => call('POST', '/api/films', { url, title }),
+    removeFilm: id => call('DELETE', `/api/films/${id}`),
+    paintings: () => call('GET', '/api/paintings'),
+    keepPainting: (id, image, thumb) => call('PUT', `/api/paintings/${encodeURIComponent(id)}`, { image, thumb }),
+    removePainting: id => call('DELETE', `/api/paintings/${encodeURIComponent(id)}`),
   }
 }

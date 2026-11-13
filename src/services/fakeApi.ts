@@ -1,6 +1,8 @@
 // A stand-in for the server in tests: the same rules in memory (backend/app/game.py), for one person.
 import buildings from '../../shared/buildings.json'
-import { ApiError, type Api, type Me, type Person, type PlayerRow, type ServerState } from './api'
+import { ApiError, type Api, type Film, type Me, type Person, type PlayerRow, type ServerState } from './api'
+
+export interface FakePainting { id: string; updated: number; image: string; thumb: string }
 
 export interface FakeApi extends Api {
   state_: ServerState
@@ -12,6 +14,8 @@ export interface FakeApi extends Api {
   /** While true every request is carried out, but its answer is lost on the way back */
   loseAnswers: boolean
   rows: PlayerRow[]
+  films_: Film[]
+  paintings_: FakePainting[]
   /** The server's calendar turns a page */
   newDay(day: string): void
 }
@@ -29,6 +33,8 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
     offline: false,
     loseAnswers: false,
     rows: [],
+    films_: [],
+    paintings_: [],
     newDay(day) {
       Object.assign(state, { day, visits: 0, play_seconds: 0 })
     },
@@ -66,6 +72,33 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
       if (!row) throw new ApiError(404, 'unknown_person')
       Object.assign(row, rules)
       return { ...row }
+    }),
+    films: () => run('films', () => api.films_.map(f => ({ ...f }))),
+    addFilm: (url, title) => run(`addFilm ${url}`, () => {
+      // Enough of the server's rule for tests: the 11 characters after youtu.be/ or v=
+      const id = /(?:youtu\.be\/|v=)([A-Za-z0-9_-]{11})/.exec(url)?.[1]
+      if (!id) throw new ApiError(422, 'not_youtube')
+      if (api.films_.some(f => f.youtube_id === id)) throw new ApiError(409, 'already_there')
+      const film = { id: Math.max(0, ...api.films_.map(f => f.id)) + 1, youtube_id: id, title: title.trim() }
+      api.films_.push(film)
+      return { ...film }
+    }),
+    removeFilm: id => run(`removeFilm ${id}`, () => {
+      if (!api.films_.some(f => f.id === id)) throw new ApiError(404, 'unknown_film')
+      api.films_ = api.films_.filter(f => f.id !== id)
+      return { ok: true }
+    }),
+    paintings: () => run('paintings', () =>
+      [...api.paintings_].sort((a, b) => b.updated - a.updated).map(({ id, updated }) => ({ id, updated }))),
+    keepPainting: (id, image, thumb) => run(`keepPainting ${id}`, () => {
+      const updated = Math.max(Date.now(), ...api.paintings_.map(p => p.updated + 1))
+      api.paintings_ = [...api.paintings_.filter(p => p.id !== id), { id, updated, image, thumb }]
+      return { id, updated }
+    }),
+    removePainting: id => run(`removePainting ${id}`, () => {
+      if (!api.paintings_.some(p => p.id === id)) throw new ApiError(404, 'unknown_painting')
+      api.paintings_ = api.paintings_.filter(p => p.id !== id)
+      return { ok: true }
     }),
     choose: id => run(`choose ${id}`, () => {
       const person = api.me_.people.find(p => p.id === id)

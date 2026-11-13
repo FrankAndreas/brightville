@@ -1,6 +1,5 @@
-// Each child's paintings (Malen), kept on this device in IndexedDB: the full
-// image and a small thumbnail as data URLs. Only each child's newest MAX_PAINTINGS stay.
-// Not on the server: the images are large, and the NAS backup should stay small.
+// Paintings (Malen) waiting on this device, in IndexedDB, until the server can be reached:
+// the full image and a small thumbnail as data URLs, per child. paintingStore.ts sends them on.
 export const MAX_PAINTINGS = 20
 
 const DB = 'brightville'
@@ -69,13 +68,19 @@ export function savePainting(owner: number, painting: { id?: string; image: stri
     const all = (await request(store.getAll())) as Painting[]
     // Strictly newer than everything else, even when saved in the same millisecond
     const updated = Math.max(Date.now(), ...all.map(p => p.updated + 1))
-    const own = painting.id !== undefined && all.some(p => p.id === painting.id && p.owner === owner)
-    const id = own ? painting.id! : `p-${updated.toString(36)}-${Math.random().toString(36).slice(2, 7)}`
+    // A name another child uses here gets a new one
+    const taken = all.some(p => p.id === painting.id && p.owner !== owner)
+    const id = painting.id !== undefined && !taken ? painting.id : newPaintingId(updated)
     store.put({ id, owner, image: painting.image, thumb: painting.thumb, updated })
     const others = all.filter(p => p.owner === owner && p.id !== id).sort(newest)
     for (const old of others.slice(MAX_PAINTINGS - 1)) store.delete(old.id)
     return id
   })
+}
+
+/** A name for a new painting, unique enough to be made up on any device */
+export function newPaintingId(now = Date.now()): string {
+  return `p-${now.toString(36)}-${Math.random().toString(36).slice(2, 9)}`
 }
 
 export function deletePainting(owner: number, id: string): Promise<void> {

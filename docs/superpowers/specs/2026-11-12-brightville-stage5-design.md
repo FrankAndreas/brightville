@@ -94,8 +94,12 @@ The square keeps its size. The doors stand on three sides **(call)**:
 - **The left side**, facing the middle: Ausmalen, Malen.
 - **The right side**, facing the middle: Spielhalle, Schlange, Bonbonjagd.
 
-The camera always looks from behind, so a door on a side is seen from its edge. Side buildings therefore carry their sign as a hanging sign sticking out from the wall, facing the camera, like a shop sign in an old town. The glowing ring on the ground and the door prompt work as before.
-The two scenery houses on the sides give way.
+The camera always looks from behind, so a door on a side is seen from its edge. Side buildings therefore carry their sign as a hanging sign sticking out from the wall, facing the camera, like a shop sign in an old town. The sign hangs on the camera side of its door, so the next house's sign doesn't cover the picture. The glowing ring on the ground and the door prompt work as before.
+Every door has at least 3 m to any other house, and the trampoline moved further from the doors, so nobody bounces away at a door. The scenery houses give way, except one in the near left corner.
+
+## Found while building
+
+- Two requests at the same moment (leaving a play building reports the play time and asks for the Stars at once) made the stage 4 server fail with an error 500: FastAPI may open a request's database connection in one thread and use it in another. Fixed in part 2.
 
 ## Delivered in two parts **(call)**
 
