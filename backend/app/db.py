@@ -10,6 +10,8 @@
 - stickers: the stickers each child has earned, and whether the child has seen them yet.
 - goal_days: the days a child reached the daily goal, with the goal of that day.
 - settings: what the database itself must remember, e.g. `mode` (see claim_mode).
+- looks: each player's look (colour, hair, glasses) and what she wears, as JSON.
+- outfits: the add-ons each player owns, bought in the Kleiderladen or given with a sticker.
 """
 
 import os
@@ -96,6 +98,23 @@ FROM events e LEFT JOIN players p ON p.person_id = e.person_id
 WHERE e.kind = 'visit'
 GROUP BY e.person_id, substr(e.at, 1, 10)
 HAVING COUNT(*) >= COALESCE(p.daily_goal, 2);
+""",
+    # Stage 7: her look and her add-ons. The Stars she has now are noted as her savings, which count half in the shop
+    """
+ALTER TABLE players ADD COLUMN savings INTEGER NOT NULL DEFAULT 0;
+UPDATE players SET savings = stars;
+CREATE TABLE looks (
+    person_id INTEGER PRIMARY KEY,
+    look TEXT NOT NULL,
+    worn TEXT NOT NULL DEFAULT '{}'
+);
+CREATE TABLE outfits (
+    person_id INTEGER NOT NULL,
+    item_id TEXT NOT NULL,
+    how TEXT NOT NULL,
+    got_at TEXT NOT NULL,
+    PRIMARY KEY (person_id, item_id)
+);
 """,
 ]
 VERSION = len(MIGRATIONS)

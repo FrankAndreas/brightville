@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from . import auth, films, game, hub, local, paintings, people, stickers
+from . import auth, films, game, hub, local, paintings, people, stickers, wardrobe
 from . import db as database
 from .auth import error, get_db
 from .buildings import Building, all_buildings
@@ -132,6 +132,19 @@ class PaintingIn(BaseModel):
 
 
 PaintingId = Path(pattern=paintings.ID.pattern)
+
+
+class LookIn(BaseModel):
+    look: dict
+
+
+class WornIn(BaseModel):
+    worn: dict[str, Optional[str]] = Field(max_length=8)
+
+
+class BuyIn(BaseModel):
+    item: str = Field(max_length=40)
+    key: str = Field(min_length=1, max_length=64)
 
 
 class ChooseIn(BaseModel):
@@ -285,6 +298,43 @@ def diary(
         raise error(404, "unknown_person")
     stickers.award(db, person_id)
     return {"days": stickers.logbook(db, person_id, None, days), "stickers": stickers.listing(db, person_id)}
+
+
+@app.get("/api/wardrobe")
+def wardrobe_state(person: Person = Depends(auth.current_person), db: sqlite3.Connection = Depends(get_db)) -> dict:
+    # Gifts for stickers from before the shop came arrive on the first look
+    wardrobe.give_gifts(db, person.id)
+    return wardrobe.state(db, person.id)
+
+
+@app.put("/api/look")
+def save_look(
+    body: LookIn, person: Person = Depends(auth.current_person), db: sqlite3.Connection = Depends(get_db)
+) -> dict:
+    try:
+        wardrobe.save_look(db, person.id, body.look)
+    except wardrobe.BadLook:
+        raise error(422, "bad_look") from None
+    return wardrobe.state(db, person.id)
+
+
+@app.put("/api/worn")
+def set_worn(
+    body: WornIn, person: Person = Depends(auth.current_person), db: sqlite3.Connection = Depends(get_db)
+) -> dict:
+    wardrobe.wear(db, person.id, body.worn)
+    return wardrobe.state(db, person.id)
+
+
+@app.post("/api/shop/buy")
+def shop_buy(
+    body: BuyIn, person: Person = Depends(auth.current_person), db: sqlite3.Connection = Depends(get_db)
+) -> dict:
+    try:
+        now = wardrobe.buy(db, person.id, body.item, body.key)
+    except game.Refused as refused:
+        raise error(404 if refused.code == "unknown" else 409, refused.code) from None
+    return {"state": now.as_dict(), "wardrobe": wardrobe.state(db, person.id)}
 
 
 @app.get("/api/films")

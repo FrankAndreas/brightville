@@ -15,7 +15,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, Optional
 
-from . import clock
+from . import clock, wardrobe
 from .db import writing
 
 DEFAULT_FILE = Path(__file__).resolve().parents[2] / "shared" / "stickers.json"
@@ -102,6 +102,8 @@ def award(db: sqlite3.Connection, person_id: int) -> list[str]:
     f = facts(db, person_id)
     due = [s.id for s in catalogue() if s.id not in have and earned(s, f)]
     if not due:
+        # A sticker from before the shop came still brings its gift
+        wardrobe.give_gifts(db, person_id)
         return []
     at = clock.now().isoformat(timespec="seconds")
     new = []
@@ -113,6 +115,7 @@ def award(db: sqlite3.Connection, person_id: int) -> list[str]:
             )
             if added.rowcount:
                 new.append(sticker_id)
+    wardrobe.give_gifts(db, person_id)
     return new
 
 

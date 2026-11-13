@@ -19,6 +19,8 @@ class State:
     daily_goal: int
     play_seconds: int
     play_minutes: Optional[int]
+    # Stars saved before the shop came (stage 7): they count half there, and never more than the Stars she has
+    savings: int = 0
 
     def goal_reached(self) -> bool:
         return self.visits >= self.daily_goal
@@ -66,15 +68,18 @@ def _row(db: sqlite3.Connection, person_id: int) -> State:
         daily_goal=row["daily_goal"],
         play_seconds=row["play_seconds"] if same_day else 0,
         play_minutes=row["play_minutes"],
+        savings=row["savings"],
     )
 
 
 def _store(db: sqlite3.Connection, person_id: int, state: State) -> None:
+    # Savings are part of the Stars: whatever takes Stars (a round, a parent's change) takes them down too
+    state.savings = max(0, min(state.savings, state.stars))
     db.execute(
-        "INSERT INTO players (person_id, stars, day, visits, play_seconds, daily_goal, play_minutes)"
-        " VALUES (:id, :stars, :day, :visits, :play_seconds, :daily_goal, :play_minutes)"
+        "INSERT INTO players (person_id, stars, day, visits, play_seconds, daily_goal, play_minutes, savings)"
+        " VALUES (:id, :stars, :day, :visits, :play_seconds, :daily_goal, :play_minutes, :savings)"
         " ON CONFLICT (person_id) DO UPDATE SET stars = :stars, day = :day, visits = :visits,"
-        " play_seconds = :play_seconds, daily_goal = :daily_goal, play_minutes = :play_minutes",
+        " play_seconds = :play_seconds, daily_goal = :daily_goal, play_minutes = :play_minutes, savings = :savings",
         {"id": person_id, **state.as_dict()},
     )
 

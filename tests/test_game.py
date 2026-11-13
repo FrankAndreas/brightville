@@ -17,6 +17,7 @@ def test_a_new_player_starts_with_nothing_and_the_usual_rules(mia):
         "daily_goal": 2,
         "play_seconds": 0,
         "play_minutes": None,
+        "savings": 0,
     }
 
 
@@ -136,6 +137,7 @@ def test_a_new_day_starts_the_visits_and_the_play_time_over_and_keeps_the_stars(
         "daily_goal": 2,
         "play_seconds": 0,
         "play_minutes": None,
+        "savings": 0,
     }
     assert play(mia, "p1").json()["detail"]["code"] == "locked"
     assert visit(mia, 1, "v3").json()["state"]["visits"] == 1
