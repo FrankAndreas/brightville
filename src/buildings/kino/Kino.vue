@@ -8,6 +8,8 @@ import type { BuildingResult } from '../types'
 import { PLAYER_ORIGIN, endedMessage, playerUrl, thumbnail } from './youtube'
 
 // The Cinema: one of the films the parents chose, bought at the door. Back to the town when it ends.
+// The player is sandboxed without popups or top navigation: YouTube's logo and the film's title lead nowhere, so
+// the child can't get from here to youtube.com or the YouTube app and its other films (security review, Nov 2026).
 const props = defineProps<{
   /** The films to pick from; the parents' list when not given */
   films?: Film[]
@@ -79,6 +81,7 @@ onBeforeUnmount(shutDown)
     <iframe
       v-if="playing" ref="frame" class="screen" :src="playerUrl(playing.youtube_id, PAGE_ORIGIN)"
       title="Film" allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+      sandbox="allow-scripts allow-same-origin allow-presentation"
       referrerpolicy="strict-origin-when-cross-origin" allowfullscreen @load="onPlayerLoad"
     />
     <div v-else-if="films.length" class="wall">

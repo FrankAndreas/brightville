@@ -641,7 +641,12 @@ describe('App', () => {
       w.unmount()
       const server = fakeApi({}, { person: { id: 7, name: 'Papa', role: 'PARENT', color: null } })
       w = await started([stub], server)
-      await w.find('[data-test="parents-button"]').trigger('click')
+      // Through the gate: the gear opens a question first, and only the right answer opens the page
+      await w.find('[data-test="parents-button"]').trigger('keydown', { key: 'Enter' })
+      const question = w.find('[data-test="parents-question"]')
+      const product = Number(question.attributes('data-a')) * Number(question.attributes('data-b'))
+      await w.find('[data-test="parents-answer"]').setValue(String(product))
+      await w.find('form').trigger('submit')
       await flushPromises()
       expect(w.find('[data-test="parent-area"]').exists()).toBe(true)
       expect(city.pause).toHaveBeenCalled()

@@ -15,12 +15,21 @@ class Building:
     kind: str  # "earn", "play" or "free" (neither earns nor sells)
     max_stars: int = 0  # the most one earning visit gives
     cost: int = 0  # Stars for one round of play
+    # An earning visit takes at least this long per Star it brings (the cool-down, game.visit): about half of the
+    # fastest real visit, so a child is never held back, while Stars can't be sent faster than they can be earned
+    min_seconds_per_star: float = 0
 
 
 @lru_cache
 def all_buildings() -> dict[str, Building]:
     with open(os.getenv("BUILDINGS_FILE") or DEFAULT_FILE, encoding="utf-8") as file:
         return {
-            b["id"]: Building(b["id"], b["kind"], int(b.get("maxStars", 0)), int(b.get("cost", 0)))
+            b["id"]: Building(
+                b["id"],
+                b["kind"],
+                int(b.get("maxStars", 0)),
+                int(b.get("cost", 0)),
+                float(b.get("minSecondsPerStar", 0)),
+            )
             for b in json.load(file)
         }

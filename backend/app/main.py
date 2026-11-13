@@ -1,5 +1,6 @@
 """Brightville's server: who is playing, their Stars and today's numbers, and the parents' settings."""
 
+import asyncio
 import logging
 import os
 import sqlite3
@@ -70,6 +71,21 @@ async def home_only(request: Request, call_next):
     """Cloudflare sets Cf-Connecting-Ip on everything through the tunnel: the game is for the home network only."""
     if "cf-connecting-ip" in request.headers:
         return JSONResponse({"detail": {"code": "home_only"}}, status_code=403)
+    return await call_next(request)
+
+
+# Paintings arriving at once: each needs some 30 MB while it is read and checked, so more than this many together
+# could pass the container's memory limit. Others wait their turn (nginx gives a request 30 s)
+UPLOADS_AT_ONCE = 2
+_uploads = asyncio.Semaphore(UPLOADS_AT_ONCE)
+
+
+@app.middleware("http")
+async def uploads_in_turn(request: Request, call_next):
+    """Holds a painting's upload until it may be read: the body is read inside call_next, so this comes first."""
+    if request.method == "PUT" and request.url.path.startswith("/api/paintings/"):
+        async with _uploads:
+            return await call_next(request)
     return await call_next(request)
 
 
@@ -176,7 +192,10 @@ def state(person: Person = Depends(auth.current_person), db: sqlite3.Connection 
 def visit(
     body: VisitIn, person: Person = Depends(auth.current_person), db: sqlite3.Connection = Depends(get_db)
 ) -> dict:
-    now, reached = game.visit(db, person.id, building_of(body.building, "earn"), body.stars, body.key)
+    try:
+        now, reached = game.visit(db, person.id, building_of(body.building, "earn"), body.stars, body.key)
+    except game.TooSoon as soon:
+        raise error(409, "too_soon", retry_after=soon.retry_after) from None
     return {"state": now.as_dict(), "goal_reached_now": reached, "stickers": stickers.award(db, person.id)}
 
 

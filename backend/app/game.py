@@ -1,7 +1,9 @@
 """The rules that touch Stars: earning visits, rounds of play, play time, the daily numbers, the parent's settings."""
 
+import math
 import sqlite3
 from dataclasses import asdict, dataclass
+from datetime import datetime
 from typing import Optional
 
 from . import clock
@@ -29,11 +31,25 @@ class State:
 
 
 class Refused(Exception):
-    """A round that can't be bought right now; `code` says why: locked, time_up or poor."""
+    """A round that can't be bought right now; `code` says why: locked, time_up, poor, or key_used (the key of a
+    visit or round from another day: each key stands for one thing for good)."""
 
     def __init__(self, code: str):
         super().__init__(code)
         self.code = code
+
+
+class TooSoon(Exception):
+    """An earning visit sooner after the one before than its Stars can be earned: the page keeps it and sends it
+    again after `retry_after` seconds, so nothing is lost; Stars just can't be sent faster than a child earns them."""
+
+    def __init__(self, retry_after: int):
+        super().__init__(f"too soon, again in {retry_after} s")
+        self.retry_after = retry_after
+
+
+# Off only in tests whose clock stands still
+COOLDOWN = True
 
 
 def _row(db: sqlite3.Connection, person_id: int) -> State:
@@ -74,10 +90,28 @@ def _seen_today(db: sqlite3.Connection, person_id: int, key: str) -> bool:
 
 
 def _log(db: sqlite3.Connection, person_id: int, key: str, kind: str, building: str, stars: int) -> None:
+    # Never replaces: an entry, once written, stays (the callers check the key first)
     db.execute(
-        "INSERT OR REPLACE INTO events (person_id, key, kind, building, stars, at) VALUES (?, ?, ?, ?, ?, ?)",
+        "INSERT INTO events (person_id, key, kind, building, stars, at) VALUES (?, ?, ?, ?, ?, ?)",
         (person_id, key, kind, building, stars, clock.now().isoformat(timespec="seconds")),
     )
+
+
+def _check_pace(db: sqlite3.Connection, person_id: int, building: Building, stars: int) -> None:
+    """The cool-down: a child is in one building at a time, so an earning visit can't end sooner after the one before
+    than its Stars take to earn (building.min_seconds_per_star). Measured with the server's clock, between the
+    arrivals of the two visits, which is longer than the visit itself: generous to a child, not to a script."""
+    if not COOLDOWN or building.min_seconds_per_star <= 0:
+        return
+    row = db.execute(
+        "SELECT at FROM events WHERE person_id = ? AND kind = 'visit' ORDER BY at DESC LIMIT 1", (person_id,)
+    ).fetchone()
+    if row is None:
+        return
+    since = (clock.now() - datetime.fromisoformat(row["at"])).total_seconds()
+    needed = stars * building.min_seconds_per_star
+    if since < needed:
+        raise TooSoon(max(1, math.ceil(needed - since)))
 
 
 def state(db: sqlite3.Connection, person_id: int) -> State:
@@ -92,6 +126,7 @@ def visit(db: sqlite3.Connection, person_id: int, building: Building, stars: int
         earned = min(stars, building.max_stars)
         if earned <= 0 or _seen(db, person_id, key):
             return now, False
+        _check_pace(db, person_id, building, earned)
         before = now.goal_reached()
         now.stars += earned
         now.visits += 1
@@ -127,6 +162,10 @@ def play(db: sqlite3.Connection, person_id: int, building: Building, key: str) -
             raise Refused("time_up")
         if now.stars < building.cost:
             raise Refused("poor")
+        # A key from another day (after the rules, so a page left open overnight still hears why the door is shut):
+        # writing it would replace that day's entry, so it buys nothing
+        if _seen(db, person_id, key):
+            raise Refused("key_used")
         now.stars -= building.cost
         _store(db, person_id, now)
         _log(db, person_id, key, "play", building.id, -building.cost)

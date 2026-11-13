@@ -58,6 +58,17 @@ describe('Kino', () => {
     w.unmount()
   })
 
+  it('keeps the player in a sandbox it cannot leave: no new windows, no leaving the page', async () => {
+    const w = open()
+    await tiles(w)[0].trigger('click')
+    const allowed = player(w).attributes('sandbox')!.split(/\s+/)
+    expect(allowed).toEqual(expect.arrayContaining(['allow-scripts', 'allow-same-origin']))
+    for (const escape of ['allow-popups', 'allow-top-navigation', 'allow-top-navigation-by-user-activation', 'allow-popups-to-escape-sandbox']) {
+      expect(allowed).not.toContain(escape)
+    }
+    w.unmount()
+  })
+
   it('goes back to the town when the film has ended', async () => {
     const w = open()
     await tiles(w)[0].trigger('click')

@@ -141,6 +141,17 @@ export const usePlayerStore = defineStore('player', () => {
     flushing = null
   }
 
+  let retryTimer: ReturnType<typeof setTimeout> | undefined
+
+  /** Sends what waits again after `seconds`, once, for the person playing then */
+  function retryLater(seconds: number) {
+    clearTimeout(retryTimer)
+    const owner = outboxKey
+    retryTimer = setTimeout(() => {
+      if (owner === outboxKey) void flush()
+    }, Math.max(1, seconds) * 1000)
+  }
+
   /** Sends what waits, oldest first. Stops at the first one the server can't be reached for. */
   function flush(): Promise<void> {
     flushing ??= sendWaiting().finally(() => { flushing = null })
@@ -161,6 +172,11 @@ export const usePlayerStore = defineStore('player', () => {
         earned(answer.stickers)
       } catch (e) {
         if (owner !== outboxKey || checkLogin(e)) return
+        // Sooner than its Stars can be earned (the server's cool-down): it waits here, shown, and goes again then
+        if (e instanceof ApiError && e.code === 'too_soon') {
+          retryLater(e.retryAfter ?? 60)
+          return
+        }
         // The server will never take this one (a building that no longer exists): let it go. Anything else,
         // an error page from a proxy included, may pass: keep it
         const refused = e instanceof ApiError && (e.code === 'unknown_building' || e.code === 'wrong_kind')

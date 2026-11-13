@@ -9,6 +9,7 @@ import GoalBar from '@/components/GoalBar.vue'
 import HelpOverlay from '@/components/HelpOverlay.vue'
 import LeaveButton from '@/components/LeaveButton.vue'
 import ParentArea from '@/components/ParentArea.vue'
+import ParentGate from '@/components/ParentGate.vue'
 import ServerScreen from '@/components/ServerScreen.vue'
 import StarCounter from '@/components/StarCounter.vue'
 import StartGate from '@/components/StartGate.vue'
@@ -283,7 +284,7 @@ onBeforeUnmount(() => {
       :ids="player.toCelebrate.slice(0, 3)" @done="player.celebrated"
     />
     <div v-if="inTown && !helpOpen" class="corner">
-      <button v-if="session.isParent" class="round" data-test="parents-button" aria-label="Eltern" @click="parentsOpen = true">⚙️</button>
+      <ParentGate v-if="session.isParent" @open="parentsOpen = true" />
       <button class="round" data-test="help-button" aria-label="Hilfe" @pointerdown="helpOpen = true">?</button>
     </div>
     <HelpOverlay v-if="helpOpen && inTown" :touch="fingersOnly" @close="closeHelp" />
