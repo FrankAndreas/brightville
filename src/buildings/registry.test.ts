@@ -103,11 +103,17 @@ describe('building registry', () => {
     }
   })
 
-  it('lists the Kleiderladen at the front, next to the house, as the one shop', () => {
-    const laden = BUILDINGS.filter(b => b.kind === 'shop')
-    expect(laden).toHaveLength(1)
-    expect(laden[0]).toMatchObject({ id: 'laden', spokenName: 'Kleiderladen', icon: '👗', needs: [], door: { x: -21, z: 24, side: 'front' } })
-    expect(laden[0].preload).toBeTypeOf('function')
+  it('lists the Kleiderladen at the front, next to the house', () => {
+    const laden = BUILDINGS.find(b => b.id === 'laden')
+    expect(laden).toMatchObject({ spokenName: 'Kleiderladen', icon: '👗', kind: 'shop', needs: [], door: { x: -21, z: 24, side: 'front' } })
+    expect(laden?.preload).toBeTypeOf('function')
+  })
+
+  it('lists the Möbelhaus at the front as the second shop, needing nothing', () => {
+    expect(BUILDINGS.filter(b => b.kind === 'shop').map(b => b.id)).toEqual(['laden', 'moebel'])
+    const moebel = BUILDINGS.find(b => b.id === 'moebel')
+    expect(moebel).toMatchObject({ spokenName: 'Möbelhaus', icon: '🛋️', kind: 'shop', needs: [], door: { side: 'front' } })
+    expect(moebel?.preload).toBeTypeOf('function')
   })
 
   it('lists the house at the front, free, needing nothing, and kept out of the logbook', () => {
@@ -134,7 +140,7 @@ describe('building registry', () => {
     expect(canServe(schreiben!, { ...device, touch: true })).toBe(true)
   })
 
-  it('keeps every door building up to the wall of the 60 m square', () => {
+  it('keeps every door building up to the wall of the square', () => {
     for (const b of BUILDINGS) {
       const f = footprint(b.door)
       expect(Math.max(-f.minX, f.maxX, -f.minZ, f.maxZ), b.id).toBeLessThanOrEqual(HALF_SIZE)
