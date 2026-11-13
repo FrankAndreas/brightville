@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import 'fake-indexeddb/auto'
 import { IDBFactory } from 'fake-indexeddb'
+import { ApiError } from './api'
 import { fakeApi, type FakeApi } from './fakeApi'
 import { paintingStore } from './paintingStore'
 import { listPaintings as waitingOnDevice, savePainting as waitOnDevice } from './paintings'
@@ -82,6 +83,31 @@ describe('paintingStore', () => {
     api.keepPainting = () => Promise.reject(Object.assign(new Error('boom'), { status: 500, code: 'offline' }))
     const id = await store.save(PICTURE)
     expect((await waitingOnDevice(1)).map(p => p.id)).toEqual([id])
+    api.keepPainting = keep
+  })
+
+  it('does not let a painting refused for good hold up the others, nor send it again and again', async () => {
+    const store = paintingStore(api, 1)
+    api.offline = true
+    // The newest is sent first: the refused one, ahead of the other
+    const small = await waitOnDevice(1, PICTURE)
+    const big = await waitOnDevice(1, { image: 'data:image/png;base64,BIG', thumb: PICTURE.thumb })
+    api.offline = false
+    const keep = api.keepPainting
+    let tries = 0
+    api.keepPainting = (id, image, thumb) => {
+      if (image.endsWith('BIG')) {
+        tries += 1
+        return Promise.reject(new ApiError(413, 'too_large'))
+      }
+      return keep(id, image, thumb)
+    }
+    const listed = await store.list()
+    expect(api.paintings_.map(p => p.id)).toEqual([small])
+    // Still kept, on this device
+    expect(listed).toContainEqual(expect.objectContaining({ id: big, waiting: true }))
+    await store.list()
+    expect(tries).toBe(1)
     api.keepPainting = keep
   })
 })

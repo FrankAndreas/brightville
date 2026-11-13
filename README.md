@@ -149,7 +149,7 @@ The five poses are Stern, Riese, Baum, Frosch and Flieger. Their rules are in `s
 
 Both need only the head and shoulders in the picture, so the child can stand closer to the camera than for Yoga. A raised hand that leaves the top of the picture still counts as "up" by its elbow.
 Progress only goes up: a move done stays done.
-When the camera loses the child for 1.5 seconds, an 👀 covers the picture and the voice asks them to step in front of the camera again; the meter waits, and in the Tanzsaal the music stops until the child is back.
+The frame around the camera picture is green while the camera sees the child and orange at once when it doesn't. When the camera loses the child for 1.5 seconds, an 👀 covers the picture and the voice asks them to step in front of the camera again; the meter waits, and in the Tanzsaal the music stops until the child is back.
 
 - **Hüpfhalle:** a figure shows the move, and every one the child does fills the meter by a step with a rising note. Ten fill a round; the voice counts along from seven. Moves: Hampelmann, Hüpfen, Kniebeuge, Strecken (rules in `src/core/moves/reps.ts`).
 - **Tanzsaal:** two of three little tunes (`src/core/moves/tunes.ts`, played with Web Audio). A dancer shows an arm move each bar: arms up, arms out, hands on the hips, hands on the head, waving, clapping (`src/core/moves/dance.ts`). A move counts if the child is in it at any moment of its bar or half a beat later. Missed moves just stay dark. Leaving during a song pays for the moves caught so far.
@@ -161,7 +161,7 @@ The tracking model (`public/mediapipe/pose_landmarker_lite.task`, from Google's 
 
 The house at the front of the square holds two things to tap:
 
-- **Tagebuch:** one page per day the child did something, newest first. It shows the icon of each building visited with the Stars earned (green) or spent (grey), a sun when the daily goal was reached, the stickers earned and the paintings made that day. The voice reads the date, and tapping an entry says it ("Schule, sieben Sterne."). It is built from what the server has recorded since stage 4; visits to Malen and Ausmalen are recorded from stage 6 on.
+- **Tagebuch:** one page per day the child did something, newest first. It shows the icon of each building visited with the Stars earned (green) or spent (grey), a sun when the daily goal was reached, the stickers earned and the paintings made that day. The voice reads the date, and tapping an entry says it ("Schule, sieben Sterne."). It is built from what the server has recorded since stage 4; visits to Malen and Ausmalen are recorded from stage 6 on, and only those in which something was made: at least ten strokes or fills and a minute inside (`src/buildings/effort.ts`).
 - **Stickerheft:** a space for each of the 17 stickers, earned ones in colour, the rest as grey outlines. Tapping one says what it is for.
 
 **Stickers** are rare milestones, never spent: ten visits to a building, six different learning buildings, the daily goal 3, 7 or 14 days in a row or on 10 or 30 days, 100 or 500 Stars. The list is `shared/stickers.json`, read by the page and the server; the server decides (`backend/app/stickers.py`), after each visit and when the page loads, so earlier history counts. A new sticker is celebrated in the town (at most three in a row; any more wait in the album, which glows).

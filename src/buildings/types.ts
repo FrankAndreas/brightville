@@ -7,6 +7,8 @@ export type Need = 'camera' | 'touch' | 'keyboard' | 'films'
 /** What a building reports when the child leaves it */
 export interface BuildingResult {
   stars: number
+  /** A free building: enough was made in this visit for the logbook (see effort.ts). Left out: nothing was. */
+  made?: boolean
 }
 
 /**

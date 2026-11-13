@@ -81,7 +81,7 @@ const songDone = (i: number) => i + 1 < view.song || (i + 1 === view.song && (vi
       </div>
 
       <div class="stage">
-        <div class="mirror">
+        <div class="mirror" data-test="mirror" :data-seen="view.seen">
           <video ref="video" autoplay muted playsinline />
           <svg class="outline" viewBox="0 0 100 100" data-test="outline" :data-visible="view.seen" aria-hidden="true">
             <circle cx="50" cy="34" r="12" />
@@ -133,6 +133,17 @@ const songDone = (i: number) => i + 1 < view.song || (i + 1 === view.song && (vi
 .stage { flex: 1; min-height: 0; display: flex; gap: 3vw; padding: 2vh 4vw 5vh; }
 .mirror, .floor { flex: 1; min-width: 0; position: relative; border-radius: 36px; overflow: hidden; }
 .mirror { background: #4a3a78; }
+/* The frame says whether the camera sees her: green while seen, orange while not (not red: nothing is wrong) */
+.mirror::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 10px #f5a623;
+  pointer-events: none;
+  transition: box-shadow 0.3s ease;
+}
+.mirror[data-seen='true']::after { box-shadow: inset 0 0 0 10px #4bd37b; }
 video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
 .outline { position: absolute; inset: 4%; width: 92%; height: 92%; }
 .outline circle, .outline path {

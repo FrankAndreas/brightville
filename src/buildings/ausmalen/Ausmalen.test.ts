@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { speak } from '@/services/tts'
+import { MIN_MARKS, MIN_VISIT_MS } from '../effort'
 import { requestLeave } from '../leave'
 import Ausmalen from './Ausmalen.vue'
 import { BLANK, COLORS, PAGES, loadPage } from './pages'
@@ -90,11 +91,25 @@ describe('Ausmalen', () => {
     await flushPromises()
     expect(tiles(w)).toHaveLength(20)
     requestLeave()
-    expect(w.emitted('finished')).toEqual([[{ stars: 0 }]])
+    // Nothing was coloured: not for the logbook
+    expect(w.emitted('finished')).toEqual([[{ stars: 0, made: false }]])
     // Nothing more after leaving
     requestLeave()
     press('Escape')
     expect(w.emitted('finished')).toHaveLength(1)
+    w.unmount()
+  })
+
+  it('counts the visit for the logbook after enough fills and time', async () => {
+    const now = vi.spyOn(Date, 'now').mockReturnValue(1_000)
+    const w = await open()
+    await openPage(w)
+    for (let i = 0; i < MIN_MARKS; i++) await regions(w)[i % regions(w).length].trigger('click')
+    now.mockReturnValue(1_000 + MIN_VISIT_MS)
+    requestLeave()
+    await flushPromises()
+    requestLeave()
+    expect(w.emitted('finished')).toEqual([[{ stars: 0, made: true }]])
     w.unmount()
   })
 

@@ -1,7 +1,8 @@
 """Stickers: rare milestones a child works toward, and the logbook of what the child did, day by day.
 
 Both are worked out from `events` (every earning visit, round bought and free visit, kept since stage 4) and
-`goal_days`, so a child's history from before stickers existed counts too. The catalogue is shared/stickers.json,
+`goal_days` (older days written down once by a migration), so a child's history from before stickers existed counts
+too. The catalogue is shared/stickers.json,
 the same file the page reads. An earned sticker is never taken back.
 """
 
@@ -12,9 +13,9 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from functools import lru_cache
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
-from . import clock, game
+from . import clock
 from .db import writing
 
 DEFAULT_FILE = Path(__file__).resolve().parents[2] / "shared" / "stickers.json"
@@ -45,15 +46,9 @@ class Facts:
 
 
 def _goal_days(db: sqlite3.Connection, person_id: int) -> set[str]:
-    """Days the goal was reached: as recorded since stage 6, and for older days, by today's goal."""
-    kept = {r["day"] for r in db.execute("SELECT day FROM goal_days WHERE person_id = ?", (person_id,))}
-    goal = game.state(db, person_id).daily_goal
-    counted = db.execute(
-        "SELECT substr(at, 1, 10) AS day FROM events WHERE person_id = ? AND kind = 'visit'"
-        " GROUP BY day HAVING COUNT(*) >= ?",
-        (person_id, goal),
-    )
-    return kept | {r["day"] for r in counted}
+    """Days the goal was reached, as written down: by the visit that reached it, and for the days from before that
+    was kept, once by a migration (db.py). Changing the goal never changes a day gone by."""
+    return {r["day"] for r in db.execute("SELECT day FROM goal_days WHERE person_id = ?", (person_id,))}
 
 
 def _best_streak(days: set[str]) -> int:
@@ -101,24 +96,24 @@ def earned(sticker: Sticker, f: Facts) -> bool:
 
 def award(db: sqlite3.Connection, person_id: int) -> list[str]:
     """Gives every sticker the child has earned and doesn't have yet; returns the new ones, in catalogue order.
-    Two requests at once can't give one twice: the table keeps one row per child and sticker."""
+    Worked out without the write lock, which is taken only when there is something to give: the page asks with every
+    refresh. Two requests at once can't give one twice: the table keeps one row per child and sticker."""
+    have = {r["sticker_id"] for r in db.execute("SELECT sticker_id FROM stickers WHERE person_id = ?", (person_id,))}
+    f = facts(db, person_id)
+    due = [s.id for s in catalogue() if s.id not in have and earned(s, f)]
+    if not due:
+        return []
+    at = clock.now().isoformat(timespec="seconds")
+    new = []
     with writing(db):
-        have = {
-            r["sticker_id"] for r in db.execute("SELECT sticker_id FROM stickers WHERE person_id = ?", (person_id,))
-        }
-        f = facts(db, person_id)
-        at = clock.now().isoformat(timespec="seconds")
-        new = []
-        for sticker in catalogue():
-            if sticker.id in have or not earned(sticker, f):
-                continue
+        for sticker_id in due:
             added = db.execute(
                 "INSERT OR IGNORE INTO stickers (person_id, sticker_id, earned_at) VALUES (?, ?, ?)",
-                (person_id, sticker.id, at),
+                (person_id, sticker_id, at),
             )
             if added.rowcount:
-                new.append(sticker.id)
-        return new
+                new.append(sticker_id)
+    return new
 
 
 def listing(db: sqlite3.Connection, person_id: int) -> list[dict]:
@@ -137,30 +132,47 @@ def mark_seen(db: sqlite3.Connection, person_id: int, ids: list[str]) -> None:
 
 def logbook(db: sqlite3.Connection, person_id: int, before: Optional[str] = None, days: int = 7) -> list[dict]:
     """The days on which something happened, newest first, at most `days` of them and only before `before`.
-    Times are as at home: an event's time was written with the home clock, so its first ten characters are its day."""
-    pages: dict[str, dict] = {}
+    Times are as at home: an event's time was written with the home clock, so its first ten characters are its day.
 
-    def page(day: str) -> dict:
-        return pages.setdefault(
-            day, {"day": day, "goal_reached": False, "entries": [], "stickers": [], "paintings": []}
+    Only the shown days are read: the days are picked first (events by SQL; stickers and paintings are few), so a
+    page costs the same after years of play."""
+    # "YYYY-MM-DD" sorts before every time on that day, so `at < before` means "on an earlier day"
+    upper = before or "9999-12-31T"
+    stickers = [s for s in listing(db, person_id) if s["earned_at"] < upper]
+    paintings = [
+        (datetime.fromtimestamp(p["updated"] / 1000, clock.zone()).strftime("%Y-%m-%d"), p)
+        for p in db.execute("SELECT id, updated FROM paintings WHERE person_id = ? ORDER BY updated", (person_id,))
+    ]
+    paintings = [(day, p) for day, p in paintings if day < upper]
+    event_days = {
+        r[0]
+        for r in db.execute(
+            "SELECT DISTINCT substr(at, 1, 10) AS day FROM events WHERE person_id = ? AND at < ?"
+            " ORDER BY day DESC LIMIT ?",
+            (person_id, upper, days),
         )
+    }
+    candidates = event_days | {s["earned_at"][:10] for s in stickers} | {day for day, _ in paintings}
+    chosen = sorted(candidates, reverse=True)[:days]
+    if not chosen:
+        return []
 
-    for r in db.execute(
-        "SELECT building, kind, stars, at FROM events WHERE person_id = ? ORDER BY at, rowid", (person_id,)
-    ):
-        page(r["at"][:10])["entries"].append(
-            {"building": r["building"], "kind": r["kind"], "stars": r["stars"], "at": r["at"][11:16]}
-        )
-    for s in listing(db, person_id):
-        page(s["earned_at"][:10])["stickers"].append(s["id"])
-    for p in db.execute(
-        "SELECT id, updated FROM paintings WHERE person_id = ? ORDER BY updated", (person_id,)
-    ).fetchall():
-        day = datetime.fromtimestamp(p["updated"] / 1000, clock.zone()).strftime("%Y-%m-%d")
-        page(day)["paintings"].append({"id": p["id"], "updated": p["updated"]})
-
-    chosen = sorted((d for d in pages if before is None or d < before), reverse=True)[:days]
     reached = _goal_days(db, person_id)
-    for d in chosen:
-        pages[d]["goal_reached"] = d in reached
+    pages: dict[str, dict[str, Any]] = {
+        d: {"day": d, "goal_reached": d in reached, "entries": [], "stickers": [], "paintings": []} for d in chosen
+    }
+    for r in db.execute(
+        "SELECT building, kind, stars, at FROM events WHERE person_id = ? AND at >= ? AND at < ? ORDER BY at, rowid",
+        (person_id, chosen[-1], upper),
+    ):
+        if r["at"][:10] in pages:
+            pages[r["at"][:10]]["entries"].append(
+                {"building": r["building"], "kind": r["kind"], "stars": r["stars"], "at": r["at"][11:16]}
+            )
+    for s in stickers:
+        if s["earned_at"][:10] in pages:
+            pages[s["earned_at"][:10]]["stickers"].append(s["id"])
+    for day, p in paintings:
+        if day in pages:
+            pages[day]["paintings"].append({"id": p["id"], "updated": p["updated"]})
     return [pages[d] for d in chosen]

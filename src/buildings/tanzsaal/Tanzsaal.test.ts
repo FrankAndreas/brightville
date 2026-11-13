@@ -102,6 +102,20 @@ describe('Tanzsaal', () => {
     expect(closeCamera).toHaveBeenCalledWith(stream)
   })
 
+  it('frames the camera picture green while she is seen, orange at once when not', async () => {
+    const w = await open()
+    const frame = () => w.find('[data-test="mirror"]').attributes('data-seen')
+    seen = standing()
+    await run(500)
+    expect(frame()).toBe('true')
+    // At once, long before she counts as lost and the 👀 shows
+    seen = null
+    await run(200)
+    expect(frame()).toBe('false')
+    expect(w.find('[data-test="lost"]').exists()).toBe(false)
+    w.unmount()
+  })
+
   it('stops the music while she is not seen', async () => {
     const w = await open()
     seen = standing()
