@@ -215,6 +215,25 @@ describe('Haus', () => {
     })
   })
 
+  describe('the room', () => {
+    it('shows seven spots, empty as outlines', async () => {
+      const w = await open()
+      const spots = w.findAll('[data-test="spot"]')
+      expect(spots.map(s => s.attributes('data-spot'))).toEqual(['bild', 'vorhang', 'lampe', 'bett', 'teppich', 'pflanze', 'spielzeug'])
+      expect(spots.every(s => s.attributes('data-empty') === 'true')).toBe(true)
+    })
+
+    it('keeps book, album, trophy shelf and a drawn wardrobe as things of their own', async () => {
+      const w = await open()
+      expect(w.find('[data-test="open-book"]').exists()).toBe(true)
+      expect(w.find('[data-test="open-album"]').exists()).toBe(true)
+      expect(w.findAll('[data-test="trophy"]').length).toBeGreaterThan(0)
+      // A proper wardrobe, drawn, not the small door picture
+      expect(w.find('[data-test="open-wardrobe"] svg').exists()).toBe(true)
+      expect(w.find('[data-test="open-wardrobe"]').text()).not.toContain('🚪')
+    })
+  })
+
   describe('the trophy shelf', () => {
     it('shows all 17 places, earned ones as trophies', async () => {
       api.stickers_ = [row('rechenprofi')]
