@@ -7,7 +7,10 @@ import { useSessionStore } from '@/stores/session'
 import { onLeaveRequest } from '../leave'
 import type { BuildingResult } from '../types'
 import Kleiderschrank from './Kleiderschrank.vue'
+import RoomPicture from './RoomPicture.vue'
+import Schrank from './Schrank.vue'
 import Stickerheft from './Stickerheft.vue'
+import Trophaeen from './Trophaeen.vue'
 import Tagebuch from './Tagebuch.vue'
 
 // The child's own house: a book on the table with what she did, day by day, and an album with her stickers.
@@ -51,7 +54,7 @@ function onKey(e: KeyboardEvent) {
 onMounted(() => {
   window.addEventListener('keydown', onKey)
   stopLeaveRequests = onLeaveRequest(leave)
-  void instruct('Willkommen zu Hause! Tipp auf das Buch, auf den Stern oder auf den Schrank.')
+  void instruct('Willkommen zu Hause! Tipp auf das Buch, das Stickerheft oder den Schrank.')
 })
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKey)
@@ -61,21 +64,21 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="haus" data-test="haus" :data-view="view">
-    <div v-if="view === 'room'" class="room">
-      <div class="window" aria-hidden="true">☀️</div>
-      <button class="thing book" data-test="open-book" aria-label="Tagebuch" @click="show('book')">
-        <span class="picture">📖</span>
-        <span class="table" />
-      </button>
-      <button class="thing album" data-test="open-album" aria-label="Stickerheft" :data-new="albumNew" @click="show('album')">
-        <span class="picture">⭐</span>
-        <span class="shelf" />
-      </button>
+    <RoomPicture v-if="view === 'room'" :placed="{}" class="room">
+      <div class="table-top">
+        <button class="thing book" data-test="open-book" aria-label="Tagebuch" @click="show('book')">
+          <span class="picture">📖</span>
+        </button>
+        <button class="thing album" data-test="open-album" aria-label="Stickerheft" :data-new="albumNew" @click="show('album')">
+          <span class="picture">⭐</span>
+        </button>
+      </div>
+      <span class="table" aria-hidden="true" />
+      <Trophaeen class="trophy-shelf" />
       <button class="thing wardrobe" data-test="open-wardrobe" aria-label="Kleiderschrank" @click="show('wardrobe')">
-        <span class="picture">🚪</span>
-        <span class="shelf" />
+        <Schrank />
       </button>
-    </div>
+    </RoomPicture>
 
     <template v-else>
       <button class="back" data-test="back" aria-label="Zurück ins Zimmer" @click="show('room')">🏠</button>
@@ -93,21 +96,12 @@ onBeforeUnmount(() => {
   background: linear-gradient(#fbe8d3 0 72%, #d9a877 72%);
   overflow: hidden;
 }
-.room { position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: space-evenly; padding-bottom: 10vh; }
-.window {
-  position: absolute;
-  top: 10vh;
-  left: 50%;
-  translate: -50% 0;
-  width: min(26vw, 220px);
-  aspect-ratio: 1.3;
-  display: grid;
-  place-items: center;
-  font-size: min(9vw, 80px);
-  border: 10px solid #fff;
-  border-radius: 16px;
-  background: #bfe7ff;
-}
+/* The house's own things, laid over the room drawing (RoomPicture), in percent of the room */
+.table-top { position: absolute; left: 34%; top: 60%; width: 24%; height: 18%; display: flex; justify-content: space-evenly; align-items: flex-end; }
+.table { position: absolute; left: 33%; top: 78%; width: 26%; height: 3.4%; border-radius: 1cqh; background: #9c6b3e; box-shadow: 0 0.8cqh 0 #7d5530; }
+.trophy-shelf { position: absolute; left: 51%; top: 17%; width: 33%; }
+/* Shaped like the drawing and standing on the floor, so the wall above it opens nothing */
+.wardrobe { position: absolute; left: 85%; bottom: 4%; width: 13%; aspect-ratio: 120 / 220; padding: 0; }
 .thing {
   border: 0;
   background: none;
@@ -118,9 +112,7 @@ onBeforeUnmount(() => {
   transition: transform 0.2s ease;
 }
 .thing:active { transform: scale(0.95); }
-.picture { font-size: min(18vw, 26vh); line-height: 1; filter: drop-shadow(0 8px 0 rgb(0 0 0 / 12%)); }
-.table, .shelf { display: block; width: min(30vw, 260px); height: 22px; border-radius: 10px; background: #9c6b3e; }
-.shelf { background: #b07d4c; }
+.picture { font-size: min(13cqh, 9cqw); line-height: 1; filter: drop-shadow(0 0.8cqh 0 rgb(0 0 0 / 12%)); }
 .album[data-new='true'] .picture { animation: glow 1.2s ease-in-out infinite; }
 @keyframes glow {
   50% { transform: scale(1.12) rotate(-6deg); filter: drop-shadow(0 0 24px #ffd93d); }

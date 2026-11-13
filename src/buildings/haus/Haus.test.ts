@@ -215,6 +215,59 @@ describe('Haus', () => {
     })
   })
 
+  describe('the room', () => {
+    it('shows seven spots, empty as outlines', async () => {
+      const w = await open()
+      const spots = w.findAll('[data-test="spot"]')
+      expect(spots.map(s => s.attributes('data-spot'))).toEqual(['bild', 'vorhang', 'lampe', 'bett', 'teppich', 'pflanze', 'spielzeug'])
+      expect(spots.every(s => s.attributes('data-empty') === 'true')).toBe(true)
+    })
+
+    it('keeps the spots quiet until there is furniture to choose: no buttons that do nothing', async () => {
+      const w = await open()
+      for (const spot of w.findAll('[data-test="spot"]')) {
+        expect(spot.attributes('tabindex')).toBe('-1')
+        expect(spot.attributes('aria-hidden')).toBe('true')
+      }
+    })
+
+    it('names the sticker book, not "the star", now that the trophy shelf has stars too', async () => {
+      const w = await open()
+      expect(speak).toHaveBeenCalledWith('Willkommen zu Hause! Tipp auf das Buch, das Stickerheft oder den Schrank.')
+      w.unmount()
+    })
+
+    it('keeps book, album, trophy shelf and a drawn wardrobe as things of their own', async () => {
+      const w = await open()
+      expect(w.find('[data-test="open-book"]').exists()).toBe(true)
+      expect(w.find('[data-test="open-album"]').exists()).toBe(true)
+      expect(w.findAll('[data-test="trophy"]').length).toBeGreaterThan(0)
+      // A proper wardrobe, drawn, not the small door picture
+      expect(w.find('[data-test="open-wardrobe"] svg').exists()).toBe(true)
+      expect(w.find('[data-test="open-wardrobe"]').text()).not.toContain('🚪')
+    })
+  })
+
+  describe('the trophy shelf', () => {
+    it('shows all 17 places, earned ones as trophies', async () => {
+      api.stickers_ = [row('rechenprofi')]
+      const w = await open()
+      const trophies = w.findAll('[data-test="trophy"]')
+      expect(trophies).toHaveLength(STICKERS.length)
+      expect(STICKERS.length).toBe(17)
+      expect(trophies.filter(t => t.attributes('data-earned') === 'true').map(t => t.attributes('data-id'))).toEqual(['rechenprofi'])
+    })
+
+    it('says a trophy\'s name and what it was for, and what an outline is for', async () => {
+      api.stickers_ = [row('rechenprofi')]
+      const w = await open()
+      await w.find('[data-test="trophy"][data-id="rechenprofi"]').trigger('click')
+      expect(lastSaid()).toBe('Rechenprofi. Für zehn Besuche in der Schule.')
+      await w.find('[data-test="trophy"][data-id="tanzstern"]').trigger('click')
+      expect(lastSaid()).toBe('Für zehn Besuche im Tanzsaal.')
+    })
+  })
+
   describe('the sticker book', () => {
     it('shows every sticker, earned ones in colour, nine to a page', async () => {
       api.stickers_ = [row('buecherwurm'), row('springfloh')]
