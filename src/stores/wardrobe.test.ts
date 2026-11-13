@@ -1,6 +1,7 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { DEFAULT_LOOK, type Look } from '@/core/look'
+import { ApiError, type WardrobeState } from '@/services/api'
 import { fakeApi, type FakeApi } from '@/services/fakeApi'
 import { usePlayerStore } from './player'
 import { useWardrobeStore } from './wardrobe'
@@ -106,6 +107,69 @@ describe('wardrobe store', () => {
     expect(wardrobe.dress.worn).toEqual({ head: 'krone', neck: 'schal' })
     await wardrobe.load()
     expect(api.wardrobe_.worn).toEqual({ head: 'krone', neck: 'schal' })
+  })
+
+  it('drops a waiting change the server refuses for good, and loads anyway', async () => {
+    storage.setItem('brightville.wardrobe.1', JSON.stringify({ worn: { head: 'krone' } }))
+    api.setWorn = () => Promise.reject(new ApiError(422, 'bad'))
+    const { wardrobe } = await open()
+    expect(wardrobe.known).toBe(true)
+    expect(storage.getItem('brightville.wardrobe.1')).toBeNull()
+  })
+
+  it('keeps an offline change with the child who made it, when the device changes hands meanwhile', async () => {
+    const { wardrobe } = await open(1)
+    api.wardrobe_.owned = [{ id: 'krone', how: 'bought', got_at: '2026-11-12T10:00:00+01:00' }]
+    api.setWorn = () => new Promise((_, reject) => setTimeout(() => reject(new ApiError(0, 'offline')), 5))
+    const pending = wardrobe.wear('head', 'krone')
+    wardrobe.init(api, 2, storage)
+    await pending
+    expect(JSON.parse(storage.getItem('brightville.wardrobe.1')!)).toEqual({ worn: { head: 'krone' } })
+  })
+
+  it('clears only what it sent, not a change made while it was sending', async () => {
+    storage.setItem('brightville.wardrobe.1', JSON.stringify({ worn: { head: 'krone' } }))
+    const send = api.setWorn
+    api.setWorn = async worn => {
+      // Meanwhile, another change waits
+      storage.setItem('brightville.wardrobe.1', JSON.stringify({ worn: { head: 'krone', neck: 'schal' } }))
+      return send(worn)
+    }
+    await open()
+    expect(JSON.parse(storage.getItem('brightville.wardrobe.1')!)).toEqual({ worn: { neck: 'schal' } })
+  })
+
+  it('shows only what she owns on her character', async () => {
+    api.wardrobe_.worn = { head: 'krone' }
+    const { wardrobe } = await open()
+    expect(wardrobe.dress.worn).toEqual({})
+  })
+
+  it('does not keep the game waiting when the wardrobe never answers', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    try {
+      api.wardrobe = () => new Promise(() => {})
+      const wardrobe = useWardrobeStore()
+      wardrobe.init(api, 1, storage)
+      void wardrobe.load()
+      await vi.advanceTimersByTimeAsync(5000)
+      expect(wardrobe.loaded).toBe(true)
+      expect(wardrobe.known).toBe(false)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('does not let an answer that left before a purchase undo it', async () => {
+    const { wardrobe } = await open()
+    let answerStale: (s: WardrobeState) => void = () => {}
+    const stale = { ...api.wardrobe_, owned: [] }
+    api.wardrobe = () => new Promise(resolve => { answerStale = resolve })
+    const loading = wardrobe.load()
+    expect(await wardrobe.buy('schal')).toBe('ok')
+    answerStale(stale)
+    await loading
+    expect(wardrobe.owned.map(o => o.id)).toEqual(['schal'])
   })
 
   it('drops an answer that arrives after the device changed hands', async () => {
