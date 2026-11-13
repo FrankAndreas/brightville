@@ -9,7 +9,7 @@ import pytest  # noqa: E402
 from family_hub_client.fake import FakeHub  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
-from app import auth, clock, hub  # noqa: E402
+from app import auth, clock, game, hub  # noqa: E402
 from app.main import app  # noqa: E402
 
 # Changes carry this header, as the game's own page sends it
@@ -27,6 +27,8 @@ def fresh(tmp_path, monkeypatch):
     monkeypatch.delenv("LOCAL_MODE", raising=False)
     monkeypatch.delenv("TZ", raising=False)
     set_time(monkeypatch, "2026-11-12 10:00")
+    # The clock stands still in tests: the cool-down between visits is tested on its own (test_cooldown.py)
+    monkeypatch.setattr(game, "COOLDOWN", False)
 
 
 def set_time(monkeypatch, text: str) -> None:

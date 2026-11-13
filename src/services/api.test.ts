@@ -36,6 +36,11 @@ describe('httpApi', () => {
     await expect(api.me()).rejects.toMatchObject({ status: 401, code: 'not_logged_in', loginUrl: 'https://hub/?next=' })
   })
 
+  it('passes on when a visit that came too soon may be sent again', async () => {
+    const api = httpApi(async () => json(409, { detail: { code: 'too_soon', retry_after: 12 } }))
+    await expect(api.visit('school', 5, 'k')).rejects.toMatchObject({ status: 409, code: 'too_soon', retryAfter: 12 })
+  })
+
   it('calls a server that does not answer, or answers nonsense, offline', async () => {
     await expect(httpApi(async () => { throw new TypeError('failed') }).state()).rejects.toMatchObject({ status: 0, code: 'offline' })
     await expect(httpApi(async () => new Response('<html>', { status: 502 })).state()).rejects.toMatchObject({ status: 502, code: 'offline' })

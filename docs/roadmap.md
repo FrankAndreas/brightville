@@ -45,12 +45,22 @@ These were tested with automated tests and in a desktop browser, but not where t
 - The frame around the camera picture in the Hüpfhalle and Tanzsaal is green while the child is seen and orange while not. The music still waits 1.5 s before stopping.
 - A visit to Malen or Ausmalen counts only with something made: at least ten strokes or fills and a minute inside.
 
+**Security review (Nov 13, 2026): done.** Nothing critical or high. Fixed:
+
+- The Cinema's player is sandboxed: YouTube's logo and title no longer lead to youtube.com or the YouTube app. Checked in Chrome that films still play; not yet on the iPad.
+- The parents' gear must be held for three seconds, then asks a multiplication.
+- A cool-down between earning visits (`minSecondsPerStar` per building): Stars can't be sent faster than a child earns them. A visit that comes too soon waits on the device and goes again by itself.
+- A key from another day can no longer overwrite that day's entry.
+- At most two paintings are read at once, so uploads can't exhaust the backend's memory.
+- On the NAS, `ALLOWED_HOSTS` should name the game's address (see `docs/deploy-nas.md`).
+
 ## Calls made without asking, which may be worth revisiting
 
 - The Cinema costs 3 Stars per film, not per minute; one film list for all children.
 - The Hüpfhalle pays 3 Stars per round (at most 9), not the gameplay document's 5.
 - No version without a camera for the Hüpfhalle and Tanzsaal: their doors stay closed on a device without one, like Yoga's.
 - Stickers: the list of 17 in `shared/stickers.json`. Days from before goal days were kept count as "goal reached" against each child's goal at the update that wrote them down.
+- The cool-down's seconds per Star are guesses: about half of the fastest real visit (school 2, Schreiben 1.5, Yoga 1.5, Unterschiede 1, Bibliothek 2, Farblabor 1, Hüpfhalle 2, Tanzsaal 4). If a fast child's visits ever arrive late, lower them in `shared/buildings.json`.
 - A visit to Malen or Ausmalen counts with at least ten strokes or fills and a minute inside, the same for every child (not a parent setting): the bar only keeps walking in and out from counting. A five-year-old typically stays with one activity for about 10–15 minutes, far above it.
 - A visit to Malen or Ausmalen made while the server can't be reached isn't kept for later.
 

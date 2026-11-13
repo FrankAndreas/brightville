@@ -172,6 +172,26 @@ describe('player store', () => {
     expect(api.state_.stars).toBe(9)
   })
 
+  it('keeps a visit the server finds too soon, shows its Stars, and sends it again when the server said', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    try {
+      const player = await open()
+      const send = api.visit
+      api.visit = async () => { throw new ApiError(409, 'too_soon', null, 5) }
+      await player.earn('school', 5)
+      expect(player.pending).toBe(1)
+      expect(player.stars).toBe(9)
+      api.visit = send
+      await vi.advanceTimersByTimeAsync(4000)
+      expect(player.pending).toBe(1)
+      await vi.advanceTimersByTimeAsync(1000)
+      expect(player.pending).toBe(0)
+      expect(api.state_.stars).toBe(9)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('says when the login is gone, instead of quietly failing', async () => {
     const lost = vi.fn()
     const player = usePlayerStore()

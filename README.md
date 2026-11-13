@@ -25,12 +25,14 @@ The town square (60 m across) has balls to push, three trampolines, a playground
 
 **Free** buildings are always open: before the day's learning, with no Stars, and after the play time. They neither give nor cost Stars and don't count as play time.
 
+**Stars at a child's pace:** the server takes an earning visit only when enough time has passed since the one before for its Stars to be earned (`minSecondsPerStar` in `shared/buildings.json`, about half of the fastest real visit). A visit that comes too soon waits on the device and is sent again by itself, so nothing is lost; it only makes sending Stars by hand no faster than earning them.
+
 **Learn first, play later:** the Arcade door stays locked until today's earning visits are done (any learning or moving building, in any mix; two unless a parent set another number). The slots next to the Star counter show how far the child is. A new day starts the slots over; Stars are kept.
 When a parent has set a play time per day, the Arcade door shows a moon once it is used up.
 
 **Each child has their own Stars**, kept by the game's server (`backend/`), so the laptop and the iPad show the same.
 Who is playing comes from the family hub's login; a coloured circle with the first letter next to the Star counter shows who it is.
-Parents get a gear next to the "?": their page shows every child's Stars and today's numbers, and sets the daily goal, the play time per day and the Stars. Below, they keep the Cinema's list of YouTube films (a link and a name each, at most 30, the same for every child). Each child's card has a folded "Tagebuch" with the last seven days as text and the stickers earned.
+Parents get a gear next to the "?". It opens only when held for three seconds and then asked a multiplication (e.g. 7 × 8), so a child playing on a device logged in as a parent doesn't get in. Their page shows every child's Stars and today's numbers, and sets the daily goal, the play time per day and the Stars. Below, they keep the Cinema's list of YouTube films (a link and a name each, at most 30, the same for every child). Each child's card has a folded "Tagebuch" with the last seven days as text and the stickers earned.
 
 The idea behind the game is in [Learning City – Gameplay Design.md](Learning%20City%20%E2%80%93%20Gameplay%20Design.md).
 Where the project stands, what wasn't checked on real hardware and what is left to build: [docs/roadmap.md](docs/roadmap.md).
@@ -113,7 +115,7 @@ Schlange ends when the snake bites itself; Bonbonjagd when the five lives are go
 
 ## Kino
 
-The door stays grey until a parent added films. Inside, a tap on a film's picture plays it full size in YouTube's privacy-enhanced player (`youtube-nocookie.com`); when it ends, the child is back in the town. One film per 3 Stars; the leave button stops it any time. The page's security rules allow exactly that player and the films' pictures (`i.ytimg.com`), nothing else from YouTube.
+The door stays grey until a parent added films. Inside, a tap on a film's picture plays it full size in YouTube's privacy-enhanced player (`youtube-nocookie.com`); when it ends, the child is back in the town. One film per 3 Stars; the leave button stops it any time. The page's security rules allow exactly that player and the films' pictures (`i.ytimg.com`), nothing else from YouTube. The player runs in a sandbox without new windows or leaving the page, so YouTube's logo and the film's title lead nowhere: no way from here to youtube.com or the YouTube app.
 
 ## Ausmalen
 

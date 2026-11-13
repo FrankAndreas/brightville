@@ -69,7 +69,13 @@ export interface StickerRow {
 
 /** Why a request failed: the server's code, or 'offline' when there was no usable answer. */
 export class ApiError extends Error {
-  constructor(public status: number, public code: string, public loginUrl: string | null = null) {
+  constructor(
+    public status: number,
+    public code: string,
+    public loginUrl: string | null = null,
+    /** 'too_soon': seconds until the server takes the visit */
+    public retryAfter: number | null = null,
+  ) {
     super(`api ${status} ${code}`)
     this.name = 'ApiError'
   }
@@ -131,9 +137,14 @@ export function httpApi(fetchFn: Fetch = (url, init) => fetch(url, init), onRene
       throw new ApiError(response.status, 'offline')
     }
     if (!response.ok) {
-      const detail = (data as { detail?: { code?: unknown; login_url?: unknown } } | null)?.detail
+      const detail = (data as { detail?: { code?: unknown; login_url?: unknown; retry_after?: unknown } } | null)?.detail
       const code = typeof detail?.code === 'string' ? detail.code : 'offline'
-      throw new ApiError(response.status, code, typeof detail?.login_url === 'string' ? detail.login_url : null)
+      throw new ApiError(
+        response.status,
+        code,
+        typeof detail?.login_url === 'string' ? detail.login_url : null,
+        typeof detail?.retry_after === 'number' ? detail.retry_after : null,
+      )
     }
     if (response.headers.get('X-Hub-Renew') === '1') onRenew()
     return data as T
