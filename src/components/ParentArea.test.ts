@@ -31,6 +31,16 @@ describe('ParentArea', () => {
     expect(card(w, 1).find('[data-test="stars-input"]').exists()).toBe(true)
   })
 
+  it('shows a child\'s savings and her add-ons, to read only', async () => {
+    const api = fakeApi()
+    api.rows = ROWS.map(r => (r.id === 2 ? { ...r, stars: 160, savings: 140, owned: ['schleife', 'gibtsnicht'] } : { ...r }))
+    const w = mount(ParentArea, { props: { api } })
+    await flushPromises()
+    expect(card(w, 2).text()).toContain('davon gespart: 140')
+    expect(card(w, 2).find('[data-test="owned"]').text()).toBe('🎀')
+    expect(card(w, 1).find('[data-test="owned"]').exists()).toBe(false)
+  })
+
   it('saves the settings of one person', async () => {
     const { api, w } = await open()
     await card(w, 2).find('[data-test="goal"]').setValue(3)

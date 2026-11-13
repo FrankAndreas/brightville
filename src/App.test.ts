@@ -915,6 +915,8 @@ describe('App', () => {
         expect(api.calls).toContain('stickersSeen rechenprofi,buecherwurm,springfloh')
         // The fourth waits in the album as new
         expect(usePlayerStore().unseen).toEqual(['tanzstern'])
+        // The wardrobe is asked again: a sticker may have brought a gift
+        expect(api.calls.filter(c => c === 'wardrobe')).toHaveLength(2)
         w.unmount()
       } finally {
         vi.useRealTimers()

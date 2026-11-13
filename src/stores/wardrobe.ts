@@ -48,6 +48,7 @@ export const useWardrobeStore = defineStore('wardrobe', () => {
     boughtToday.value = false
     loaded.value = false
     known.value = false
+    unanswered.clear()
   }
 
   /** The server's state, with what still waits on this device laid over it (it is sent with the next load) */
@@ -151,17 +152,31 @@ export const useWardrobeStore = defineStore('wardrobe', () => {
     }
   }
 
+  /**
+   * A purchase whose answer never came keeps its key for the day: sent again, the server finds it bought and charges
+   * nothing twice (as the player store does for rounds of play)
+   */
+  const unanswered = new Map<string, { key: string; day: string }>()
+
   async function buy(item: string): Promise<BuyResult> {
     if (!api) return 'offline'
     const owner = key
+    const day = usePlayerStore().day
+    const kept = unanswered.get(item)
+    const buyKey = kept && kept.day === day ? kept.key : newKey()
+    unanswered.set(item, { key: buyKey, day })
     try {
-      const answer = await api.buy(item, newKey())
+      const answer = await api.buy(item, buyKey)
+      unanswered.delete(item)
       if (owner !== key) return 'offline'
       usePlayerStore().applyState(answer.state)
       take(answer.wardrobe)
       return 'ok'
     } catch (e) {
-      if (e instanceof ApiError && e.code !== 'offline' && e.status !== 0) return e.code as BuyResult
+      if (e instanceof ApiError && e.code !== 'offline' && e.status !== 0) {
+        unanswered.delete(item)
+        return e.code as BuyResult
+      }
       return 'offline'
     }
   }

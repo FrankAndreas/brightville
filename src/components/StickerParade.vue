@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import Confetti from '@/components/Confetti.vue'
+import { giftFor } from '@/core/outfits'
 import { stickerDef } from '@/core/stickers'
 import { playBeat } from '@/services/sound'
 import { speak } from '@/services/tts'
@@ -24,7 +25,8 @@ function show() {
     return
   }
   playBeat('sparkle')
-  void speak(`Ein neuer Sticker: ${s.name}!`)
+  const gift = giftFor(s.id)
+  void speak(gift ? `Ein neuer Sticker: ${s.name}! Und dazu: ${gift.name}!` : `Ein neuer Sticker: ${s.name}!`)
   timer = setTimeout(() => {
     index.value += 1
     show()
@@ -39,6 +41,7 @@ onBeforeUnmount(() => clearTimeout(timer))
   <div v-if="current" class="parade" aria-hidden="true">
     <div :key="current.id" class="sticker" data-test="sticker-parade" :data-id="current.id" :style="{ background: current.color }">
       {{ current.emoji }}
+      <span v-if="giftFor(current.id)" class="gift" data-test="parade-gift">{{ giftFor(current.id)!.emoji }}</span>
     </div>
     <Confetti />
   </div>
@@ -46,7 +49,22 @@ onBeforeUnmount(() => clearTimeout(timer))
 
 <style scoped>
 .parade { position: fixed; inset: 0; z-index: 15; display: grid; place-items: center; pointer-events: none; }
+/* The add-on a sticker brings, on its edge */
+.gift {
+  position: absolute;
+  right: -6%;
+  bottom: -6%;
+  width: 38%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 8px solid white;
+  background: #fff3c4;
+  display: grid;
+  place-items: center;
+  font-size: 0.4em;
+}
 .sticker {
+  position: relative;
   width: min(42vw, 42vh);
   aspect-ratio: 1;
   border-radius: 50%;

@@ -13,5 +13,6 @@
   { "id": "arcade", "kind": "play", "cost": 3 },
   { "id": "schlange", "kind": "play", "cost": 3 },
   { "id": "bonbonjagd", "kind": "play", "cost": 3 },
-  { "id": "kino", "kind": "play", "cost": 3 }
+  { "id": "kino", "kind": "play", "cost": 3 },
+  { "id": "laden", "kind": "shop" }
 ]

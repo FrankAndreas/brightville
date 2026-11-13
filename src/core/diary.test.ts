@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { dayLine, entrySaid, shortDate, spokenDate, starsSaid } from './diary'
+import { outfitDef } from './outfits'
 import { STICKERS, stickerDef } from './stickers'
 
 const NAMES: Record<string, string> = { school: 'Schule', bibliothek: 'Bibliothek', arcade: 'Spielhalle', malen: 'Malen' }
@@ -29,6 +30,13 @@ describe('entries', () => {
     expect(entrySaid({ building: 'school', kind: 'visit', stars: 7, at: '15:00' }, name)).toBe('Schule, sieben Sterne.')
     expect(entrySaid({ building: 'arcade', kind: 'play', stars: -3, at: '16:00' }, name)).toBe('Spielhalle, drei Sterne ausgegeben.')
     expect(entrySaid({ building: 'malen', kind: 'free', stars: 0, at: '16:30' }, name)).toBe('Malen.')
+  })
+
+  it('names a purchase in the Kleiderladen by its add-on', () => {
+    const named = (id: string) => outfitDef(id)?.name ?? name(id)
+    expect(entrySaid({ building: 'schal', kind: 'buy', stars: -20, at: '17:00' }, named)).toBe('Schal gekauft, zwanzig Sterne.')
+    const day = { day: '2026-11-12', goal_reached: false, stickers: [], paintings: [], entries: [{ building: 'schal', kind: 'buy' as const, stars: -20, at: '17:00' }] }
+    expect(dayLine(day, named)).toContain('Schal −20')
   })
 
   it('writes a day as one line for the parents', () => {

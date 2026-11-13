@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { entrySaid, shortDate, spokenDate, type LogDay, type LogEntry } from '@/core/diary'
 import { stickerDef } from '@/core/stickers'
 import { paintingUrl, type Api } from '@/services/api'
+import { outfitDef } from '@/core/outfits'
 import { speak } from '@/services/tts'
 import { BUILDINGS } from '../registry'
 
@@ -22,8 +23,9 @@ const page = computed(() => days.value[index.value] ?? null)
 const canOlder = computed(() => index.value < days.value.length - 1 || more.value)
 
 const building = (id: string) => BUILDINGS.find(b => b.id === id)
-const nameOf = (id: string) => building(id)?.spokenName ?? id
-const iconOf = (id: string) => building(id)?.icon ?? '❓'
+// A purchase names its add-on where a visit names its building
+const nameOf = (id: string) => building(id)?.spokenName ?? outfitDef(id)?.name ?? id
+const iconOf = (id: string) => building(id)?.icon ?? outfitDef(id)?.emoji ?? '❓'
 
 async function fetchMore(): Promise<number> {
   if (fetching) return 0
@@ -99,7 +101,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
         </header>
         <div class="entries">
           <button
-            v-for="(e, i) in page.entries" :key="i" class="entry" data-test="entry" :data-kind="e.kind"
+            v-for="(e, i) in page.entries" :key="i" class="entry" data-test="entry" :data-kind="e.kind" :data-spent="e.stars < 0"
             :aria-label="nameOf(e.building)" @click="sayEntry(e)"
           >
             <span class="icon">{{ iconOf(e.building) }}</span>
@@ -163,7 +165,8 @@ header { display: flex; align-items: center; gap: 16px; }
   box-shadow: 0 6px 0 #ead9b5;
   cursor: pointer;
 }
-.entry[data-kind='play'] { background: #eef0f3; box-shadow: 0 6px 0 #d7dbe0; }
+/* Stars spent (a round of play, a purchase) are grey; earned ones green */
+.entry[data-spent='true'] { background: #eef0f3; box-shadow: 0 6px 0 #d7dbe0; }
 .icon { font-size: min(8vw, 64px); }
 .stars {
   position: absolute;
@@ -175,7 +178,7 @@ header { display: flex; align-items: center; gap: 16px; }
   color: white;
   font: 800 20px system-ui, sans-serif;
 }
-.entry[data-kind='play'] .stars { background: #9aa3ad; }
+.entry[data-spent='true'] .stars { background: #9aa3ad; }
 .extras { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
 .day-sticker {
   width: 84px;

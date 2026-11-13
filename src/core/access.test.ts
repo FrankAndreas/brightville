@@ -4,6 +4,7 @@ import { doorState } from './access'
 const earn = { kind: 'earn' as const }
 const play = { kind: 'play' as const, cost: 3 }
 const free = { kind: 'free' as const }
+const shop = { kind: 'shop' as const }
 
 describe('doorState', () => {
   it('opens an earning building whenever the device can serve it', () => {
@@ -43,6 +44,13 @@ describe('doorState', () => {
 
   it('treats a play building without a cost as free', () => {
     expect(doorState({ kind: 'play' }, true, true, 0)).toBe('open')
+  })
+
+  it('keeps the Kleiderladen shut until today\'s learning is done, then open without Stars and after the play time', () => {
+    expect(doorState(shop, true, false, 500)).toBe('locked')
+    expect(doorState(shop, true, true, 0)).toBe('open')
+    expect(doorState(shop, true, true, 0, true)).toBe('open')
+    expect(doorState(shop, false, true, 0)).toBe('unavailable')
   })
 
   it('opens a free building before the goal, without Stars and after the play time', () => {

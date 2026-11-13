@@ -18,6 +18,8 @@ export interface OutfitDef {
   price?: number
   /** Gifts: the sticker that brings it; never sold */
   sticker?: string
+  /** For the voice: der, die, das, or pl (die Feenflügel) */
+  article: 'der' | 'die' | 'das' | 'pl'
 }
 
 export const OUTFITS = catalogue as OutfitDef[]

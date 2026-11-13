@@ -9,13 +9,15 @@
 export type DoorState = 'open' | 'unavailable' | 'locked' | 'timeUp' | 'poor'
 
 export function doorState(
-  building: { kind: 'earn' | 'play' | 'free'; cost?: number },
+  building: { kind: 'earn' | 'play' | 'free' | 'shop'; cost?: number },
   canServe: boolean,
   goalReached: boolean,
   stars: number,
   timeUp = false,
 ): DoorState {
   if (!canServe) return 'unavailable'
+  // The Kleiderladen: learn first, like play, but play time is no reason and looking costs nothing
+  if (building.kind === 'shop') return goalReached ? 'open' : 'locked'
   // Learning and making things are always open
   if (building.kind !== 'play') return 'open'
   // Learn first, play later: Stars alone never open a play building

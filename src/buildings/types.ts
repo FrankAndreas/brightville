@@ -23,9 +23,10 @@ export interface BuildingDef {
   icon: string
   /**
    * Earning buildings give Stars and count towards the daily goal; play buildings cost Stars;
-   * free buildings (making things) are always open and neither give nor cost
+   * free buildings (making things) are always open and neither give nor cost; the shop (Kleiderladen) sells add-ons
+   * after today's learning, whatever the play time
    */
-  kind: 'earn' | 'play' | 'free'
+  kind: 'earn' | 'play' | 'free' | 'shop'
   /** Stars taken on entering a play building */
   cost?: number
   needs: Need[]
