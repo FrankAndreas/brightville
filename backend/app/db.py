@@ -9,6 +9,7 @@
 - paintings: each child's paintings from Malen, picture and thumbnail.
 - stickers: the stickers each child has earned, and whether the child has seen them yet.
 - goal_days: the days a child reached the daily goal, with the goal of that day.
+- settings: what the database itself must remember, e.g. `mode` (see claim_mode).
 """
 
 import os
@@ -80,6 +81,12 @@ CREATE TABLE goal_days (
     PRIMARY KEY (person_id, day)
 );
 """,
+    """
+CREATE TABLE settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
+""",
 ]
 VERSION = len(MIGRATIONS)
 
@@ -94,6 +101,24 @@ def path() -> Path:
     return file
 
 
+def statements(script: str) -> list[str]:
+    """The statements of a migration, one by one. Split where SQLite says a statement is complete, so a `;` in a
+    string or inside a trigger doesn't cut it. (executescript would commit first, giving up the lock that keeps two
+    requests from migrating at once.)"""
+    found: list[str] = []
+    current = ""
+    for piece in script.split(";")[:-1]:
+        current += piece + ";"
+        if sqlite3.complete_statement(current):
+            if current.strip() != ";":
+                found.append(current.strip())
+            current = ""
+    current += script.split(";")[-1]
+    if current.strip():
+        raise ValueError(f"A migration ends in the middle of a statement: {current.strip()[:60]}")
+    return found
+
+
 def connect() -> sqlite3.Connection:
     # One connection per request, used by one thread at a time; FastAPI may open it in one thread of its pool and
     # run the request in another, which sqlite3 refuses unless told
@@ -105,12 +130,21 @@ def connect() -> sqlite3.Connection:
         # Another request may have brought it up to date while this one waited for the lock
         done = connection.execute("PRAGMA user_version").fetchone()[0]
         for step in MIGRATIONS[done:]:
-            for statement in step.split(";"):
-                if statement.strip():
-                    connection.execute(statement)
+            for statement in statements(step):
+                connection.execute(statement)
         connection.execute(f"PRAGMA user_version = {VERSION}")
         connection.execute("COMMIT")
     return connection
+
+
+def claim_mode(connection: sqlite3.Connection, mode: str) -> str:
+    """The mode ("hub" or "local") the database was made in; the first start notes the one given.
+
+    Both number their people from 1: a database from playing without the hub, moved to the NAS, would give "Kind"'s
+    Stars to whoever is person 1 in the hub. The caller refuses to start when the answer isn't `mode`."""
+    with writing(connection):
+        connection.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('mode', ?)", (mode,))
+        return str(connection.execute("SELECT value FROM settings WHERE key = 'mode'").fetchone()[0])
 
 
 @contextmanager

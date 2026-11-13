@@ -113,6 +113,8 @@ def test_an_ended_parent_login_does_not_hide_the_children(papa, family_hub):
     from app import auth, db, hub
 
     family_hub.down = False
+    # Ask the hub again rather than the copy of a moment ago
+    auth.forget_people()
     hub.client.transport = lambda path, headers: (403, None) if "/people" in path else family_hub(path, headers)
     connection = db.connect()
     try:

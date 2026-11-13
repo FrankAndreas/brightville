@@ -86,6 +86,46 @@ def test_someone_who_left_is_hidden_and_keeps_their_stars(papa, mia, family_hub)
     assert papa.get("/api/players").json()[1]["stars"] == 4
 
 
+def test_the_parents_page_asks_the_hub_for_its_people_once_a_minute(papa, family_hub, monkeypatch):
+    from app import auth, hub
+
+    asked = []
+
+    def counting(path, headers):
+        if "/people" in path:
+            asked.append(path)
+        return family_hub(path, headers)
+
+    monkeypatch.setattr(hub.client, "transport", counting)
+    clock = [1000.0]
+    monkeypatch.setattr(auth.time, "monotonic", lambda: clock[0])
+    papa.get("/api/players")
+    papa.get("/api/players/2/diary")
+    papa.put("/api/players/2", json={"daily_goal": 2, "play_minutes": None, "stars": 5})
+    assert len(asked) == 1
+    clock[0] += auth.PEOPLE_SECONDS
+    papa.get("/api/players")
+    assert len(asked) == 2
+
+
+def test_while_the_hub_does_not_answer_the_parents_see_the_people_as_last_known(papa, family_hub, monkeypatch):
+    from app import auth, hub
+
+    assert len(papa.get("/api/players").json()) == 3
+    auth.forget_people()
+
+    # Papa's login still counts (the hub client's grace), but the list of people can't be asked for
+    def sessions_only(path, headers):
+        if "/session" not in path:
+            raise hub.HubUnavailable("down")
+        return family_hub(path, headers)
+
+    monkeypatch.setattr(hub.client, "transport", sessions_only)
+    answer = papa.get("/api/players")
+    assert answer.status_code == 200
+    assert names(answer) == ["Ben", "Mia", "Papa"]
+
+
 def test_a_child_made_parent_in_the_hub_gets_in(mia, family_hub):
     family_hub.set_role("Mia", "PARENT")
     assert as_person("Mia").get("/api/players").status_code == 200

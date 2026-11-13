@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from . import auth, films, game, hub, local, paintings, people, stickers
+from . import db as database
 from .auth import error, get_db
 from .buildings import Building, all_buildings
 from .people import Person
@@ -20,8 +21,31 @@ from .people import Person
 logger = logging.getLogger("uvicorn.error")
 
 
+def check_mode() -> None:
+    """Refuses to start on a database made in the other mode (db.claim_mode): the people's numbers wouldn't match."""
+    mode = "hub" if hub.enabled() else "local" if local.enabled() else None
+    if mode is None:
+        return
+    connection = database.connect()
+    try:
+        made_in = database.claim_mode(connection, mode)
+    finally:
+        connection.close()
+    if made_in != mode:
+        logger.error(
+            "The database %s was made %s, and this start is %s: its people's numbers don't match, so the Stars would"
+            " go to the wrong person. Start with an empty data folder (keep the old database aside), or, only when the"
+            " database holds nothing worth keeping, delete its 'mode' row from the table settings",
+            database.path(),
+            "with the family hub" if made_in == "hub" else "without the family hub (LOCAL_MODE)",
+            "with the family hub" if mode == "hub" else "without it (LOCAL_MODE)",
+        )
+        raise RuntimeError("The database was made in the other mode (see the line above)")
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    check_mode()
     if hub.enabled():
         logger.info("Login: the family hub at %s", hub.client.hub_url())
     elif not local.enabled():

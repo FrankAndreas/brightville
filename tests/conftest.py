@@ -9,7 +9,7 @@ import pytest  # noqa: E402
 from family_hub_client.fake import FakeHub  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
-from app import clock, hub  # noqa: E402
+from app import auth, clock, hub  # noqa: E402
 from app.main import app  # noqa: E402
 
 # Changes carry this header, as the game's own page sends it
@@ -37,13 +37,14 @@ def set_time(monkeypatch, text: str) -> None:
 @pytest.fixture
 def family_hub(monkeypatch):
     """A fake family hub (the hub client's own) with a parent and two children."""
-    fake = FakeHub(hub.client)
+    fake = FakeHub(hub.client, on_change=auth.forget_people)
     monkeypatch.setattr(hub.client, "transport", fake)
     fake.add("Papa", "PARENT", color="#3366cc")
     fake.add("Mia", "CHILD", color="#ff66aa")
     fake.add("Ben", "CHILD")
     yield fake
     hub.client.forget()
+    auth.forget_people()
 
 
 @pytest.fixture

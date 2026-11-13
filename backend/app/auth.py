@@ -5,6 +5,8 @@ Requests from outside never get this far: main.py refuses everything that carrie
 
 import logging
 import sqlite3
+import threading
+import time
 from collections.abc import Iterator
 from typing import Optional
 
@@ -24,6 +26,10 @@ CSRF_HEADER = "X-Requested-With"
 CSRF_VALUE = "brightville"
 SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
 RENEW_HEADER = "X-Hub-Renew"
+# How long the copy of the hub's people counts as fresh (as the hub client keeps a session)
+PEOPLE_SECONDS = hub.CACHE_SECONDS
+_people_lock = threading.Lock()
+_people_at: Optional[float] = None
 
 
 def error(code: int, name: str, **more: object) -> HTTPException:
@@ -108,19 +114,36 @@ def parent(person: Person = Depends(current_person)) -> Person:
     return person
 
 
+def forget_people() -> None:
+    """The next refresh_people asks the hub again (tests, after a change in the fake hub)."""
+    global _people_at
+    with _people_lock:
+        _people_at = None
+
+
 def refresh_people(request: Request, db: sqlite3.Connection) -> None:
-    """Brings the copy of who may play up to date, for the parent area."""
+    """Brings the copy of who may play up to date, for the parent area: from the hub at most once per PEOPLE_SECONDS,
+    as the parents' page asks with every list, change and unfolded diary."""
+    global _people_at
     if not hub.enabled():
         people.replace_all(db, (Person.of(p) for p in local.people()))
         return
     login = hub_login(request)
     if login is None:
         return
+    with _people_lock:
+        if _people_at is not None and time.monotonic() - _people_at < PEOPLE_SECONDS:
+            return
     try:
         everyone = hub.client.fetch_people(login)
-        # An empty answer is a login that just ended, not a family that left: keep the list as it is
-        if everyone:
-            people.replace_all(db, (Person.of(p) for p in everyone))
     except hub.HubUnavailable as problem:
-        logger.warning("The family hub can't be reached (%s)", problem)
-        raise error(status.HTTP_503_SERVICE_UNAVAILABLE, "hub_unavailable") from None
+        # The parent got in on the hub client's grace: show the copy from the last time the hub answered
+        logger.warning(
+            "The family hub can't be reached (%s); the parents' page shows the people as last known", problem
+        )
+        return
+    # An empty answer is a login that just ended, not a family that left: keep the list as it is, and ask next time
+    if everyone:
+        people.replace_all(db, (Person.of(p) for p in everyone))
+        with _people_lock:
+            _people_at = time.monotonic()
