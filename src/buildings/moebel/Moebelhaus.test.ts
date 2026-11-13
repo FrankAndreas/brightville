@@ -77,6 +77,16 @@ describe('the Möbelhaus', () => {
     w.unmount()
   })
 
+  it('keeps the ✔️\'s place while nothing is tried, so the shelves don\'t jump under her finger', async () => {
+    const { w } = await open()
+    const slot = w.find('[data-test="buy-slot"]')
+    expect(slot.exists()).toBe(true)
+    expect(slot.find('[data-test="buy"]').exists()).toBe(false)
+    await item(w, 'kaktus').trigger('click')
+    expect(w.find('[data-test="buy-slot"] [data-test="buy"]').exists()).toBe(true)
+    w.unmount()
+  })
+
   it('says how many more open a locked shelf', async () => {
     const { w } = await open()
     await item(w, 'einhornbild').trigger('click')

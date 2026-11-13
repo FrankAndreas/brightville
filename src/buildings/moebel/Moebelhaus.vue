@@ -37,10 +37,13 @@ const emojiOf = (id: string) => furnitureDef(id)?.emoji
   <div class="moebelhaus" data-test="moebelhaus">
     <div class="preview">
       <RoomPicture :placed="preview" :emoji-of="emojiOf" small />
-      <button
-        v-if="canBuy" class="buy" data-test="buy" :data-ready="ready" :aria-label="`Kaufen für ${trying!.price} Sterne`"
-        @click="buy"
-      >✔️ <span class="price">⭐ {{ trying!.price }}</span></button>
+      <!-- The ✔️'s place is kept while nothing is tried: upright, the shelves below would jump under her finger -->
+      <div class="buy-slot" data-test="buy-slot">
+        <button
+          v-if="canBuy" class="buy" data-test="buy" :data-ready="ready" :aria-label="`Kaufen für ${trying!.price} Sterne`"
+          @click="buy"
+        >✔️ <span class="price">⭐ {{ trying!.price }}</span></button>
+      </div>
     </div>
     <ShopShelves :items="FURNITURE" :owned="ownedIds" :trying="trying" :open="open" @tap="tap" />
     <Confetti v-if="celebrating" />
@@ -66,8 +69,9 @@ const emojiOf = (id: string) => furnitureDef(id)?.emoji
 /* Upright: her room above the shelves, wide */
 @media (orientation: portrait) {
   .moebelhaus { flex-direction: column; gap: 3vh; --tile: min(10.5vw, 96px); }
-  .preview { width: min(80vw, 34vh * 4 / 3); }
+  .preview { width: min(80vw, 30vh * 4 / 3); }
 }
+.buy-slot { height: 82px; }
 .buy {
   min-width: 150px;
   height: 76px;

@@ -3,7 +3,7 @@
 A small, friendly town for a kindergarten-age child: walk a wobbly character around, go into buildings, and earn Stars there by learning and moving.
 Everything the child sees is pictures and a German voice; no reading is needed.
 
-The town square (60 m across) has balls to push, three trampolines, a playground at the front (a staircase of blocks up to a platform, hurdles to hop over) and its buildings: learning at the back, making things and moving on the left, playing on the right, and the child's own house at the front.
+The town square (62 m across) has balls to push, three trampolines, a playground at the front (a staircase of blocks up to a platform, hurdles to hop over) and its buildings: learning at the back, making things and moving on the left, playing on the right, and the child's own house at the front.
 
 | Building | What happens inside | Stars |
 |---|---|---|
