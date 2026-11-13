@@ -1,6 +1,6 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
-import { ApiError, type Api, type ServerState } from '@/services/api'
+import { ApiError, type Api, type Film, type ServerState } from '@/services/api'
 
 /** Why a round of play can't start: the server's reasons, or no answer from it */
 export type BuyResult = 'ok' | 'locked' | 'poor' | 'time_up' | 'offline'
@@ -29,6 +29,8 @@ export const usePlayerStore = defineStore('player', () => {
   const playMinutes = ref<number | null>(null)
   /** True once the server has answered */
   const loaded = ref(false)
+  /** The Cinema's films, the same for everyone */
+  const films = ref<Film[]>([])
   /** Earning visits the server doesn't know about yet */
   const waiting = ref<PendingVisit[]>([])
   /** The server's day, as of its last answer */
@@ -149,6 +151,11 @@ export const usePlayerStore = defineStore('player', () => {
       // Keep showing what we have; the next refresh tries again
       checkLogin(e)
     }
+    try {
+      films.value = await api.films()
+    } catch {
+      // The list of a moment ago stays; the next refresh tries again
+    }
   }
 
   /**
@@ -203,6 +210,6 @@ export const usePlayerStore = defineStore('player', () => {
 
   return {
     stars, visitsToday, dailyGoal, playSeconds, playMinutes, goalReached, timeUp, loaded, pending,
-    init, refresh, earn, buy, reportPlayTime,
+    films, init, refresh, earn, buy, reportPlayTime,
   }
 })

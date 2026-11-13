@@ -56,7 +56,7 @@ In the hub, **Einstellungen → Apps → add**: name Brightville, home address `
 ### First visit
 
 - A child opens the address, is sent to the hub to log in once, and comes back to the game.
-- A parent sees a gear next to the "?" in the town: it opens the parent area with every child's Stars, today's visits and play minutes, and three settings: daily goal (1–5 visits), play time per day (no limit, or 5–180 minutes), and Stars.
+- A parent sees a gear next to the "?" in the town: it opens the parent area with every child's Stars, today's visits and play minutes, and three settings: daily goal (1–5 visits), play time per day (no limit, or 5–180 minutes), and Stars. Below them is the Cinema's film list: paste a YouTube link and give it a name. The Cinema stays closed until there is at least one film.
 - **Stars from before stage 4** were saved in each browser and are not carried over. A parent types each child's number in once, in the parent area.
 
 ### On the iPad

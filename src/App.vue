@@ -30,9 +30,11 @@ const props = withDefaults(defineProps<{ buildings?: BuildingDef[]; api?: Api }>
 const session = useSessionStore()
 const player = usePlayerStore()
 const device = detectDevice()
-// Doors follow the Stars, the daily goal and the play time: the town repaints them when they change
-const doors = computed(() => toDoors(props.buildings, device, player.goalReached, player.stars, player.timeUp))
-const stateFor = (b: BuildingDef) => stateOf(b, device, player.goalReached, player.stars, player.timeUp)
+/** The device, and whether the parents chose films for the Cinema */
+const caps = computed(() => ({ ...device, films: player.films.length > 0 }))
+// Doors follow the Stars, the daily goal, the play time and the films: the town repaints them when they change
+const doors = computed(() => toDoors(props.buildings, caps.value, player.goalReached, player.stars, player.timeUp))
+const stateFor = (b: BuildingDef) => stateOf(b, caps.value, player.goalReached, player.stars, player.timeUp)
 /** No mouse, so most likely no keyboard: explain and prompt with fingers */
 const fingersOnly = device.touch && !device.keyboard
 
@@ -280,7 +282,7 @@ onBeforeUnmount(() => {
     <HelpOverlay v-if="helpOpen && inTown" :touch="fingersOnly" @close="closeHelp" />
     <ParentArea
       v-if="parentsOpen && session.api" :api="session.api" :logout-url="session.me?.logout_url" :can-switch="session.canSwitch"
-      @close="parentsOpen = false" @saved="onSaved" @switch="switchPerson"
+      @close="parentsOpen = false" @saved="onSaved" @switch="switchPerson" @films-changed="player.refresh()"
     />
     <section v-if="inside" class="building">
       <component :is="inside.component" @finished="onFinished" />

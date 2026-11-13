@@ -42,6 +42,19 @@ describe('player store', () => {
     expect(player.loaded).toBe(true)
   })
 
+  it('knows the Cinema\'s films, and keeps them when the server is away for a moment', async () => {
+    api.films_ = [{ id: 1, youtube_id: 'dQw4w9WgXcQ', title: 'Lieder' }]
+    const player = await open()
+    expect(player.films).toEqual([{ id: 1, youtube_id: 'dQw4w9WgXcQ', title: 'Lieder' }])
+    api.offline = true
+    await player.refresh()
+    expect(player.films).toHaveLength(1)
+    api.offline = false
+    api.films_ = []
+    await player.refresh()
+    expect(player.films).toEqual([])
+  })
+
   it('is not loaded, and shows nothing, before the server answered', async () => {
     api.offline = true
     const player = await open()
