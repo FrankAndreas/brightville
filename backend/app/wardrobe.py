@@ -124,7 +124,7 @@ def buy(db: sqlite3.Connection, person_id: int, item_id: str, key: str) -> game.
 
         return shop.Offer(item_id, item.price, lambda: outfits.shelf_open(shelf, mine), record)
 
-    return shop.purchase(db, person_id, key, offer)
+    return shop.purchase(db, person_id, key, item_id, offer)
 
 
 def give_gifts(db: sqlite3.Connection, person_id: int) -> list[str]:

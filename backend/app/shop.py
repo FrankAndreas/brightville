@@ -29,14 +29,22 @@ def bought_today(db: sqlite3.Connection, person_id: int) -> bool:
     return row is not None
 
 
-def purchase(db: sqlite3.Connection, person_id: int, key: str, offer: Callable[[], Offer]) -> game.State:
-    """Buys what `offer` finds, all in one transaction. Refused (game.Refused) by the offer, then with locked,
-    bought_today, shelf_locked, poor; key_used for a key that stands for something else. The same key today buys
-    once. `record` writes what was bought (and puts it on or in place); the Stars are taken here."""
+def purchase(db: sqlite3.Connection, person_id: int, key: str, item_id: str, offer: Callable[[], Offer]) -> game.State:
+    """Buys `item_id`, as `offer` finds it, all in one transaction. Refused (game.Refused) by the offer, then with
+    locked, bought_today, shelf_locked, poor; key_used for a key that stands for something else (another day, another
+    item, a visit). The same key today, for the same item, buys once. `record` writes what was bought (and puts it on
+    or in place); the Stars are taken here."""
     with writing(db):
         now = game._row(db, person_id)
-        seen = db.execute("SELECT kind, at FROM events WHERE person_id = ? AND key = ?", (person_id, key)).fetchone()
-        if seen is not None and seen["kind"] == "buy" and seen["at"][:10] == clock.today():
+        seen = db.execute(
+            "SELECT kind, building, at FROM events WHERE person_id = ? AND key = ?", (person_id, key)
+        ).fetchone()
+        if (
+            seen is not None
+            and seen["kind"] == "buy"
+            and seen["building"] == item_id
+            and seen["at"][:10] == clock.today()
+        ):
             return now
         if seen is not None:
             raise game.Refused("key_used")

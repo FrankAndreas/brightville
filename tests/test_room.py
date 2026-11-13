@@ -152,3 +152,63 @@ def test_migration_adds_the_tables(tmp_path, monkeypatch):
     tables = {r[0] for r in connection.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
     assert {"furniture", "rooms"} <= tables
     connection.close()
+
+
+def test_a_broken_stored_room_counts_as_empty(mia):
+    learn(mia)
+    for broken in ("{not json", "[1, 2]", '"bett"'):
+        with database.connect() as connection:
+            connection.execute(
+                "INSERT INTO rooms (person_id, placed) VALUES (2, ?)"
+                " ON CONFLICT (person_id) DO UPDATE SET placed = excluded.placed",
+                (broken,),
+            )
+        assert mia.get("/api/room").status_code == 200
+        assert mia.get("/api/room").json()["placed"] == {}
+    assert buy(mia, "kaktus").json()["room"]["placed"] == {"pflanze": "kaktus"}
+
+
+def test_a_key_used_today_for_another_piece_is_refused(mia):
+    learn(mia)
+    assert buy(mia, "kaktus", key="k").status_code == 200
+    for answer in (buy(mia, "holzbett", key="k"), mia.post("/api/shop/buy", json={"item": "schal", "key": "k"})):
+        assert answer.status_code == 409 and code(answer) == "key_used"
+
+
+def test_long_strings_in_a_placement_are_refused(mia):
+    assert mia.put("/api/room/placed", json={"placed": {"bett": "x" * 41}}).status_code == 422
+    assert mia.put("/api/room/placed", json={"placed": {"b" * 41: None}}).status_code == 422
+
+
+def test_one_purchase_in_each_shop_at_the_same_moment_buys_once(mia):
+    import threading
+
+    from app import room, wardrobe
+
+    learn(mia)
+    set_money(200, 0)
+    start = threading.Barrier(2)
+    results: list[str] = []
+
+    def shop_in(do):
+        connection = database.connect()
+        start.wait()
+        try:
+            do(connection)
+            results.append("ok")
+        except Exception as e:  # noqa: BLE001
+            results.append(getattr(e, "code", repr(e)))
+        finally:
+            connection.close()
+
+    threads = [
+        threading.Thread(target=shop_in, args=(lambda c: room.buy(c, 2, "kaktus", "race-1"),)),
+        threading.Thread(target=shop_in, args=(lambda c: wardrobe.buy(c, 2, "schal", "race-2"),)),
+    ]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert sorted(results) == ["bought_today", "ok"]
+    state = mia.get("/api/state").json()
+    assert state["stars"] in (200 - 15, 200 - 20)
