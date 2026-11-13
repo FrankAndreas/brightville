@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { SPOTS, type Spot } from '@/core/furniture'
+import { SPOT_NAMES, SPOT_RECTS, WINDOW_RECT, percent } from './roomLayout'
 
 // Her room, drawn (stage 8): wall, window, floor and the seven furniture spots. In the house it is the room she
 // taps in (interactive); in the Möbelhaus a small copy shows a piece on its spot before she buys it. Everything is
@@ -14,25 +15,12 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ spot: [spot: Spot] }>()
 
-/** Where each spot is, in percent of the room: left, top, width, height */
-const RECTS: Record<Spot, [number, number, number, number]> = {
-  bild: [5, 15, 13, 18],
-  vorhang: [21, 9, 22, 7],
-  lampe: [45, 1, 10, 13],
-  bett: [2, 64, 27, 30],
-  teppich: [30, 86, 32, 11],
-  pflanze: [62, 66, 9, 26],
-  spielzeug: [72, 74, 11, 20],
-}
-
 const emoji = (spot: Spot) => {
   const id = props.placed[spot]
   return id ? props.emojiOf?.(id) : undefined
 }
-const box = (spot: Spot) => {
-  const [left, top, width, height] = RECTS[spot]
-  return { left: `${left}%`, top: `${top}%`, width: `${width}%`, height: `${height}%` }
-}
+const box = (spot: Spot) => percent(SPOT_RECTS[spot])
+const windowBox = percent(WINDOW_RECT)
 
 function tap(spot: Spot) {
   if (props.interactive) emit('spot', spot)
@@ -43,10 +31,10 @@ function tap(spot: Spot) {
   <div class="room-picture" :data-small="small" :data-interactive="interactive">
     <div class="wall" />
     <div class="floor" />
-    <div class="window" aria-hidden="true">☀️</div>
+    <div class="window" :style="windowBox" aria-hidden="true">☀️</div>
     <button
       v-for="spot in SPOTS" :key="spot" class="spot" data-test="spot" :data-spot="spot" :data-empty="!emoji(spot)"
-      :style="box(spot)" :aria-label="spot" :tabindex="interactive ? 0 : -1" :aria-hidden="!interactive"
+      :style="box(spot)" :aria-label="SPOT_NAMES[spot]" :tabindex="interactive ? 0 : -1" :aria-hidden="!interactive"
       @click="tap(spot)"
     >
       <span v-if="emoji(spot)" class="piece">{{ emoji(spot) }}</span>
@@ -62,10 +50,6 @@ function tap(spot: Spot) {
 .floor { position: absolute; inset: 62% 0 0 0; background: #d9a877; }
 .window {
   position: absolute;
-  left: 23%;
-  top: 14%;
-  width: 18%;
-  height: 24%;
   display: grid;
   place-items: center;
   font-size: 12cqh;

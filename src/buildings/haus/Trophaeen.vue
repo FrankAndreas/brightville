@@ -22,12 +22,12 @@ function say(s: StickerDef) {
 </script>
 
 <template>
-  <div class="trophies" aria-label="Pokale">
+  <div class="trophies" role="group" aria-label="Pokale">
     <div v-for="(board, i) in boards" :key="i" class="board">
       <div class="row">
         <button
           v-for="s in board" :key="s.id" class="trophy" data-test="trophy" :data-id="s.id" :data-earned="has(s.id)"
-          :aria-label="s.name" @click.stop="say(s)"
+          :aria-label="has(s.id) ? s.name : 'Noch zu holen'" @click.stop="say(s)"
         >
           <span class="cup" :style="has(s.id) ? { background: s.color } : undefined">{{ s.emoji }}</span>
           <span class="foot" />
@@ -40,9 +40,14 @@ function say(s: StickerDef) {
 
 <style scoped>
 .trophies { display: flex; flex-direction: column; gap: 0.6vh; }
-.row { display: flex; justify-content: center; gap: 0.5vw; padding: 0 0.6vw; }
+.row { display: flex; justify-content: center; gap: 0; }
 .plank { display: block; height: 10px; border-radius: 5px; background: #9c6b3e; box-shadow: 0 4px 0 #7d5530; }
+/* At least 44 px to tap, however small the cup is drawn; six fit on the shelf */
 .trophy {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 64px;
+  min-height: 44px;
   border: 0;
   padding: 0;
   background: none;
@@ -50,6 +55,7 @@ function say(s: StickerDef) {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: flex-end;
 }
 .cup {
   width: min(4.6vw, 7vh, 48px);

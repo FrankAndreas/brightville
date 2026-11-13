@@ -274,6 +274,36 @@ describe('Haus', () => {
       expect(w.find('[data-test="spot"][data-spot="pflanze"]').attributes('data-empty')).toBe('true')
     })
 
+    it('asks the server for her room when the house opens: a piece bought on another device shows', async () => {
+      const w = await open()
+      w.unmount()
+      api.room_.owned = [{ id: 'holzbett', got_at: '2026-11-13T09:00:00+01:00' }]
+      api.room_.placed = { bett: 'holzbett' }
+      const again = mount(Haus, { props: { api }, attachTo: document.body })
+      await flushPromises()
+      expect(again.find('[data-test="spot"][data-spot="bett"]').text()).toBe('🛏️')
+      again.unmount()
+    })
+
+    it('closes the chooser with Escape, and stays in the house', async () => {
+      api.room_.owned = [{ id: 'holzbett', got_at: '2026-11-12T10:00:00+01:00' }]
+      const w = await open()
+      await w.find('[data-test="spot"][data-spot="bett"]').trigger('click')
+      expect(w.find('[data-test="spot-chooser"]').exists()).toBe(true)
+      window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape' }))
+      await flushPromises()
+      expect(w.find('[data-test="spot-chooser"]').exists()).toBe(false)
+      expect(w.emitted('finished')).toBeUndefined()
+      w.unmount()
+    })
+
+    it('names the spots in German for a screen reader', async () => {
+      const w = await open()
+      expect(w.findAll('[data-test="spot"]').map(s => s.attributes('aria-label')))
+        .toEqual(['Bild', 'Vorhang', 'Lampe', 'Bett', 'Teppich', 'Pflanze', 'Spielzeug'])
+      w.unmount()
+    })
+
     it('says where to get something for an empty spot', async () => {
       const w = await open()
       await w.find('[data-test="spot"][data-spot="lampe"]').trigger('click')
@@ -306,6 +336,16 @@ describe('Haus', () => {
       expect(trophies).toHaveLength(STICKERS.length)
       expect(STICKERS.length).toBe(17)
       expect(trophies.filter(t => t.attributes('data-earned') === 'true').map(t => t.attributes('data-id'))).toEqual(['rechenprofi'])
+    })
+
+    it('names only earned trophies for a screen reader, in a group called Pokale', async () => {
+      api.stickers_ = [{ id: 'rechenprofi', earned_at: '2026-11-12T10:00:00+01:00', seen: true }]
+      const w = await open()
+      expect(w.find('[data-test="trophy"][data-id="rechenprofi"]').attributes('aria-label')).toBe('Rechenprofi')
+      expect(w.find('[data-test="trophy"][data-id="tanzstern"]').attributes('aria-label')).toBe('Noch zu holen')
+      const group = w.find('.trophies')
+      expect([group.attributes('role'), group.attributes('aria-label')]).toEqual(['group', 'Pokale'])
+      w.unmount()
     })
 
     it('says a trophy\'s name and what it was for, and what an outline is for', async () => {

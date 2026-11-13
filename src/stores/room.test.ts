@@ -73,6 +73,37 @@ describe('room store', () => {
     expect(JSON.parse(storage.getItem('brightville.room.1')!)).toEqual({ placed: { pflanze: 'kaktus' } })
   })
 
+  it('keeps a second placement on screen when the first one\'s answer arrives before it', async () => {
+    api.room_.owned = owned('holzbett', 'kaktus')
+    const { room } = await open()
+    const send = api.setPlaced
+    const answers: (() => void)[] = []
+    api.setPlaced = placed => new Promise((resolve, reject) => {
+      answers.push(() => { send(placed).then(resolve, reject) })
+    })
+    const first = room.place('bett', 'holzbett')
+    const second = room.place('pflanze', 'kaktus')
+    answers[0]()
+    await first
+    expect(room.placed).toEqual({ bett: 'holzbett', pflanze: 'kaktus' })
+    answers[1]()
+    await second
+    expect(room.placed).toEqual({ bett: 'holzbett', pflanze: 'kaktus' })
+  })
+
+  it('shows what waits on the device when the page opens while the server is away', async () => {
+    api.room_.owned = owned('holzbett')
+    const { room } = await open()
+    api.offline = true
+    await room.place('bett', 'holzbett')
+    // The page is opened again, still without the server
+    setActivePinia(createPinia())
+    const again = useRoomStore()
+    again.init(api, 1, storage)
+    await again.load()
+    expect(again.placed).toEqual({ bett: 'holzbett' })
+  })
+
   it('draws an unknown piece as an empty spot', async () => {
     api.room_.owned = owned('kaktus')
     api.room_.placed = { pflanze: 'kaktus', bild: 'gibtsnicht' }

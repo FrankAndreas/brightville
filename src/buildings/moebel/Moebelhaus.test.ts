@@ -186,4 +186,24 @@ describe('the Möbelhaus', () => {
     expect(player.stars).toBe(85)
     w.unmount()
   })
+  it('after midnight, forgets yesterday\'s purchase in the other shop as soon as it opens', async () => {
+    api = fakeApi({ stars: 100, visits: 2 })
+    const player = usePlayerStore()
+    player.init(api, 1)
+    await player.refresh()
+    const wardrobe = useWardrobeStore()
+    wardrobe.init(api, 1)
+    await wardrobe.load()
+    const room = useRoomStore()
+    room.init(api, 1)
+    await room.load()
+    // Both stores still think yesterday's purchase was today; the server knows better
+    wardrobe.boughtToday = true
+    room.boughtToday = true
+    const w = mount(Moebelhaus, { attachTo: document.body })
+    await flushPromises()
+    await item(w, 'kaktus').trigger('click')
+    expect(w.find('[data-test="buy"]').attributes('data-ready')).toBe('true')
+    w.unmount()
+  })
 })

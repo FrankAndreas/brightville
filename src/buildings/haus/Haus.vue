@@ -60,7 +60,14 @@ function leave() {
 
 function onKey(e: KeyboardEvent) {
   if (e.repeat) return
-  if (e.code === 'Escape') return leave()
+  if (e.code === 'Escape') {
+    // Choosing a piece: Escape puts the chooser away, a second one leaves
+    if (choosing.value) {
+      choosing.value = null
+      return
+    }
+    return leave()
+  }
   if (view.value !== 'room') return
   if (e.code === 'Digit1' || e.code === 'Numpad1') show('book')
   if (e.code === 'Digit2' || e.code === 'Numpad2') show('album')
@@ -71,6 +78,8 @@ onMounted(() => {
   window.addEventListener('keydown', onKey)
   stopLeaveRequests = onLeaveRequest(leave)
   void instruct('Willkommen zu Hause! Tipp auf das Buch, das Stickerheft oder den Schrank.')
+  // What she bought on another device, or what an offline start left out, shows here
+  void room.load()
 })
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKey)
@@ -119,6 +128,8 @@ onBeforeUnmount(() => {
 .table-top { position: absolute; left: 34%; top: 60%; width: 24%; height: 18%; display: flex; justify-content: space-evenly; align-items: flex-end; }
 .table { position: absolute; left: 33%; top: 78%; width: 26%; height: 3.4%; border-radius: 1cqh; background: #9c6b3e; box-shadow: 0 0.8cqh 0 #7d5530; }
 .trophy-shelf { position: absolute; left: 51%; top: 17%; width: 33%; }
+/* Upright the room is narrow: the shelf grows to the left (the window ends at 43 %), so each trophy gets 44 px */
+@container (aspect-ratio < 1) { .trophy-shelf { left: 46%; width: 38%; } }
 /* Shaped like the drawing and standing on the floor, so the wall above it opens nothing */
 .wardrobe { position: absolute; left: 85%; bottom: 4%; width: 13%; aspect-ratio: 120 / 220; padding: 0; }
 .thing {
