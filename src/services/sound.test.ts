@@ -37,6 +37,8 @@ describe('sound without Web Audio', () => {
     const { unlockAudio, playBeat } = await load()
     expect(unlockAudio()).toBeNull()
     expect(() => playBeat('bell')).not.toThrow()
+    const { playNote } = await load()
+    expect(() => playNote(440)).not.toThrow()
   })
 })
 
@@ -46,6 +48,13 @@ describe('sound with Web Audio', () => {
     vi.stubGlobal('AudioContext', FakeAudioContext)
   })
   afterEach(() => vi.unstubAllGlobals())
+
+  it('plays a note at the given pitch', async () => {
+    const { unlockAudio, playNote } = await load()
+    const ctx = unlockAudio() as unknown as FakeAudioContext
+    playNote(440)
+    expect(ctx.started).toBe(1)
+  })
 
   it('creates the context once and resumes it', async () => {
     const { unlockAudio } = await load()

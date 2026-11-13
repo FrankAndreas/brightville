@@ -44,6 +44,13 @@ const SOUNDS: Record<SoundKind, (ac: AudioContext) => void> = {
   drum: ac => tone(ac, { freq: 160, to: 50, length: 0.25, volume: 0.6 }),
 }
 
+/** One soft note at `freq` hertz, for tunes and counting up; silent without Web Audio. */
+export function playNote(freq: number, length = 0.3, volume = 0.22): void {
+  const ac = ctx ?? unlockAudio()
+  if (!ac) return
+  tone(ac, { type: 'triangle', freq, length, volume })
+}
+
 /** One short sound of the given kind; silent without Web Audio. */
 export function playBeat(kind: SoundKind): void {
   const ac = ctx ?? unlockAudio()
