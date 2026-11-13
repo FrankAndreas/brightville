@@ -58,7 +58,7 @@ One piece of logic used by both buildings: it watches the body frame by frame an
 - **Arms leaving the top of the picture count as "up".** When she stands close, raised hands leave the picture. If a wrist is not seen but its elbow is above its shoulder, that arm counts as up.
 - **The standing height** of the shoulders is learnt during the first second in view and updated slowly while she stands still, so hopping and squatting are measured from her own standing height.
 - **No timeouts and no failures.** A move not done yet just isn't counted yet.
-- **Lost from view:** after 1.5 s without nose and shoulders, the voice says "Ich sehe dich nicht. Stell dich vor die Kamera." and repeats it at most every 8 s. The camera picture stays on screen so she can see herself step back in. Counting pauses. When she is back, it goes on where it stopped.
+- **Lost from view:** after 1.5 s without nose and shoulders, the voice says "Ich sehe dich nicht. Stell dich vor die Kamera." and repeats it at most every 8 s. The camera picture stays on screen so she can see herself step back in. Counting pauses. When she is back, it goes on where it stopped. Before she has been seen at all, the first reminder waits 8 s, so the instruction to step in is heard out. **(call, made while building)**
 
 ### Hüpfhalle 🦘 (Jump Arena)
 
@@ -80,6 +80,7 @@ One piece of logic used by both buildings: it watches the body frame by frame an
 - **How a hit is counted:** a move is shown for one bar. If she is in that pose at any moment during the bar or the half beat after it, the note lights up. A missed move just stays dark: no sound, no voice, nothing taken away.
 - **Lost from view:** the song pauses after 1.5 s and the voice says she isn't seen; it goes on when she is back. **(call)** That way a camera hiccup doesn't make her miss moves.
 - **Stars per song:** 5 × hits ÷ 16, rounded up, so any hit gives at least 1. Two songs per visit, so at most 10. **(call)**
+- **Leaving during a song** pays for the moves already caught in it, by the same rule. **(call, made while building)**
 
 ### In town
 
