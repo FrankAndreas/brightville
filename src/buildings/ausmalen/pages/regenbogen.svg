@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <path data-region="arc-1" d="M30,300 A170,170 0 0 1 370,300 L345,300 A145,145 0 0 0 55,300 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <path data-region="arc-2" d="M55,300 A145,145 0 0 1 345,300 L320,300 A120,120 0 0 0 80,300 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <path data-region="arc-3" d="M80,300 A120,120 0 0 1 320,300 L295,300 A95,95 0 0 0 105,300 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <path data-region="arc-4" d="M105,300 A95,95 0 0 1 295,300 L270,300 A70,70 0 0 0 130,300 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <path data-region="arc-5" d="M130,300 A70,70 0 0 1 270,300 L245,300 A45,45 0 0 0 155,300 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <circle data-region="sun" cx="330" cy="70" r="34" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <line x1="374.0" y1="70.0" x2="390.0" y2="70.0" fill="none" stroke="#2c1a0a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="361.1" y1="101.1" x2="372.4" y2="112.4" fill="none" stroke="#2c1a0a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="330.0" y1="114.0" x2="330.0" y2="130.0" fill="none" stroke="#2c1a0a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="298.9" y1="101.1" x2="287.6" y2="112.4" fill="none" stroke="#2c1a0a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="286.0" y1="70.0" x2="270.0" y2="70.0" fill="none" stroke="#2c1a0a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="298.9" y1="38.9" x2="287.6" y2="27.6" fill="none" stroke="#2c1a0a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="330.0" y1="26.0" x2="330.0" y2="10.0" fill="none" stroke="#2c1a0a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="361.1" y1="38.9" x2="372.4" y2="27.6" fill="none" stroke="#2c1a0a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path data-region="cloud-left" d="M20,330 C10,300 40,280 62,292 C70,265 115,262 122,292 C150,285 165,315 145,335 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <path data-region="cloud-right" d="M255,335 C240,310 268,288 292,300 C300,272 345,272 352,300 C380,292 395,322 375,338 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <polygon data-region="star-1" points="60.0,48.0 65.8,62.0 80.9,63.2 69.4,73.1 72.9,87.8 60.0,79.9 47.1,87.8 50.6,73.1 39.1,63.2 54.2,62.0" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <polygon data-region="star-2" points="120.0,106.0 123.7,114.9 133.3,115.7 126.0,121.9 128.2,131.3 120.0,126.3 111.8,131.3 114.0,121.9 106.7,115.7 116.3,114.9" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="heart" d="M200,379.8 C169.2,360 180.2,335.8 200,352.3 C219.8,335.8 230.8,360 200,379.8 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="ground" d="M0,380 L400,380 L400,400 L0,400 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+</svg>

@@ -1,0 +1,24 @@
+<svg id="coloring-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 280" width="300" height="280">
+  <ellipse data-region="mane"         cx="150" cy="148" rx="90" ry="88"  fill="#f5f0e8" stroke="#2c1a0a" stroke-width="5"/>
+  <ellipse data-region="body"         cx="150" cy="200" rx="65" ry="52"  fill="#f5f0e8" stroke="#2c1a0a" stroke-width="5"/>
+  <ellipse data-region="head"         cx="150" cy="130" rx="58" ry="55"  fill="#f5f0e8" stroke="#2c1a0a" stroke-width="5"/>
+  <ellipse data-region="ear-left"     cx="100" cy="82"  rx="18" ry="18"  fill="#f5f0e8" stroke="#2c1a0a" stroke-width="5"/>
+  <ellipse data-region="ear-left-inner" cx="100" cy="82" rx="10" ry="10" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3"/>
+  <ellipse data-region="ear-right"    cx="200" cy="82"  rx="18" ry="18"  fill="#f5f0e8" stroke="#2c1a0a" stroke-width="5"/>
+  <ellipse data-region="ear-right-inner" cx="200" cy="82" rx="10" ry="10" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3"/>
+  <ellipse data-region="muzzle"       cx="150" cy="148" rx="28" ry="22"  fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4"/>
+  <ellipse data-region="nose"         cx="150" cy="141" rx="10" ry="7"   fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3"/>
+  <ellipse data-region="eye-left"     cx="126" cy="118" rx="12" ry="10"  fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4"/>
+  <ellipse                            cx="126" cy="118" rx="5"  ry="5"   fill="#2c1a0a"/>
+  <ellipse data-region="eye-right"    cx="174" cy="118" rx="12" ry="10"  fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4"/>
+  <ellipse                            cx="174" cy="118" rx="5"  ry="5"   fill="#2c1a0a"/>
+  <path   data-region="tail"         d="M210 220 Q255 190 260 230 Q265 260 240 265 Q225 268 215 255 Q208 240 210 220Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4"/>
+  <rect   data-region="leg-fl"       x="108" y="235" width="28" height="38" rx="10" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4"/>
+  <rect   data-region="leg-fr"       x="164" y="235" width="28" height="38" rx="10" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4"/>
+  <path d="M140 155 Q150 162 160 155" fill="none" stroke="#2c1a0a" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="150" y1="148" x2="150" y2="156" stroke="#2c1a0a" stroke-width="2"/>
+  <line x1="122" y1="148" x2="92"  y2="143" stroke="#2c1a0a" stroke-width="1.5"/>
+  <line x1="122" y1="152" x2="92"  y2="155" stroke="#2c1a0a" stroke-width="1.5"/>
+  <line x1="178" y1="148" x2="208" y2="143" stroke="#2c1a0a" stroke-width="1.5"/>
+  <line x1="178" y1="152" x2="208" y2="155" stroke="#2c1a0a" stroke-width="1.5"/>
+</svg>

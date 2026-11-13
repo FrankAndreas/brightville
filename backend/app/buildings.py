@@ -12,7 +12,7 @@ DEFAULT_FILE = Path(__file__).resolve().parents[2] / "shared" / "buildings.json"
 @dataclass(frozen=True)
 class Building:
     id: str
-    kind: str  # "earn" or "play"
+    kind: str  # "earn", "play" or "free" (neither earns nor sells)
     max_stars: int = 0  # the most one earning visit gives
     cost: int = 0  # Stars for one round of play
 

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <path data-region="snow" d="M0,330 Q200,300 400,330 L400,400 L0,400 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <path data-region="runner" d="M60,300 L320,300 Q360,300 360,270 L372,270 Q372,315 320,315 L60,315 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <rect data-region="seat" x="90" y="220" width="230" height="30" rx="6" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <rect data-region="back" x="90" y="150" width="30" height="72" rx="6" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <rect data-region="post-1" x="120" y="250" width="16" height="52" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <rect data-region="post-2" x="200" y="250" width="16" height="52" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <rect data-region="post-3" x="280" y="250" width="16" height="52" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <rect data-region="present" x="180" y="150" width="80" height="70" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <rect data-region="present-ribbon" x="212" y="150" width="16" height="70" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="bow-left" d="M220,150 C195,125 185,145 205,152 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="bow-right" d="M220,150 C245,125 255,145 235,152 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <circle data-region="teddy-head" cx="290" cy="170" r="26" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <circle data-region="teddy-ear-left" cx="270" cy="148" r="10" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <circle data-region="teddy-ear-right" cx="310" cy="148" r="10" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <ellipse data-region="teddy-body" cx="290" cy="210" rx="24" ry="16" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <circle cx="282" cy="166" r="3.5" fill="#2c1a0a"/>
+  <circle cx="298" cy="166" r="3.5" fill="#2c1a0a"/>
+  <path d="M284,180 Q290,186 296,180" fill="none" stroke="#2c1a0a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <polygon data-region="snowflake-1" points="70.0,50.0 74.0,63.1 87.3,60.0 78.0,70.0 87.3,80.0 74.0,76.9 70.0,90.0 66.0,76.9 52.7,80.0 62.0,70.0 52.7,60.0 66.0,63.1" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="2.5" stroke-linejoin="round"/>
+  <polygon data-region="snowflake-2" points="330.0,44.0 333.2,54.5 343.9,52.0 336.4,60.0 343.9,68.0 333.2,65.5 330.0,76.0 326.8,65.5 316.1,68.0 323.6,60.0 316.1,52.0 326.8,54.5" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="2.5" stroke-linejoin="round"/>
+  <polygon data-region="snowflake-3" points="200.0,37.0 202.6,45.5 211.3,43.5 205.2,50.0 211.3,56.5 202.6,54.5 200.0,63.0 197.4,54.5 188.7,56.5 194.8,50.0 188.7,43.5 197.4,45.5" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="2.5" stroke-linejoin="round"/>
+</svg>

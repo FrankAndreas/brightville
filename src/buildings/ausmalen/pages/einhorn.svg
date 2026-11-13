@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <path data-region="hill" d="M0,340 Q120,300 220,330 T400,320 L400,400 L0,400 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <polygon data-region="star-left" points="60.0,44.0 66.9,60.5 84.7,62.0 71.1,73.6 75.3,91.0 60.0,81.7 44.7,91.0 48.9,73.6 35.3,62.0 53.1,60.5" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <polygon data-region="star-right" points="340.0,40.0 345.3,52.7 359.0,53.8 348.6,62.8 351.8,76.2 340.0,69.0 328.2,76.2 331.4,62.8 321.0,53.8 334.7,52.7" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="tail" d="M300,205 C350,190 370,240 345,280 C335,300 360,320 340,335 C320,320 310,290 318,265 C325,240 305,225 296,222 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <rect data-region="leg-1" x="165" y="255" width="26" height="72" rx="11" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <rect data-region="hoof-1" x="163" y="318" width="30" height="18" rx="6" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <rect data-region="leg-2" x="200" y="255" width="26" height="72" rx="11" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <rect data-region="hoof-2" x="198" y="318" width="30" height="18" rx="6" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <rect data-region="leg-3" x="255" y="255" width="26" height="72" rx="11" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <rect data-region="hoof-3" x="253" y="318" width="30" height="18" rx="6" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <rect data-region="leg-4" x="290" y="255" width="26" height="72" rx="11" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <rect data-region="hoof-4" x="288" y="318" width="30" height="18" rx="6" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <ellipse data-region="body" cx="235" cy="225" rx="90" ry="55" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <path data-region="neck" d="M160,215 C150,180 135,150 128,120 L178,108 C190,140 200,175 215,190 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <path data-region="head" d="M178,108 C175,80 150,70 125,78 C100,86 70,105 62,125 C56,142 70,155 90,152 C110,150 130,140 140,135 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <path data-region="ear" d="M150,80 L162,48 L172,88 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <path data-region="horn" d="M118,82 L112,22 L138,76 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M114,40 L130,46 M116,55 L133,61 M118,68 L136,73" fill="none" stroke="#2c1a0a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path data-region="mane-1" d="M162,88 C190,80 205,100 192,118 C210,120 214,140 198,150 C185,150 180,130 178,110 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <path data-region="mane-2" d="M198,150 C222,150 226,175 210,185 C200,190 192,175 190,160 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <path data-region="mane-3" d="M138,78 C140,60 160,55 166,66 C160,72 150,78 148,85 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <circle cx="115" cy="100" r="5" fill="#2c1a0a"/>
+  <path d="M78,135 Q82,138 86,135" fill="none" stroke="#2c1a0a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M100,145 Q110,150 120,143" fill="none" stroke="#2c1a0a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

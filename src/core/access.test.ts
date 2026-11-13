@@ -3,6 +3,7 @@ import { doorState } from './access'
 
 const earn = { kind: 'earn' as const }
 const play = { kind: 'play' as const, cost: 3 }
+const free = { kind: 'free' as const }
 
 describe('doorState', () => {
   it('opens an earning building whenever the device can serve it', () => {
@@ -42,5 +43,11 @@ describe('doorState', () => {
 
   it('treats a play building without a cost as free', () => {
     expect(doorState({ kind: 'play' }, true, true, 0)).toBe('open')
+  })
+
+  it('opens a free building before the goal, without Stars and after the play time', () => {
+    expect(doorState(free, true, false, 0)).toBe('open')
+    expect(doorState(free, true, true, 0, true)).toBe('open')
+    expect(doorState(free, false, true, 99)).toBe('unavailable')
   })
 })

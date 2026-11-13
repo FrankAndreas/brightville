@@ -1,4 +1,5 @@
 import type { Component } from 'vue'
+import type { DoorSpot } from '@/city/doors'
 
 /** What a building needs from the device to be playable */
 export type Need = 'camera' | 'touch' | 'keyboard'
@@ -18,12 +19,15 @@ export interface BuildingDef {
   spokenName: string
   /** Picture on the sign and in the door prompt */
   icon: string
-  /** Earning buildings give Stars and count towards the daily goal; play buildings cost Stars */
-  kind: 'earn' | 'play'
+  /**
+   * Earning buildings give Stars and count towards the daily goal; play buildings cost Stars;
+   * free buildings (making things) are always open and neither give nor cost
+   */
+  kind: 'earn' | 'play' | 'free'
   /** Stars taken on entering a play building */
   cost?: number
   needs: Need[]
-  door: { x: number; z: number }
+  door: DoorSpot
   component: Component
   /** Fetches the building's code. Awaited before entering, so a failed download never costs Stars. */
   preload?: () => Promise<unknown>

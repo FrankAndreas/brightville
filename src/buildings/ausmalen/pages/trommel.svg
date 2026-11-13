@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <path data-region="shell" d="M90,170 L90,300 Q200,350 310,300 L310,170 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <ellipse data-region="top" cx="200" cy="170" rx="110" ry="36" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <path data-region="rim-bottom" d="M90,290 Q200,340 310,290 L310,308 Q200,358 90,308 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <path data-region="zigzag-1" d="M90,210 L117.5,280 L145,210 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="zigzag-2" d="M145,210 L172.5,280 L200,210 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="zigzag-3" d="M200,210 L227.5,280 L255,210 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="zigzag-4" d="M255,210 L282.5,280 L310,210 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="stick-left" d="M60,60 L170,150 L162,160 L52,70 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="stick-right" d="M340,60 L230,150 L238,160 L348,70 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <circle data-region="stick-tip-left" cx="172" cy="152" r="11" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <circle data-region="stick-tip-right" cx="228" cy="152" r="11" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="note" d="M60,250 L60,190 L80,205 M60,250 m-14,0 a14,10 0 1,0 28,0 a14,10 0 1,0 -28,0" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <polygon data-region="star" points="345.0,230.0 350.3,242.7 364.0,243.8 353.6,252.8 356.8,266.2 345.0,259.0 333.2,266.2 336.4,252.8 326.0,243.8 339.7,242.7" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+</svg>

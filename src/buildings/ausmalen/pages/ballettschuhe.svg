@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <path data-region="floor" d="M0,330 L400,330 L400,400 L0,400 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <path data-region="ribbon-back-1" d="M172,250 L226,110 L238,114 L186,252 Z" transform="translate(110 -40)" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="ribbon-back-2" d="M226,246 L150,104 L161,98 L240,244 Z" transform="translate(110 -40)" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="shoe-back" d="M40,285 C40,262 70,250 110,248 L230,238 C258,238 270,262 262,285 C258,300 240,305 220,305 L70,305 C50,305 40,298 40,285 Z" transform="translate(110 -40)" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <path data-region="toe-back" d="M40,285 C40,262 70,250 105,249 C95,262 92,292 100,305 L70,305 C50,305 40,298 40,285 Z" transform="translate(110 -40)" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="opening-back" d="M140,250 C170,236 235,232 254,246 C236,262 170,262 140,250 Z" transform="translate(110 -40)" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="bow-back" d="M198,250 C180,232 168,256 194,258 Z M202,250 C220,232 232,256 206,258 Z" transform="translate(110 -40)" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="ribbon-front-1" d="M172,250 L226,110 L238,114 L186,252 Z" transform="translate(10 25)" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="ribbon-front-2" d="M226,246 L150,104 L161,98 L240,244 Z" transform="translate(10 25)" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="shoe-front" d="M40,285 C40,262 70,250 110,248 L230,238 C258,238 270,262 262,285 C258,300 240,305 220,305 L70,305 C50,305 40,298 40,285 Z" transform="translate(10 25)" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="4" stroke-linejoin="round"/>
+  <path data-region="toe-front" d="M40,285 C40,262 70,250 105,249 C95,262 92,292 100,305 L70,305 C50,305 40,298 40,285 Z" transform="translate(10 25)" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="opening-front" d="M140,250 C170,236 235,232 254,246 C236,262 170,262 140,250 Z" transform="translate(10 25)" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="bow-front" d="M198,250 C180,232 168,256 194,258 Z M202,250 C220,232 232,256 206,258 Z" transform="translate(10 25)" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <path data-region="heart" d="M340,383.0 C312.0,365 322.0,343.0 340,358.0 C358.0,343.0 368.0,365 340,383.0 Z" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+  <polygon data-region="star" points="60.0,58.0 65.8,72.0 80.9,73.2 69.4,83.1 72.9,97.8 60.0,89.9 47.1,97.8 50.6,83.1 39.1,73.2 54.2,72.0" fill="#f5f0e8" stroke="#2c1a0a" stroke-width="3" stroke-linejoin="round"/>
+</svg>
