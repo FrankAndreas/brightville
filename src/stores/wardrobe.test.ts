@@ -81,6 +81,33 @@ describe('wardrobe store', () => {
     expect(wardrobe.owned).toEqual([])
   })
 
+  it('never takes a failed answer for "no look yet": only the server saying so counts', async () => {
+    api.wardrobe_.look = BLUE
+    api.offline = true
+    const { wardrobe } = await open()
+    expect(wardrobe.known).toBe(false)
+    api.offline = false
+    await wardrobe.load()
+    expect(wardrobe.known).toBe(true)
+    expect(wardrobe.look).toEqual(BLUE)
+  })
+
+  it('keeps what still waits on the device over a later answer from the server', async () => {
+    api.wardrobe_.owned = [
+      { id: 'krone', how: 'bought', got_at: '2026-11-12T10:00:00+01:00' },
+      { id: 'schal', how: 'bought', got_at: '2026-11-12T10:00:00+01:00' },
+    ]
+    const { wardrobe } = await open()
+    api.offline = true
+    await wardrobe.wear('head', 'krone')
+    api.offline = false
+    // Another change gets through; the crown, still waiting, stays on
+    await wardrobe.wear('neck', 'schal')
+    expect(wardrobe.dress.worn).toEqual({ head: 'krone', neck: 'schal' })
+    await wardrobe.load()
+    expect(api.wardrobe_.worn).toEqual({ head: 'krone', neck: 'schal' })
+  })
+
   it('drops an answer that arrives after the device changed hands', async () => {
     api.wardrobe_.look = null
     const { wardrobe } = await open(1)

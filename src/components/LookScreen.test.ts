@@ -32,6 +32,13 @@ describe('the look screen', () => {
     w.unmount()
   })
 
+  it('has the 🔊 button to hear the instruction again', async () => {
+    const w = open()
+    await w.vm.$nextTick()
+    expect(w.find('[data-test="say-again"]').exists()).toBe(true)
+    w.unmount()
+  })
+
   it('takes what she tapped, and gives it back with the ✔️', async () => {
     const w = open()
     await w.findAll('[data-test="look-body"]')[2].trigger('click')

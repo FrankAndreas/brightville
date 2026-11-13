@@ -67,6 +67,8 @@ export function createPreview(canvas: HTMLCanvasElement): Preview {
         for (const mat of [m.material].flat()) mat.dispose()
       })
       renderer.dispose()
+      // Give the WebGL context back now: browsers keep only a few, and drop the oldest (the town's) when out
+      renderer.forceContextLoss()
     },
   }
 }

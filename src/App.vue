@@ -62,7 +62,8 @@ const prize = computed(() => props.buildings.find(b => b.kind === 'play')?.icon 
 /** The game shows once someone plays and their Stars are known */
 const playing = computed(() => session.status === 'ready' && player.loaded && wardrobe.loaded)
 // A player without a look yet designs her character first (stage 7), before the town and its help
-const designing = computed(() => playing.value && wardrobe.look === null)
+// Only when the server said so: a wardrobe that couldn't be asked is no reason to choose again
+const designing = computed(() => playing.value && wardrobe.known && wardrobe.look === null)
 /** The controls, shown over the paused town */
 const helpOpen = ref(false)
 const inTown = computed(() => started.value && playing.value && inside.value === null && !parentsOpen.value)
@@ -249,7 +250,11 @@ function switchPerson() {
 // A game left open overnight, or a parent's change elsewhere, must show without a reload
 const REFRESH_MS = 60_000
 const refresh = () => {
-  if (document.visibilityState !== 'hidden' && playing.value) void player.refresh()
+  if (document.visibilityState !== 'hidden' && playing.value) {
+    void player.refresh()
+    // Sends what waited on the device, then takes the server's wardrobe
+    void wardrobe.load()
+  }
 }
 let refreshTimer: ReturnType<typeof setInterval> | undefined
 

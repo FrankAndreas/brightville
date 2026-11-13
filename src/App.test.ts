@@ -659,6 +659,24 @@ describe('App', () => {
       w.unmount()
     })
 
+    it('never shows the look screen because the wardrobe could not be asked', async () => {
+      api.wardrobe = () => Promise.reject(new ApiError(500, 'offline'))
+      const w = await started()
+      expect(w.find('[data-test="look-screen"]').exists()).toBe(false)
+      expect(w.find('[data-test="game"]').exists()).toBe(true)
+      w.unmount()
+    })
+
+    it('asks for the wardrobe again with every refresh, so what waited goes out', async () => {
+      const w = await started()
+      const asked = () => api.calls.filter(c => c === 'wardrobe').length
+      const before = asked()
+      document.dispatchEvent(new Event('visibilitychange'))
+      await flushPromises()
+      expect(asked()).toBe(before + 1)
+      w.unmount()
+    })
+
     it('goes straight to the town for someone who chose her look before', async () => {
       const w = await started()
       expect(w.find('[data-test="look-screen"]').exists()).toBe(false)

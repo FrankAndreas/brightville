@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import CharacterView from '@/components/CharacterView.vue'
+import SayAgain from '@/components/SayAgain.vue'
 import {
   BODY_COLORS, GLASSES, HAIR_COLORS, HAIR_STYLES, randomLook, type Dress, type Glasses, type HairStyle, type Look,
 } from '@/core/look'
@@ -26,6 +27,7 @@ onMounted(() => void instruct('So siehst du aus! Tipp auf die Farben und Haare, 
 
 <template>
   <div class="look" data-test="look-screen">
+    <SayAgain />
     <div class="stage">
       <CharacterView :dress="dress" :size="300" />
       <div class="actions">

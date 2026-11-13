@@ -29,6 +29,8 @@ export const useWardrobeStore = defineStore('wardrobe', () => {
   const owned = ref<WardrobeState['owned']>([])
   const boughtToday = ref(false)
   const loaded = ref(false)
+  /** The server answered at least once: only then does a missing look mean "no look yet" (the look screen) */
+  const known = ref(false)
   /** What the character is built from: the orange blob until she chose a look */
   const dress = computed<Dress>(() => ({ look: look.value ?? DEFAULT_LOOK, worn: { ...worn.value } }))
 
@@ -45,20 +47,31 @@ export const useWardrobeStore = defineStore('wardrobe', () => {
     owned.value = []
     boughtToday.value = false
     loaded.value = false
+    known.value = false
   }
 
+  /** The server's state, with what still waits on this device laid over it (it is sent with the next load) */
   function take(state: WardrobeState) {
-    look.value = isLook(state.look) ? state.look : null
-    worn.value = { ...state.worn }
+    const waiting = readWaiting()
+    look.value = waiting.look ?? (isLook(state.look) ? state.look : null)
+    const next = { ...state.worn }
+    for (const [place, id] of Object.entries(waiting.worn ?? {}) as [Place, string | null][]) {
+      if (id === null) delete next[place]
+      else next[place] = id
+    }
+    worn.value = next
     owned.value = state.owned
     boughtToday.value = state.bought_today
     loaded.value = true
+    known.value = true
   }
 
   function readWaiting(): Waiting {
     try {
       const raw: unknown = JSON.parse((storage ?? window.localStorage).getItem(key) ?? '{}')
-      return typeof raw === 'object' && raw !== null ? (raw as Waiting) : {}
+      if (typeof raw !== 'object' || raw === null) return {}
+      const w = raw as Waiting
+      return { look: isLook(w.look) ? w.look : undefined, worn: typeof w.worn === 'object' && w.worn ? w.worn : undefined }
     } catch {
       return {}
     }
@@ -89,7 +102,12 @@ export const useWardrobeStore = defineStore('wardrobe', () => {
       if (owner !== key) return
       take(state)
     } catch {
-      if (owner === key) loaded.value = true
+      // Not "no look yet": the town shows what is known here, and the next refresh asks again
+      if (owner === key) {
+        const waiting = readWaiting()
+        if (waiting.look) look.value = waiting.look
+        loaded.value = true
+      }
     }
   }
 
@@ -98,7 +116,10 @@ export const useWardrobeStore = defineStore('wardrobe', () => {
     const owner = key
     try {
       const state = await api!.saveLook(next)
-      if (owner === key) take(state)
+      if (owner !== key) return
+      // Through: an older look still waiting here is outdated
+      writeWaiting({ ...readWaiting(), look: undefined })
+      take(state)
     } catch {
       if (owner === key) writeWaiting({ ...readWaiting(), look: next })
     }
@@ -113,7 +134,15 @@ export const useWardrobeStore = defineStore('wardrobe', () => {
     const owner = key
     try {
       const state = await api!.setWorn({ [place]: id })
-      if (owner === key) take(state)
+      if (owner !== key) return
+      // Through: what waited for this place is outdated
+      const waiting = readWaiting()
+      if (waiting.worn && place in waiting.worn) {
+        const rest = { ...waiting.worn }
+        delete rest[place]
+        writeWaiting({ ...waiting, worn: rest })
+      }
+      take(state)
     } catch {
       if (owner === key) {
         const waiting = readWaiting()
@@ -137,5 +166,5 @@ export const useWardrobeStore = defineStore('wardrobe', () => {
     }
   }
 
-  return { look, worn, owned, boughtToday, loaded, dress, init, load, saveLook, wear, buy }
+  return { look, worn, owned, boughtToday, loaded, known, dress, init, load, saveLook, wear, buy }
 })
