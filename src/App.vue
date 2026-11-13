@@ -89,6 +89,12 @@ function offerHelp() {
   if (started.value && playing.value && !designing.value && player.stars === 0 && player.visitsToday === 0 && !helpSeen()) helpOpen.value = true
 }
 
+/** Stickers celebrated: seen; and a sticker may have brought an add-on to the wardrobe */
+function stickersShown(ids: string[]) {
+  void player.celebrated(ids)
+  void wardrobe.load()
+}
+
 async function lookChosen(look: Look) {
   await wardrobe.saveLook(look)
   offerHelp()
@@ -303,7 +309,7 @@ onBeforeUnmount(() => {
     <Confetti v-if="celebrating && !inside" />
     <StickerParade
       v-if="inTown && !celebrating && !helpOpen && player.toCelebrate.length"
-      :ids="player.toCelebrate.slice(0, 3)" @done="player.celebrated"
+      :ids="player.toCelebrate.slice(0, 3)" @done="stickersShown"
     />
     <div v-if="inTown && !helpOpen" class="corner">
       <ParentGate v-if="session.isParent" @open="parentsOpen = true" />

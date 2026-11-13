@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { entrySaid, shortDate, spokenDate, type LogDay, type LogEntry } from '@/core/diary'
 import { stickerDef } from '@/core/stickers'
 import { paintingUrl, type Api } from '@/services/api'
+import { outfitDef } from '@/core/outfits'
 import { speak } from '@/services/tts'
 import { BUILDINGS } from '../registry'
 
@@ -22,8 +23,9 @@ const page = computed(() => days.value[index.value] ?? null)
 const canOlder = computed(() => index.value < days.value.length - 1 || more.value)
 
 const building = (id: string) => BUILDINGS.find(b => b.id === id)
-const nameOf = (id: string) => building(id)?.spokenName ?? id
-const iconOf = (id: string) => building(id)?.icon ?? '❓'
+// A purchase names its add-on where a visit names its building
+const nameOf = (id: string) => building(id)?.spokenName ?? outfitDef(id)?.name ?? id
+const iconOf = (id: string) => building(id)?.icon ?? outfitDef(id)?.emoji ?? '❓'
 
 async function fetchMore(): Promise<number> {
   if (fetching) return 0

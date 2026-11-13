@@ -1,10 +1,13 @@
 import { numberWord } from './numbers'
 import { stickerDef } from './stickers'
 
-/** One thing done on a day: an earning visit (+Stars), a round of play (−Stars) or a free visit */
+/**
+ * One thing done on a day: an earning visit (+Stars), a round of play (−Stars), a free visit, or a purchase in the
+ * Kleiderladen (−Stars; `building` is then the add-on's id)
+ */
 export interface LogEntry {
   building: string
-  kind: 'visit' | 'play' | 'free'
+  kind: 'visit' | 'play' | 'free' | 'buy'
   stars: number
   /** "HH:MM" at home */
   at: string
@@ -60,13 +63,14 @@ export function starsSaid(n: number): string {
 export function entrySaid(entry: LogEntry, name: (building: string) => string): string {
   if (entry.kind === 'visit') return `${name(entry.building)}, ${starsSaid(entry.stars)}.`
   if (entry.kind === 'play') return `${name(entry.building)}, ${starsSaid(-entry.stars)} ausgegeben.`
+  if (entry.kind === 'buy') return `${name(entry.building)} gekauft, ${starsSaid(-entry.stars)}.`
   return `${name(entry.building)}.`
 }
 
 /** One day as a line of text for the parents. */
 export function dayLine(day: LogDay, name: (building: string) => string): string {
   const things = day.entries.map(e =>
-    e.kind === 'visit' ? `${name(e.building)} +${e.stars}` : e.kind === 'play' ? `${name(e.building)} −${-e.stars}` : name(e.building))
+    e.kind === 'visit' ? `${name(e.building)} +${e.stars}` : e.kind === 'play' || e.kind === 'buy' ? `${name(e.building)} −${-e.stars}` : name(e.building))
   let line = `${shortDate(day.day)}: ${things.join(', ') || 'gemalt'}.`
   if (day.goal_reached) line += ' Tagesziel erreicht.'
   const stickers = day.stickers.map(id => stickerDef(id)?.name ?? id)

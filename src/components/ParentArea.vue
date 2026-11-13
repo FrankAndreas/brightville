@@ -3,6 +3,7 @@ import { onMounted, reactive, ref } from 'vue'
 import { BUILDINGS } from '@/buildings/registry'
 import { dayLine, type LogDay } from '@/core/diary'
 import { stickerDef } from '@/core/stickers'
+import { outfitDef } from '@/core/outfits'
 import type { Api, PlayerRow, Rules, StickerRow } from '@/services/api'
 import FilmList from './FilmList.vue'
 
@@ -65,7 +66,9 @@ async function save(id: number) {
 
 /** Each person's logbook, fetched the first time its section is opened */
 const diaries = reactive<Record<number, { status: 'loading' | 'ready' | 'error'; days: LogDay[]; stickers: StickerRow[] }>>({})
-const nameOf = (id: string) => BUILDINGS.find(b => b.id === id)?.spokenName ?? id
+const nameOf = (id: string) => BUILDINGS.find(b => b.id === id)?.spokenName ?? outfitDef(id)?.name ?? id
+/** Her add-ons as pictures; ids the catalogue no longer has are left out */
+const ownedEmojis = (row: PlayerRow) => (row.owned ?? []).map(id => outfitDef(id)?.emoji).filter(Boolean).join(' ')
 
 async function openDiary(id: number, event: Event) {
   if (!(event.target as HTMLDetailsElement).open || diaries[id]?.status === 'ready') return
@@ -109,6 +112,10 @@ onMounted(load)
         <p class="today">
           Heute: {{ row.visits }} von {{ row.daily_goal }} Lernbesuchen, {{ minutes(row.play_seconds) }} Minuten gespielt
         </p>
+        <p v-if="row.savings > 0" class="today" data-test="savings">
+          {{ row.stars }} Sterne, davon gespart: {{ row.savings }} (zählen im Kleiderladen halb)
+        </p>
+        <p v-if="ownedEmojis(row)" class="owned" data-test="owned" aria-label="Kleider">{{ ownedEmojis(row) }}</p>
         <div class="fields">
           <!-- A parent has no daily goal or play time to keep (UX review): only their Stars -->
           <label v-if="row.role !== 'PARENT'">Tagesziel
@@ -152,6 +159,7 @@ onMounted(load)
 </template>
 
 <style scoped>
+.owned { margin: 4px 0 0; font-size: 1.5rem; letter-spacing: 4px; }
 .parents {
   position: fixed;
   inset: 0;
