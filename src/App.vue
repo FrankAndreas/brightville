@@ -8,6 +8,7 @@ import DoorPrompt from '@/components/DoorPrompt.vue'
 import GoalBar from '@/components/GoalBar.vue'
 import HelpOverlay from '@/components/HelpOverlay.vue'
 import LeaveButton from '@/components/LeaveButton.vue'
+import LookScreen from '@/components/LookScreen.vue'
 import ParentArea from '@/components/ParentArea.vue'
 import ParentGate from '@/components/ParentGate.vue'
 import SayAgain from '@/components/SayAgain.vue'
@@ -16,6 +17,7 @@ import StarCounter from '@/components/StarCounter.vue'
 import StartGate from '@/components/StartGate.vue'
 import StickerParade from '@/components/StickerParade.vue'
 import WhoPlays from '@/components/WhoPlays.vue'
+import { DEFAULT_LOOK, type Look } from '@/core/look'
 import { numberWord } from '@/core/numbers'
 import { httpApi, type Api } from '@/services/api'
 import { detectDevice } from '@/services/device'
@@ -58,7 +60,9 @@ const near = computed(() => find(nearId.value))
 const prize = computed(() => props.buildings.find(b => b.kind === 'play')?.icon ?? '🎉')
 
 /** The game shows once someone plays and their Stars are known */
-const playing = computed(() => session.status === 'ready' && player.loaded)
+const playing = computed(() => session.status === 'ready' && player.loaded && wardrobe.loaded)
+// A player without a look yet designs her character first (stage 7), before the town and its help
+const designing = computed(() => playing.value && wardrobe.look === null)
 /** The controls, shown over the paused town */
 const helpOpen = ref(false)
 const inTown = computed(() => started.value && playing.value && inside.value === null && !parentsOpen.value)
@@ -81,7 +85,12 @@ function closeHelp() {
   }
 }
 function offerHelp() {
-  if (started.value && playing.value && player.stars === 0 && player.visitsToday === 0 && !helpSeen()) helpOpen.value = true
+  if (started.value && playing.value && !designing.value && player.stars === 0 && player.visitsToday === 0 && !helpSeen()) helpOpen.value = true
+}
+
+async function lookChosen(look: Look) {
+  await wardrobe.saveLook(look)
+  offerHelp()
 }
 
 function start() {
@@ -266,6 +275,7 @@ onBeforeUnmount(() => {
   <WhoPlays v-else-if="session.status === 'choose'" :people="session.people" @choose="session.choose" />
   <ServerScreen v-else-if="session.status === 'offline'" kind="offline" @retry="session.retry" />
   <ServerScreen v-else-if="session.status === 'no_access'" kind="no_access" />
+  <LookScreen v-else-if="designing" :start="DEFAULT_LOOK" @done="lookChosen" />
   <main v-else-if="playing" class="game" data-test="game">
     <CityView
       :doors="doors" :paused="inside !== null || helpOpen || parentsOpen" :touch="device.touch" :dress="wardrobe.dress"

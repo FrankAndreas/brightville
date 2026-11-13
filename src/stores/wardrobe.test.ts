@@ -39,6 +39,7 @@ describe('wardrobe store', () => {
   })
 
   it('takes the server\'s wardrobe, and shows the orange blob until a look is saved', async () => {
+    api.wardrobe_.look = null
     const { wardrobe } = await open()
     expect(wardrobe.loaded).toBe(true)
     expect(wardrobe.look).toBeNull()
@@ -81,6 +82,7 @@ describe('wardrobe store', () => {
   })
 
   it('drops an answer that arrives after the device changed hands', async () => {
+    api.wardrobe_.look = null
     const { wardrobe } = await open(1)
     api.wardrobe_.look = BLUE
     const late = wardrobe.load()

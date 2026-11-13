@@ -1,5 +1,6 @@
 // A stand-in for the server in tests: the same rules in memory (backend/app/game.py), for one person.
 import buildings from '../../shared/buildings.json'
+import { DEFAULT_LOOK } from '@/core/look'
 import { outfitDef, pay, shelfOpen, type Place } from '@/core/outfits'
 import {
   ApiError, type Api, type Film, type LogDay, type Me, type Person, type PlayerRow, type ServerState, type StickerRow,
@@ -55,7 +56,8 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
     stickers_: [],
     earns_: [],
     logbook_: [],
-    wardrobe_: { look: null, worn: {}, owned: [], bought_today: false },
+    // Someone who chose her look already; a first visit sets `look: null`
+    wardrobe_: { look: { ...DEFAULT_LOOK }, worn: {}, owned: [], bought_today: false },
     newDay(day) {
       Object.assign(state, { day, visits: 0, play_seconds: 0 })
       api.wardrobe_.bought_today = false
