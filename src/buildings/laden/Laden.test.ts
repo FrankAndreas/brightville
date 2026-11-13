@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
+import { ApiError } from '@/services/api'
 import { speak } from '@/services/tts'
 import { fakeApi, type FakeApi } from '@/services/fakeApi'
 import { usePlayerStore } from '@/stores/player'
@@ -114,6 +115,83 @@ describe('the Kleiderladen', () => {
     await flushPromises()
     expect(lastSaid()).toBe('Die Kappe ist deine! Ein neues Regal!')
     expect(shelf(w, 2).attributes('data-open')).toBe('true')
+    w.unmount()
+  })
+
+  it('catches up with the server when it opens: something bought on another device shows as hers', async () => {
+    api = fakeApi({ stars: 100, visits: 2 })
+    const player = usePlayerStore()
+    player.init(api, 1)
+    await player.refresh()
+    const wardrobe = useWardrobeStore()
+    wardrobe.init(api, 1)
+    await wardrobe.load()
+    api.wardrobe_.owned = [{ id: 'schal', how: 'bought', got_at: '2026-11-13T09:00:00+01:00' }]
+    const w = mount(Laden, { attachTo: document.body })
+    await flushPromises()
+    expect(item(w, 'schal').attributes('data-owned')).toBe('true')
+    w.unmount()
+  })
+
+  it('sends a purchase whose answer got lost again under the same key: it buys once', async () => {
+    const { w, player } = await open()
+    await item(w, 'schal').trigger('click')
+    api.loseAnswers = true
+    await w.find('[data-test="buy"]').trigger('click')
+    await flushPromises()
+    expect(lastSaid()).toBe('Das hat gerade nicht geklappt. Versuch es nochmal.')
+    api.loseAnswers = false
+    await w.find('[data-test="buy"]').trigger('click')
+    await flushPromises()
+    expect(lastSaid()).toBe('Der Schal ist deiner!')
+    expect(player.stars).toBe(80)
+    w.unmount()
+  })
+
+  it('says why the server refused, and catches up with it', async () => {
+    const { w } = await open()
+    // Bought a moment ago on the laptop: this page doesn't know yet
+    api.wardrobe_.owned = [{ id: 'schal', how: 'bought', got_at: '2026-11-13T09:00:00+01:00' }]
+    await item(w, 'schal').trigger('click')
+    await w.find('[data-test="buy"]').trigger('click')
+    await flushPromises()
+    expect(lastSaid()).toBe('Das hast du schon.')
+    expect(item(w, 'schal').attributes('data-owned')).toBe('true')
+    w.unmount()
+  })
+
+  it('finds out that a purchase whose answer got lost went through, and celebrates it', async () => {
+    const { w, player } = await open()
+    await item(w, 'schal').trigger('click')
+    // Only the purchase's answer is lost; asking afterwards works
+    const buyOnce = api.buy
+    api.buy = async (it, key) => { await buyOnce(it, key); throw new ApiError(0, 'offline') }
+    await w.find('[data-test="buy"]').trigger('click')
+    await flushPromises()
+    expect(lastSaid()).toBe('Der Schal ist deiner!')
+    expect(item(w, 'schal').attributes('data-owned')).toBe('true')
+    expect(player.stars).toBe(80)
+    w.unmount()
+  })
+
+  it('says when the server can\'t be reached, and takes nothing', async () => {
+    const { w, player } = await open()
+    await item(w, 'schal').trigger('click')
+    api.offline = true
+    await w.find('[data-test="buy"]').trigger('click')
+    await flushPromises()
+    expect(lastSaid()).toBe('Das hat gerade nicht geklappt. Versuch es nochmal.')
+    expect(player.stars).toBe(100)
+    w.unmount()
+  })
+
+  it('takes off what she is trying with a second tap', async () => {
+    const { w } = await open()
+    await item(w, 'schal').trigger('click')
+    expect(w.find('[data-test="buy"]').exists()).toBe(true)
+    await item(w, 'schal').trigger('click')
+    expect(w.find('[data-test="buy"]').exists()).toBe(false)
+    expect(item(w, 'schal').attributes('data-trying')).toBe('false')
     w.unmount()
   })
 

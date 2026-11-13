@@ -293,7 +293,7 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   return {
-    stars, savings, visitsToday, dailyGoal, playSeconds, playMinutes, goalReached, timeUp, loaded, pending,
+    stars, savings, day, visitsToday, dailyGoal, playSeconds, playMinutes, goalReached, timeUp, loaded, pending,
     films, init, refresh, earn, buy, reportPlayTime,
     /** The server's numbers after something it did elsewhere (a purchase in the Kleiderladen) */
     applyState: apply,

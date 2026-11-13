@@ -57,6 +57,11 @@ function tap(o: OutfitDef) {
       : `Kauf noch ${numberWord(more)} Teile von oben, dann geht dieses Regal auf.`)
     return
   }
+  // A second tap takes off what she is trying
+  if (trying.value?.id === o.id) {
+    trying.value = null
+    return
+  }
   trying.value = o
   void instruct(ownedIds.value.includes(o.id) ? `${o.name}. Das hast du schon.` : `${o.name}. ${cap(starsSaid(o.price!))}.`)
 }
@@ -76,22 +81,41 @@ async function buy() {
   busy.value = true
   const shelvesBefore = SHELVES.filter(open)
   const result = await wardrobe.buy(o.id)
+  // The answer got lost: maybe it went through. Ask; if it is hers now, it's a purchase like any other
+  let bought = result === 'ok'
+  if (result === 'offline' && !closed) {
+    await catchUp()
+    bought = ownedIds.value.includes(o.id)
+  }
   busy.value = false
   if (closed) return
-  if (result === 'ok') {
+  if (bought) {
     trying.value = null
     const newShelf = SHELVES.some(s => open(s) && !shelvesBefore.includes(s))
     void speak(newShelf ? `${yours(o)} Ein neues Regal!` : yours(o))
     celebrating.value = true
     clearTimeout(confettiTimer)
     confettiTimer = setTimeout(() => { celebrating.value = false }, CONFETTI_MS)
-  } else if (result === 'bought_today') {
-    void speak('Heute hast du schon etwas gekauft. Morgen kannst du wieder etwas aussuchen.')
-  } else if (result === 'poor') {
-    void speak('Dafür hast du noch nicht genug Sterne.')
-  } else {
-    void speak('Das hat gerade nicht geklappt. Versuch es nochmal.')
+    return
   }
+  void speak(REFUSED[result] ?? 'Das hat gerade nicht geklappt. Versuch es nochmal.')
+  // This page didn't know what the server knows (another device, a stale view): catch up
+  if (result !== 'offline') void catchUp()
+}
+
+/** What the voice says when the server refused; anything else (offline, unknown) is "try again" */
+const REFUSED: Partial<Record<string, string>> = {
+  owned: 'Das hast du schon.',
+  bought_today: 'Heute hast du schon etwas gekauft. Morgen kannst du wieder etwas aussuchen.',
+  poor: 'Dafür hast du noch nicht genug Sterne.',
+  shelf_locked: 'Dieses Regal ist noch zu.',
+  locked: 'Erst lernen, dann einkaufen!',
+}
+
+/** Asks the server again for what she owns and her Stars */
+async function catchUp() {
+  await Promise.all([wardrobe.load(), player.refresh()])
+  if (trying.value && ownedIds.value.includes(trying.value.id)) trying.value = null
 }
 
 function leave() {
@@ -111,6 +135,8 @@ onMounted(() => {
   window.addEventListener('keydown', onKey)
   stopLeaveRequests = onLeaveRequest(leave)
   void instruct('Willkommen im Kleiderladen! Tipp auf etwas, dann probierst du es an.')
+  // What she bought on another device, or what a lost answer left out, shows here
+  void catchUp()
 })
 onBeforeUnmount(() => {
   closed = true

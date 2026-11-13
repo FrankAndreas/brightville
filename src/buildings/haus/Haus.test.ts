@@ -125,6 +125,21 @@ describe('Haus', () => {
       expect(w.findAll('[data-test="entry"]').map(e => e.text())).toEqual(['🔢+7'])
     })
 
+    it('shows a purchase in the Kleiderladen with its add-on, as Stars spent', async () => {
+      api.logbook_ = [day('2026-11-12', { entries: [
+        { building: 'school', kind: 'visit', stars: 7, at: '15:00' },
+        { building: 'schal', kind: 'buy', stars: -20, at: '16:00' },
+      ] })]
+      const w = await open()
+      await w.find('[data-test="open-book"]').trigger('click')
+      await flushPromises()
+      const entries = w.findAll('[data-test="entry"]')
+      expect(entries.map(e => e.text())).toEqual(['🔢+7', '🧣−20'])
+      expect(entries.map(e => e.attributes('data-spent'))).toEqual(['false', 'true'])
+      await entries[1].trigger('click')
+      expect(lastSaid()).toBe('Schal gekauft, zwanzig Sterne.')
+    })
+
     it('says an entry when it is tapped', async () => {
       api.logbook_ = [day('2026-11-12', {
         entries: [
