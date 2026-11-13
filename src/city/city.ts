@@ -7,6 +7,7 @@ import { GRAVITY, buildTown } from './world'
 import { TRAMPOLINES, buildProps } from './props'
 import { createCharacter, type CharacterFrame } from './character'
 import { createBlob } from './blob'
+import type { Dress } from '@/core/look'
 import { createFollowCamera } from './followCamera'
 import { createView, walkDirection } from './view'
 
@@ -23,6 +24,8 @@ export interface CityOptions {
 export interface City {
   /** The same doors with a new state: repaints them and changes which can be entered */
   setDoors(doors: DoorDef[]): void
+  /** Her look and what she wears, on the character in the town */
+  setDress(dress: Dress): void
   pause(): void
   resume(): void
   dispose(): void
@@ -101,6 +104,7 @@ export async function createCity(opts: CityOptions): Promise<City> {
   loop.resume()
 
   return {
+    setDress: blob.setDress,
     setDoors(next) {
       doors = next
       next.forEach((door, i) => town.doorVisuals[i]?.setState(door.open, door.locked ?? false))

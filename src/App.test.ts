@@ -13,6 +13,7 @@ import { usePlayerStore } from './stores/player'
 import { useSessionStore } from './stores/session'
 
 vi.mock('./city/city', () => ({ createCity: vi.fn() }))
+vi.mock('./city/preview', () => ({ createPreview: () => ({ setDress: vi.fn(), dispose: vi.fn() }) }))
 vi.mock('./services/sound', () => ({ unlockAudio: vi.fn(), playBeat: vi.fn() }))
 vi.mock('./services/tts', async () => {
   const { ref } = await import('vue')
@@ -24,7 +25,7 @@ vi.mock('./services/tts', async () => {
 const device = vi.hoisted(() => ({ camera: true, touch: false, keyboard: true }))
 vi.mock('./services/device', () => ({ detectDevice: () => ({ ...device }) }))
 
-const city = { pause: vi.fn(), resume: vi.fn(), dispose: vi.fn(), setDoors: vi.fn() }
+const city = { pause: vi.fn(), resume: vi.fn(), dispose: vi.fn(), setDoors: vi.fn(), setDress: vi.fn() }
 let cityOptions: CityOptions
 
 // A building that finishes with whatever the test tells it to
@@ -636,6 +637,50 @@ describe('App', () => {
       finishWith({ stars: 0 })
       await flushPromises()
       expect(go).toHaveBeenCalledWith(`https://hub.test/?next=${encodeURIComponent(window.location.href)}`)
+      w.unmount()
+    })
+  })
+
+  describe('her look', () => {
+    it('lets a new player design her character before the town, then keeps it', async () => {
+      api.wardrobe_.look = null
+      const w = await startedWithHelp()
+      expect(w.find('[data-test="look-screen"]').exists()).toBe(true)
+      expect(w.find('[data-test="game"]').exists()).toBe(false)
+      await w.findAll('[data-test="look-body"]')[1].trigger('click')
+      await w.find('[data-test="look-done"]').trigger('click')
+      await flushPromises()
+      expect(api.calls).toContain('saveLook')
+      expect(api.wardrobe_.look).toMatchObject({ body: '#4f8fe8' })
+      expect(w.find('[data-test="look-screen"]').exists()).toBe(false)
+      expect(w.find('[data-test="game"]').exists()).toBe(true)
+      // The help for a new player comes after her look
+      expect(w.find('[data-test="help"]').exists()).toBe(true)
+      w.unmount()
+    })
+
+    it('never shows the look screen because the wardrobe could not be asked', async () => {
+      api.wardrobe = () => Promise.reject(new ApiError(500, 'offline'))
+      const w = await started()
+      expect(w.find('[data-test="look-screen"]').exists()).toBe(false)
+      expect(w.find('[data-test="game"]').exists()).toBe(true)
+      w.unmount()
+    })
+
+    it('asks for the wardrobe again with every refresh, so what waited goes out', async () => {
+      const w = await started()
+      const asked = () => api.calls.filter(c => c === 'wardrobe').length
+      const before = asked()
+      document.dispatchEvent(new Event('visibilitychange'))
+      await flushPromises()
+      expect(asked()).toBe(before + 1)
+      w.unmount()
+    })
+
+    it('goes straight to the town for someone who chose her look before', async () => {
+      const w = await started()
+      expect(w.find('[data-test="look-screen"]').exists()).toBe(false)
+      expect(w.find('[data-test="game"]').exists()).toBe(true)
       w.unmount()
     })
   })

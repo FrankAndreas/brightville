@@ -2,6 +2,8 @@ import * as THREE from 'three'
 import { stepSpring, type Spring } from './spring'
 import { WALK_SPEED } from './movement'
 import { BODY_HEIGHT, type CharacterFrame } from './character'
+import type { Dress } from '@/core/look'
+import { dressParts } from './dress'
 
 const BODY_COLOR = 0xff9a3c
 const LIMB_COLOR = 0xf07f1b
@@ -10,7 +12,14 @@ const LIMB_COLOR = 0xf07f1b
  * The visible character: a soft blob that squashes, leans and lets its arms
  * flop. All of the wobble is springs chasing what the physics body does.
  */
-export function createBlob(): { object: THREE.Object3D; update(f: CharacterFrame, dt: number): void } {
+export interface Blob {
+  object: THREE.Object3D
+  update(f: CharacterFrame, dt: number): void
+  /** Her look and what she wears: recolours the body and swaps hair, glasses and add-ons */
+  setDress(dress: Dress): void
+}
+
+export function createBlob(dress?: Dress): Blob {
   const root = new THREE.Group()
   // Origin at the feet, so squash and lean pivot on the ground
   const feet = new THREE.Group()
@@ -42,6 +51,29 @@ export function createBlob(): { object: THREE.Object3D; update(f: CharacterFrame
   smile.rotation.z = Math.PI
   lean.add(smile)
 
+  // Hair, glasses and add-ons ride on the leaning body, one group per place, so they wobble along (dress.ts)
+  const worn = { head: new THREE.Group(), face: new THREE.Group(), neck: new THREE.Group(), torso: new THREE.Group(), back: new THREE.Group() }
+  for (const group of Object.values(worn)) lean.add(group)
+
+  function setDress(next: Dress) {
+    const parts = dressParts(next)
+    skin.color.setHex(parts.body)
+    limb.color.setHex(parts.limbs)
+    for (const [name, group] of Object.entries(worn)) {
+      for (const old of [...group.children]) {
+        group.remove(old)
+        old.traverse(o => {
+          const m = o as THREE.Mesh
+          if (!m.isMesh) return
+          m.geometry.dispose()
+          for (const mat of [m.material].flat()) mat.dispose()
+        })
+      }
+      for (const part of parts[name as keyof typeof worn]) group.add(part)
+    }
+  }
+  if (dress) setDress(dress)
+
   const arms = [-1, 1].map(side => {
     const shoulder = new THREE.Group()
     shoulder.position.set(side * 0.46, 0.78, 0)
@@ -70,6 +102,7 @@ export function createBlob(): { object: THREE.Object3D; update(f: CharacterFrame
 
   return {
     object: root,
+    setDress,
     update(f, dt) {
       root.position.set(f.x, f.y, f.z)
       if (f.rotation) root.quaternion.set(f.rotation.x, f.rotation.y, f.rotation.z, f.rotation.w)
