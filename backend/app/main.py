@@ -7,12 +7,12 @@ from contextlib import asynccontextmanager
 from dataclasses import asdict
 from typing import Optional
 
-from fastapi import Depends, FastAPI, Path, Request, Response
+from fastapi import Depends, FastAPI, Path, Query, Request, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from . import auth, films, game, hub, local, paintings, people
+from . import auth, films, game, hub, local, paintings, people, stickers
 from .auth import error, get_db
 from .buildings import Building, all_buildings
 from .people import Person
@@ -53,6 +53,15 @@ class VisitIn(BaseModel):
     building: str = Field(max_length=40)
     stars: int = Field(ge=0, le=100000)
     key: str = Field(min_length=1, max_length=64)
+
+
+class FreeVisitIn(BaseModel):
+    building: str = Field(max_length=40)
+    key: str = Field(min_length=1, max_length=64)
+
+
+class SeenIn(BaseModel):
+    ids: list[str] = Field(max_length=100)
 
 
 class PlayIn(BaseModel):
@@ -144,7 +153,44 @@ def visit(
     body: VisitIn, person: Person = Depends(auth.current_person), db: sqlite3.Connection = Depends(get_db)
 ) -> dict:
     now, reached = game.visit(db, person.id, building_of(body.building, "earn"), body.stars, body.key)
-    return {"state": now.as_dict(), "goal_reached_now": reached}
+    return {"state": now.as_dict(), "goal_reached_now": reached, "stickers": stickers.award(db, person.id)}
+
+
+@app.post("/api/free-visits")
+def free_visit(
+    body: FreeVisitIn, person: Person = Depends(auth.current_person), db: sqlite3.Connection = Depends(get_db)
+) -> dict:
+    game.free_visit(db, person.id, building_of(body.building, "free"), body.key)
+    return {"stickers": stickers.award(db, person.id)}
+
+
+@app.get("/api/stickers")
+def sticker_list(person: Person = Depends(auth.current_person), db: sqlite3.Connection = Depends(get_db)) -> list:
+    # History from before a sticker existed counts: whatever is earned by now is given here
+    stickers.award(db, person.id)
+    return stickers.listing(db, person.id)
+
+
+@app.post("/api/stickers/seen")
+def stickers_seen(
+    body: SeenIn, person: Person = Depends(auth.current_person), db: sqlite3.Connection = Depends(get_db)
+) -> dict:
+    stickers.mark_seen(db, person.id, body.ids)
+    return {"ok": True}
+
+
+Day = Query(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+Days = Query(default=7, ge=1, le=31)
+
+
+@app.get("/api/logbook")
+def logbook(
+    before: Optional[str] = Day,
+    days: int = Days,
+    person: Person = Depends(auth.current_person),
+    db: sqlite3.Connection = Depends(get_db),
+) -> list:
+    return stickers.logbook(db, person.id, before, days)
 
 
 @app.post("/api/plays")
@@ -180,6 +226,22 @@ def set_rules(
     if not people.is_active(db, person_id):
         raise error(404, "unknown_person")
     return game.set_rules(db, person_id, body.daily_goal, body.play_minutes, body.stars).as_dict()
+
+
+@app.get("/api/players/{person_id}/diary")
+def diary(
+    person_id: int,
+    request: Request,
+    days: int = Days,
+    _: Person = Depends(auth.parent),
+    db: sqlite3.Connection = Depends(get_db),
+) -> dict:
+    """A child's last days and stickers, for the parents' page. Reading it marks nothing as seen."""
+    auth.refresh_people(request, db)
+    if not people.is_active(db, person_id):
+        raise error(404, "unknown_person")
+    stickers.award(db, person_id)
+    return {"days": stickers.logbook(db, person_id, None, days), "stickers": stickers.listing(db, person_id)}
 
 
 @app.get("/api/films")

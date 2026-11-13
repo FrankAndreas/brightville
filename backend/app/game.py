@@ -97,7 +97,21 @@ def visit(db: sqlite3.Connection, person_id: int, building: Building, stars: int
         now.visits += 1
         _store(db, person_id, now)
         _log(db, person_id, key, "visit", building.id, earned)
-        return now, not before and now.goal_reached()
+        reached = not before and now.goal_reached()
+        if reached:
+            # Kept with the goal of the day, so raising the goal later doesn't take the day back
+            db.execute(
+                "INSERT OR IGNORE INTO goal_days (person_id, day, goal) VALUES (?, ?, ?)",
+                (person_id, now.day, now.daily_goal),
+            )
+        return now, reached
+
+
+def free_visit(db: sqlite3.Connection, person_id: int, building: Building, key: str) -> None:
+    """A visit to a free building: no Stars either way, only remembered for the logbook and the stickers."""
+    with writing(db):
+        if not _seen(db, person_id, key):
+            _log(db, person_id, key, "free", building.id, 0)
 
 
 def play(db: sqlite3.Connection, person_id: int, building: Building, key: str) -> State:
