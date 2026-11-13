@@ -28,7 +28,7 @@ These were tested with automated tests and in a desktop browser, but not where t
 
 **Architecture review (Nov 13, 2026): done.** The family-hub integration follows the hub's "For apps" rules. Its findings were fixed:
 
-- A login that had access keeps it for an hour while the hub doesn't answer. This is in the hub's client package (family-hub PR #53). **Still to do once that is merged:** bump the `family-hub-client` commit in `backend/requirements.txt`.
+- A login that had access keeps it for an hour while the hub doesn't answer. This is in the hub's client package (family-hub PR #53), bumped in Brightville and in the other family apps.
 - The parents' page asks the hub for its people at most once a minute.
 - Migrations are split where SQLite says a statement ends.
 - The database remembers whether it was made with the hub or with `LOCAL_MODE`, and the server refuses to start in the other mode.
