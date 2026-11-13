@@ -3,7 +3,7 @@
 A small, friendly town for a kindergarten-age child: walk a wobbly character around, go into buildings, and earn Stars there by learning and moving.
 Everything the child sees is pictures and a German voice; no reading is needed.
 
-The town square (60 m across) has balls to push, a playground at the front (three trampolines, a staircase of blocks up to a platform, hurdles to hop over) and its buildings: learning at the back, making things on the left, playing on the right.
+The town square (60 m across) has balls to push, a playground at the front (three trampolines, a staircase of blocks up to a platform, hurdles to hop over) and its buildings: learning at the back, making things and moving on the left, playing on the right.
 
 | Building | What happens inside | Stars |
 |---|---|---|
@@ -13,6 +13,8 @@ The town square (60 m across) has balls to push, a playground at the front (thre
 | 🔍 Unterschiede | Ten differences between two pictures | +1 per difference found without the lamp |
 | 📚 Bibliothek | A short story read aloud with pictures, then three picture questions | +3 per question |
 | 🧪 Farblabor | Two paint pots: which colour do they make? Five mixes | +2 per mix |
+| 🦘 Hüpfhalle | Three rounds of ten moves (jumping jacks, hops, squats, stretches) counted by the camera; the meter only fills | +3 per round |
+| 🪩 Tanzsaal | Two little songs; copy the dancer's arm moves, each one caught lights a note | up to +5 per song |
 | 🎨 Ausmalen | Twenty coloring pages: pick one, tap its parts to fill them | free |
 | 🖌️ Malen | Free drawing; each child's paintings are kept on the server | free |
 | 🃏 Arcade | Memory with six pairs of animals | costs 3 per round |
@@ -22,7 +24,7 @@ The town square (60 m across) has balls to push, a playground at the front (thre
 
 **Free** buildings are always open: before the day's learning, with no Stars, and after the play time. They neither give nor cost Stars and don't count as play time.
 
-**Learn first, play later:** the Arcade door stays locked until today's earning visits are done (School, Schreiben, Yoga, Unterschiede, Bibliothek or Farblabor, in any mix; two unless a parent set another number). The slots next to the Star counter show how far the child is. A new day starts the slots over; Stars are kept.
+**Learn first, play later:** the Arcade door stays locked until today's earning visits are done (any learning or moving building, in any mix; two unless a parent set another number). The slots next to the Star counter show how far the child is. A new day starts the slots over; Stars are kept.
 When a parent has set a play time per day, the Arcade door shows a moon once it is used up.
 
 **Each child has their own Stars**, kept by the game's server (`backend/`), so the laptop and the iPad show the same.
@@ -36,6 +38,7 @@ Stage 2 (School, Arcade, daily goal) has its own [design](docs/superpowers/specs
 Stage 3 (iPad and NAS) has a [design](docs/superpowers/specs/2026-11-12-brightville-stage3-design.md) and a [plan for its first part](docs/superpowers/plans/2026-11-12-brightville-stage3-part1.md).
 Stage 4 (family login, server, parents) has a [design](docs/superpowers/specs/2026-11-12-brightville-stage4-design.md).
 Stage 5 (the rest of Spielzeugkiste) has a [design](docs/superpowers/specs/2026-11-12-brightville-stage5-design.md), and its third part (Cinema, paintings on the server, a bigger town) [another](docs/superpowers/specs/2026-11-12-brightville-stage5-part3-design.md).
+Stage 6 (Hüpfhalle, Tanzsaal, the house, stickers) has a [design](docs/superpowers/specs/2026-11-13-brightville-stage6-design.md) and a [plan](docs/superpowers/plans/2026-11-13-brightville-stage6.md).
 
 ## Run it
 
@@ -68,7 +71,7 @@ CI (`.github/workflows/ci.yml`) runs the audit, the tests, lint and the build, t
 
 Running it on the NAS for the iPad: [docs/deploy-nas.md](docs/deploy-nas.md).
 
-The camera only works on `localhost` or over HTTPS. On a plain `http://` address the Yoga Studio door stays closed.
+The camera only works on `localhost` or over HTTPS. On a plain `http://` address the doors of the Yoga Studio, the Hüpfhalle and the Tanzsaal stay closed.
 
 ## Controls
 
@@ -139,6 +142,15 @@ The door is open only on a device with a touch screen.
 4. After 30 seconds without success the teacher moves on, with no Stars and no comment.
 
 The five poses are Stern, Riese, Baum, Frosch and Flieger. Their rules are in `src/core/pose/poses.ts`.
+
+## Hüpfhalle and Tanzsaal
+
+Both need only the head and shoulders in the picture, so the child can stand closer to the camera than for Yoga. A raised hand that leaves the top of the picture still counts as "up" by its elbow.
+Progress only goes up: a move done stays done.
+When the camera loses the child for 1.5 seconds, an 👀 covers the picture and the voice asks them to step in front of the camera again; the meter waits, and in the Tanzsaal the music stops until the child is back.
+
+- **Hüpfhalle:** a figure shows the move, and every one the child does fills the meter by a step with a rising note. Ten fill a round; the voice counts along from seven. Moves: Hampelmann, Hüpfen, Kniebeuge, Strecken (rules in `src/core/moves/reps.ts`).
+- **Tanzsaal:** two of three little tunes (`src/core/moves/tunes.ts`, played with Web Audio). A dancer shows an arm move each bar: arms up, arms out, hands on the hips, hands on the head, waving, clapping (`src/core/moves/dance.ts`). A move counts if the child is in it at any moment of its bar or half a beat later. Missed moves just stay dark. Leaving during a song pays for the moves caught so far.
 
 Camera pictures are analysed in the page and thrown away. Nothing is recorded or sent anywhere.
 The tracking model (`public/mediapipe/pose_landmarker_lite.task`, from Google's MediaPipe) is part of the repo, so the game works offline.
