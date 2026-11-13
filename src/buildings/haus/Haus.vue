@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import type { Api } from '@/services/api'
-import { instruct, stopSpeaking } from '@/services/tts'
+import { instruct, speak, stopSpeaking } from '@/services/tts'
+import { furnitureDef, type Spot } from '@/core/furniture'
 import { usePlayerStore } from '@/stores/player'
+import { useRoomStore } from '@/stores/room'
 import { useSessionStore } from '@/stores/session'
 import { onLeaveRequest } from '../leave'
 import type { BuildingResult } from '../types'
 import Kleiderschrank from './Kleiderschrank.vue'
 import RoomPicture from './RoomPicture.vue'
 import Schrank from './Schrank.vue'
+import SpotChooser from './SpotChooser.vue'
 import Stickerheft from './Stickerheft.vue'
 import Trophaeen from './Trophaeen.vue'
 import Tagebuch from './Tagebuch.vue'
@@ -22,6 +25,19 @@ const emit = defineEmits<{ finished: [result: BuildingResult] }>()
 
 const api = (props.api ?? useSessionStore().api)!
 const player = usePlayerStore()
+const room = useRoomStore()
+/** The spot whose pieces she is choosing from */
+const choosing = ref<Spot | null>(null)
+const emojiOf = (id: string) => furnitureDef(id)?.emoji
+
+function choose(spot: Spot) {
+  const mine = room.owned.some(o => furnitureDef(o.id)?.spot === spot)
+  if (!mine) {
+    void speak('Im Möbelhaus gibt es etwas dafür.')
+    return
+  }
+  choosing.value = spot
+}
 const view = ref<'room' | 'book' | 'album' | 'wardrobe'>('room')
 const albumNew = computed(() => player.unseen.length > 0)
 
@@ -64,7 +80,9 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="haus" data-test="haus" :data-view="view">
-    <RoomPicture v-if="view === 'room'" :placed="{}" class="room">
+    <RoomPicture
+      v-if="view === 'room'" :placed="room.placed" :emoji-of="emojiOf" interactive class="room" @spot="choose"
+    >
       <div class="table-top">
         <button class="thing book" data-test="open-book" aria-label="Tagebuch" @click="show('book')">
           <span class="picture">📖</span>
@@ -78,6 +96,7 @@ onBeforeUnmount(() => {
       <button class="thing wardrobe" data-test="open-wardrobe" aria-label="Kleiderschrank" @click="show('wardrobe')">
         <Schrank />
       </button>
+      <SpotChooser v-if="choosing" :spot="choosing" @close="choosing = null" />
     </RoomPicture>
 
     <template v-else>
