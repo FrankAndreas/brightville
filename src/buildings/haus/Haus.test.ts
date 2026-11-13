@@ -215,6 +215,26 @@ describe('Haus', () => {
     })
   })
 
+  describe('the trophy shelf', () => {
+    it('shows all 17 places, earned ones as trophies', async () => {
+      api.stickers_ = [row('rechenprofi')]
+      const w = await open()
+      const trophies = w.findAll('[data-test="trophy"]')
+      expect(trophies).toHaveLength(STICKERS.length)
+      expect(STICKERS.length).toBe(17)
+      expect(trophies.filter(t => t.attributes('data-earned') === 'true').map(t => t.attributes('data-id'))).toEqual(['rechenprofi'])
+    })
+
+    it('says a trophy\'s name and what it was for, and what an outline is for', async () => {
+      api.stickers_ = [row('rechenprofi')]
+      const w = await open()
+      await w.find('[data-test="trophy"][data-id="rechenprofi"]').trigger('click')
+      expect(lastSaid()).toBe('Rechenprofi. Für zehn Besuche in der Schule.')
+      await w.find('[data-test="trophy"][data-id="tanzstern"]').trigger('click')
+      expect(lastSaid()).toBe('Für zehn Besuche im Tanzsaal.')
+    })
+  })
+
   describe('the sticker book', () => {
     it('shows every sticker, earned ones in colour, nine to a page', async () => {
       api.stickers_ = [row('buecherwurm'), row('springfloh')]

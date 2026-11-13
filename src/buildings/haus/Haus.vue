@@ -8,6 +8,7 @@ import { onLeaveRequest } from '../leave'
 import type { BuildingResult } from '../types'
 import Kleiderschrank from './Kleiderschrank.vue'
 import Stickerheft from './Stickerheft.vue'
+import Trophaeen from './Trophaeen.vue'
 import Tagebuch from './Tagebuch.vue'
 
 // The child's own house: a book on the table with what she did, day by day, and an album with her stickers.
@@ -71,6 +72,7 @@ onBeforeUnmount(() => {
         <span class="picture">⭐</span>
         <span class="shelf" />
       </button>
+      <Trophaeen class="trophy-shelf" />
       <button class="thing wardrobe" data-test="open-wardrobe" aria-label="Kleiderschrank" @click="show('wardrobe')">
         <span class="picture">🚪</span>
         <span class="shelf" />
