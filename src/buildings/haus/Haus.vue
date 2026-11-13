@@ -6,6 +6,7 @@ import { usePlayerStore } from '@/stores/player'
 import { useSessionStore } from '@/stores/session'
 import { onLeaveRequest } from '../leave'
 import type { BuildingResult } from '../types'
+import Kleiderschrank from './Kleiderschrank.vue'
 import Stickerheft from './Stickerheft.vue'
 import Tagebuch from './Tagebuch.vue'
 
@@ -18,13 +19,13 @@ const emit = defineEmits<{ finished: [result: BuildingResult] }>()
 
 const api = (props.api ?? useSessionStore().api)!
 const player = usePlayerStore()
-const view = ref<'room' | 'book' | 'album'>('room')
+const view = ref<'room' | 'book' | 'album' | 'wardrobe'>('room')
 const albumNew = computed(() => player.unseen.length > 0)
 
 let closed = false
 let stopLeaveRequests = () => {}
 
-function show(which: 'room' | 'book' | 'album') {
+function show(which: 'room' | 'book' | 'album' | 'wardrobe') {
   stopSpeaking()
   view.value = which
 }
@@ -44,12 +45,13 @@ function onKey(e: KeyboardEvent) {
   if (view.value !== 'room') return
   if (e.code === 'Digit1' || e.code === 'Numpad1') show('book')
   if (e.code === 'Digit2' || e.code === 'Numpad2') show('album')
+  if (e.code === 'Digit3' || e.code === 'Numpad3') show('wardrobe')
 }
 
 onMounted(() => {
   window.addEventListener('keydown', onKey)
   stopLeaveRequests = onLeaveRequest(leave)
-  void instruct('Willkommen zu Hause! Tipp auf das Buch oder auf den Stern.')
+  void instruct('Willkommen zu Hause! Tipp auf das Buch, auf den Stern oder auf den Schrank.')
 })
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKey)
@@ -69,11 +71,16 @@ onBeforeUnmount(() => {
         <span class="picture">⭐</span>
         <span class="shelf" />
       </button>
+      <button class="thing wardrobe" data-test="open-wardrobe" aria-label="Kleiderschrank" @click="show('wardrobe')">
+        <span class="picture">🚪</span>
+        <span class="shelf" />
+      </button>
     </div>
 
     <template v-else>
       <button class="back" data-test="back" aria-label="Zurück ins Zimmer" @click="show('room')">🏠</button>
       <Tagebuch v-if="view === 'book'" :api="api" />
+      <Kleiderschrank v-else-if="view === 'wardrobe'" />
       <Stickerheft v-else />
     </template>
   </div>

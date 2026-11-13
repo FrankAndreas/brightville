@@ -6,6 +6,7 @@ import { STICKERS } from '@/core/stickers'
 import { fakeApi, type FakeApi } from '@/services/fakeApi'
 import { speak } from '@/services/tts'
 import { usePlayerStore } from '@/stores/player'
+import { useWardrobeStore } from '@/stores/wardrobe'
 import { requestLeave } from '../leave'
 import Haus from './Haus.vue'
 
@@ -18,6 +19,7 @@ vi.mock('@/services/tts', async () => {
   return { speak, stopSpeaking: vi.fn(), instruct, instruction, forgetInstruction: vi.fn(() => { instruction.value = null }) }
 })
 vi.mock('@/services/sound', () => ({ playBeat: vi.fn(), playNote: vi.fn(), unlockAudio: vi.fn() }))
+vi.mock('@/city/preview', () => ({ createPreview: () => ({ setDress: vi.fn(), dispose: vi.fn() }) }))
 
 const day = (d: string, more: Partial<LogDay> = {}): LogDay => ({
   day: d, goal_reached: false, stickers: [], paintings: [],
@@ -31,6 +33,9 @@ async function open(): Promise<VueWrapper> {
   const player = usePlayerStore()
   player.init(api, 1)
   await player.refresh()
+  const wardrobe = useWardrobeStore()
+  wardrobe.init(api, 1)
+  await wardrobe.load()
   const w = mount(Haus, { props: { api }, attachTo: document.body })
   await flushPromises()
   return w
@@ -56,6 +61,50 @@ describe('Haus', () => {
     expect(w.find('[data-test="open-album"]').attributes('data-new')).toBe('false')
     press('Escape')
     expect(w.emitted('finished')).toEqual([[{ stars: 0 }]])
+  })
+
+  describe('the wardrobe', () => {
+    const kappe = { id: 'kappe', how: 'bought' as const, got_at: '2026-11-12T10:00:00+01:00' }
+
+    it('opens from the third thing in the room', async () => {
+      const w = await open()
+      await w.find('[data-test="open-wardrobe"]').trigger('click')
+      expect(w.find('[data-test="kleiderschrank"]').exists()).toBe(true)
+      expect(w.find('[data-test="character"]').exists()).toBe(true)
+    })
+
+    it('puts an add-on on with a tap, and takes it off with another', async () => {
+      api.wardrobe_.owned = [kappe]
+      const w = await open()
+      await w.find('[data-test="open-wardrobe"]').trigger('click')
+      await w.find('[data-test="wear"][data-id="kappe"]').trigger('click')
+      await flushPromises()
+      expect(api.calls).toContain('setWorn {"head":"kappe"}')
+      expect(w.find('[data-test="wear"][data-id="kappe"]').attributes('data-worn')).toBe('true')
+      await w.find('[data-test="wear"][data-id="kappe"]').trigger('click')
+      await flushPromises()
+      expect(api.calls).toContain('setWorn {"head":null}')
+      expect(api.wardrobe_.worn).toEqual({})
+    })
+
+    it('points to the Kleiderladen while it is empty', async () => {
+      const w = await open()
+      await w.find('[data-test="open-wardrobe"]').trigger('click')
+      expect(w.find('[data-test="wear"]').exists()).toBe(false)
+      expect(lastSaid()).toBe('Im Kleiderladen kannst du dir etwas aussuchen.')
+    })
+
+    it('changes her look with ✏️, and keeps it with ✔️', async () => {
+      const w = await open()
+      await w.find('[data-test="open-wardrobe"]').trigger('click')
+      await w.find('[data-test="edit-look"]').trigger('click')
+      await w.findAll('[data-test="look-body"]')[1].trigger('click')
+      await w.find('[data-test="look-done"]').trigger('click')
+      await flushPromises()
+      expect(api.wardrobe_.look).toMatchObject({ body: '#4f8fe8' })
+      expect(w.find('[data-test="look-screen"]').exists()).toBe(false)
+      expect(w.find('[data-test="kleiderschrank"]').exists()).toBe(true)
+    })
   })
 
   it('makes the sticker book glow while there is a sticker not seen yet', async () => {
