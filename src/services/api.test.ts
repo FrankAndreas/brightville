@@ -72,4 +72,17 @@ describe('httpApi', () => {
     ])
     expect(JSON.parse(calls[1][1].body as string)).toEqual({ url: 'https://youtu.be/dQw4w9WgXcQ', title: 'Lieder' })
   })
+
+  it('knows the paintings', async () => {
+    const fetchFn = vi.fn(async () => json(200, []))
+    const api = httpApi(fetchFn)
+    await api.paintings()
+    await api.keepPainting('p-1', 'data:image/png;base64,AA', 'data:image/jpeg;base64,BB')
+    await api.removePainting('p-1')
+    const calls = fetchFn.mock.calls.map(c => c as unknown as [string, RequestInit])
+    expect(calls.map(([url, init]) => [url, init.method])).toEqual([
+      ['/api/paintings', 'GET'], ['/api/paintings/p-1', 'PUT'], ['/api/paintings/p-1', 'DELETE'],
+    ])
+    expect(JSON.parse(calls[1][1].body as string)).toEqual({ image: 'data:image/png;base64,AA', thumb: 'data:image/jpeg;base64,BB' })
+  })
 })

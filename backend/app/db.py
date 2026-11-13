@@ -5,6 +5,7 @@
 - players: Stars, the numbers of `day`, and the parent's settings.
 - events: every earning visit and round bought, under the key the page made up, so a request sent twice counts once.
 - films: the YouTube films the parents chose for the Cinema.
+- paintings: each child's paintings from Malen, picture and thumbnail.
 """
 
 import os
@@ -47,6 +48,18 @@ CREATE TABLE films (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     youtube_id TEXT NOT NULL UNIQUE,
     title TEXT NOT NULL DEFAULT ''
+);
+""",
+    """
+CREATE TABLE paintings (
+    person_id INTEGER NOT NULL,
+    id TEXT NOT NULL,
+    image BLOB NOT NULL,
+    image_type TEXT NOT NULL,
+    thumb BLOB NOT NULL,
+    thumb_type TEXT NOT NULL,
+    updated INTEGER NOT NULL,
+    PRIMARY KEY (person_id, id)
 );
 """,
 ]

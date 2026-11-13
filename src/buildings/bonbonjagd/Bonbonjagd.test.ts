@@ -19,11 +19,14 @@ const CHASED = ['WWWWWWW', 'WPG...W', 'WWWWWWW', 'W.....W', 'WWWWWWW']
 
 function open(maze?: string[]): VueWrapper {
   // Chasers always take their first way: towards the player in CHASED
-  return mount(Bonbonjagd, { props: { theme: MAZE_THEMES[0], maze, random: () => 0 }, attachTo: document.body })
+  return mount(Bonbonjagd, { props: { theme: MAZE_THEMES[0], maze, random: () => 0, owner: 7 }, attachTo: document.body })
 }
+const speeds = (w: VueWrapper) => w.findAll('[data-test="speed"]')
+const chosen = (w: VueWrapper) => w.find('[data-test="speed"][data-chosen="true"]').attributes('data-speed')
 
 describe('Bonbonjagd', () => {
   beforeEach(() => {
+    window.localStorage.clear()
     vi.useFakeTimers()
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(fakeContext as never)
     vi.mocked(speak).mockClear()
@@ -100,5 +103,45 @@ describe('Bonbonjagd', () => {
     expect(w.emitted('finished')).toEqual([[{ stars: 0 }]])
     expect(said().filter(s => s === 'Hoppla!')).toHaveLength(1)
     w.unmount()
+  })
+
+  it('offers three speeds before the start, slow at first', async () => {
+    const w = open()
+    expect(speeds(w).map(b => b.attributes('data-speed'))).toEqual(['langsam', 'mittel', 'schnell'])
+    expect(chosen(w)).toBe('langsam')
+    expect(w.find('[data-test="bonbonjagd"]').attributes('data-speed')).toBe('langsam')
+    await speeds(w)[2].trigger('click')
+    expect(chosen(w)).toBe('schnell')
+    expect(w.find('[data-test="bonbonjagd"]').attributes('data-speed')).toBe('schnell')
+    key('ArrowLeft')
+    await run(10)
+    // Playing: the speed stays as it is
+    expect(speeds(w)).toHaveLength(0)
+    w.unmount()
+  })
+
+  it('moves faster at a higher speed', async () => {
+    const travelled = async (speed: number) => {
+      const w = open(['WWWWWWWWWWWWWWWWWWWWW', 'WP..................W', 'WWWWWWWWWWWWWWWWWWWWW'])
+      await speeds(w)[speed].trigger('click')
+      key('ArrowRight')
+      await run(1000)
+      const eaten = Number(w.find('[data-test="bonbonjagd"]').attributes('data-eaten'))
+      w.unmount()
+      document.body.innerHTML = ''
+      return eaten
+    }
+    const slow = await travelled(0)
+    const fast = await travelled(2)
+    expect(fast).toBeGreaterThan(slow)
+  })
+
+  it('remembers the child\'s last speed on this device', async () => {
+    const w = open()
+    await speeds(w)[1].trigger('click')
+    w.unmount()
+    const again = open()
+    expect(chosen(again)).toBe('mittel')
+    again.unmount()
   })
 })

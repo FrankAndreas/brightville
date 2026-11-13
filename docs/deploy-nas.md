@@ -79,7 +79,7 @@ Also copy the new `scripts/nas-update.sh` (below): the old one knows only one co
 
 ## Where the data is, and backups
 
-`data/brightville.db` holds the family's names (a copy of the hub's), everyone's Stars, today's numbers, the settings and a log of every visit and round.
+`data/brightville.db` holds the family's names (a copy of the hub's), everyone's Stars, today's numbers, the settings, a log of every visit and round, the Cinema's films and the children's paintings (at most 30 per child, a few MB at most each).
 
 - **Every night** `nas-update.sh` (below) copies the database to `db-backups/` when it changed since the last copy, through SQLite's online backup, so the copy is consistent even while children play. It keeps the newest 5 copies and every copy younger than 7 days.
 - **On another disk**: back up the whole folder `/volume1/docker/brightville` with **Hyper Backup**, as for the other family apps.
@@ -129,5 +129,6 @@ It shows how the NAS's `nas-update.sh` differs from the repository's, uploads it
 | A sleeping cloud | The backend isn't running, or can't reach the hub | `sudo docker logs brightville-backend` |
 | A sleeping cloud, and the backend's log says "Neither HUB_URL nor LOCAL_MODE=1" | `HUB_URL` is missing in `.env` | Set it, then `sudo docker-compose up -d` |
 | Everyone can pick who plays, without a login | `LOCAL_MODE=1` is set | Remove it from `.env` and set `HUB_URL`, then `sudo docker-compose up -d` |
+| Paintings in Malen keep showing ⏳ | The painting can't reach the server; a reverse proxy in front may refuse large uploads (nginx inside the container takes up to 10 MB) | `sudo docker logs brightville-frontend`; in DSM's reverse proxy, allow larger requests |
 | The Yoga Studio door is grey | The page is open over plain `http://` | Use the HTTPS address |
 | No voice on the iPad | The ring switch or volume is off, or no German voice is installed | Turn the sound on; **Settings → Accessibility → Spoken Content → Voices → Deutsch** |

@@ -3,17 +3,18 @@ import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import ArrowPad from '@/components/ArrowPad.vue'
 import Confetti from '@/components/Confetti.vue'
 import type { Direction } from '@/core/direction'
-import { MAZES, createGame, position, setDirection, update, type MazeGame } from '@/core/maze'
+import { MAZES, createGame, position, setDirection, update, type MazeGame, type Speed } from '@/core/maze'
 import { useGameLoop } from '@/services/gameLoop'
 import { fillRoundRect } from '@/services/roundRect'
 import { speak, stopSpeaking } from '@/services/tts'
+import { useSessionStore } from '@/stores/session'
 import { onLeaveRequest } from '../leave'
 import { useSteering } from '../steering'
 import type { BuildingResult } from '../types'
 import { MAZE_THEMES, type MazeTheme } from './themes'
 
 // Collect every sweet in the maze while the chasers wander; a power-up turns the tables for a while.
-// One round per visit, bought at the door, always at the slow speed.
+// One round per visit, bought at the door; the child picks the speed before the start.
 const props = defineProps<{
   /** The look of this visit; at random when not given */
   theme?: MazeTheme
@@ -21,6 +22,8 @@ const props = defineProps<{
   maze?: string[]
   /** Where the chasers turn; for tests */
   random?: () => number
+  /** Whose speed is remembered; the person playing when not given */
+  owner?: number
 }>()
 const emit = defineEmits<{ finished: [result: BuildingResult] }>()
 
@@ -29,10 +32,44 @@ const HOPPLA_MS = 1500
 // After the last word, before going back to the town
 const END_MS = 3500
 
+const SPEED_BUTTONS: { speed: Speed; icon: string; label: string }[] = [
+  { speed: 'langsam', icon: '🐢', label: 'Langsam' },
+  { speed: 'mittel', icon: '🐇', label: 'Mittel' },
+  { speed: 'schnell', icon: '🐆', label: 'Schnell' },
+]
+
 const pick = <T,>(list: T[]) => list[Math.floor(Math.random() * list.length)]
 const theme = props.theme ?? pick(MAZE_THEMES)
-const game: MazeGame = createGame(props.maze ?? pick(Object.values(MAZES)), 'langsam')
+const maze = props.maze ?? pick(Object.values(MAZES))
 const random = props.random ?? Math.random
+
+// The child's last speed, on this device
+const speedKey = `brightville.bonbonjagd.speed.${props.owner ?? useSessionStore().person?.id ?? 0}`
+function lastSpeed(): Speed {
+  try {
+    const saved = window.localStorage.getItem(speedKey)
+    return SPEED_BUTTONS.some(b => b.speed === saved) ? (saved as Speed) : 'langsam'
+  } catch {
+    return 'langsam'
+  }
+}
+const speed = ref<Speed>(lastSpeed())
+let game: MazeGame = createGame(maze, speed.value)
+const eaten = ref(0)
+
+/** Before the start: a new game at the chosen speed */
+function chooseSpeed(next: Speed) {
+  if (closed || phase.value !== 'ready') return
+  speed.value = next
+  game = createGame(maze, next)
+  draw()
+  void speak(SPEED_BUTTONS.find(b => b.speed === next)!.label)
+  try {
+    window.localStorage.setItem(speedKey, next)
+  } catch {
+    // Not remembered; slow again next time
+  }
+}
 
 const phase = ref<'ready' | 'playing' | 'hoppla' | 'over' | 'won'>('ready')
 const lives = ref(game.lives)
@@ -58,6 +95,7 @@ const loop = useGameLoop(dt => {
     if (event === 'cleared') end('won', 'Geschafft!')
   }
   lives.value = game.lives
+  eaten.value = game.eaten
   draw()
 })
 
@@ -189,7 +227,7 @@ onBeforeUnmount(shutDown)
 
 <template>
   <div
-    class="bonbonjagd" data-test="bonbonjagd" :data-phase="phase"
+    class="bonbonjagd" data-test="bonbonjagd" :data-phase="phase" :data-speed="speed" :data-eaten="eaten"
     @pointerdown="steer.down" @pointerup="steer.up" @pointercancel="steer.cancel"
   >
     <div class="lives">
@@ -198,7 +236,12 @@ onBeforeUnmount(shutDown)
     <div class="stage">
       <div ref="fieldWrap" class="field-wrap">
         <canvas ref="canvas" class="field" />
-        <div v-if="phase === 'ready'" class="hint">▲ ◀ ▶ ▼</div>
+        <div v-if="phase === 'ready'" class="speeds" @pointerdown.stop @pointerup.stop>
+          <button
+            v-for="b in SPEED_BUTTONS" :key="b.speed" class="speed" data-test="speed" :data-speed="b.speed"
+            :data-chosen="speed === b.speed" :aria-label="b.label" @click="chooseSpeed(b.speed)"
+          >{{ b.icon }}</button>
+        </div>
       </div>
       <ArrowPad color="#ff69b4" @dir="onDir" />
     </div>
@@ -247,14 +290,23 @@ onBeforeUnmount(shutDown)
   justify-content: center;
 }
 .field { display: block; border-radius: 10px; }
-.hint {
+.speeds {
   position: absolute;
-  bottom: 12%;
-  padding: 10px 20px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.85);
-  font-size: 1.6rem;
-  color: #ff69b4;
-  pointer-events: none;
+  bottom: 10%;
+  display: flex;
+  gap: 16px;
+  padding: 12px 18px;
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.88);
 }
+.speed {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  border: 5px solid transparent;
+  background: #fff0f7;
+  font-size: 2.6rem;
+  cursor: pointer;
+}
+.speed[data-chosen='true'] { border-color: #ff69b4; transform: scale(1.1); }
 </style>

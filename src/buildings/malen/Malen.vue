@@ -2,21 +2,26 @@
 import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { COLORS, PAPER, SIZES, drawStroke, isShape, type Point, type Size, type Stroke, type Tool } from '@/core/drawing'
 import { createPenFilter, penEnd, penStart } from '@/core/penFilter'
-import { deletePainting, listPaintings, loadPainting, savePainting, type PaintingInfo } from '@/services/paintings'
+import type { Api } from '@/services/api'
+import { paintingStore, type GalleryItem } from '@/services/paintingStore'
 import { speak, stopSpeaking } from '@/services/tts'
 import { useSessionStore } from '@/stores/session'
 import { onLeaveRequest } from '../leave'
 import type { BuildingResult } from '../types'
 
-// Free drawing: a gallery of this child's paintings on this device, and a sheet to draw on.
+// Free drawing: a gallery of this child's paintings (kept on the server, the same on every device), and a sheet.
 // A free building: nothing is earned or paid.
 const props = defineProps<{
   /** Whose paintings; the person playing when not given */
   owner?: number
+  /** The server; the session's when not given */
+  api?: Api
 }>()
 const emit = defineEmits<{ finished: [result: BuildingResult] }>()
 
-const owner = props.owner ?? useSessionStore().person?.id ?? 0
+const session = props.owner === undefined || !props.api ? useSessionStore() : null
+const owner = props.owner ?? session?.person?.id ?? 0
+const store = paintingStore((props.api ?? session?.api)!, owner)
 
 const HELLO = 'Malen! Mach ein neues Bild, oder tipp auf ein Bild und mal weiter.'
 const ON_SHEET = 'Mal, was du magst!'
@@ -37,7 +42,7 @@ const MIN_SHAPE = 6 // px; a shape dragged less than this was just a tap
 const THUMB_WIDTH = 320
 
 const screen = ref<'gallery' | 'sheet'>('gallery')
-const paintings = ref<PaintingInfo[]>([])
+const paintings = ref<GalleryItem[]>([])
 const loaded = ref(false)
 
 const area = ref<HTMLElement | null>(null)
@@ -61,12 +66,7 @@ let filter = createPenFilter()
 let saving: Promise<void> = Promise.resolve()
 
 async function refresh() {
-  try {
-    paintings.value = await listPaintings(owner)
-  } catch {
-    // No storage (a private window): the gallery stays empty, drawing still works
-    paintings.value = []
-  }
+  paintings.value = await store.list()
   loaded.value = true
 }
 
@@ -83,20 +83,20 @@ async function openSheet(id?: string) {
   await nextTick()
   resize()
   if (!id) return
-  const saved = await loadPainting(owner, id).catch(() => undefined)
-  if (!saved || closed || paintingId !== id) return
+  const source = await store.image(id)
+  if (!source || closed || paintingId !== id) return
   const img = new Image()
   img.onload = () => {
     if (paintingId !== id) return
     background = img
     redraw()
   }
-  img.src = saved.image
+  img.src = source
 }
 
-async function remove(p: PaintingInfo) {
+async function remove(p: GalleryItem) {
   if (!window.confirm('Dieses Bild löschen?')) return
-  await deletePainting(owner, p.id).catch(() => undefined)
+  await store.remove(p.id)
   await refresh()
 }
 
@@ -230,7 +230,7 @@ function save(): Promise<void> {
   changed = false
   const painting = { id: paintingId, image: canvas.toDataURL('image/png'), thumb: thumbnail(canvas) }
   saving = saving
-    .then(() => savePainting(owner, painting))
+    .then(() => store.save(painting))
     .then(id => { paintingId = id })
     .catch(() => undefined)
   return saving
@@ -291,6 +291,7 @@ onBeforeUnmount(() => {
       <div v-for="p in paintings" :key="p.id" class="painting" data-test="painting">
         <img :src="p.thumb" alt="Bild" @click="openSheet(p.id)" />
         <button class="delete" data-test="delete" aria-label="Bild löschen" @click="remove(p)">🗑</button>
+        <span v-if="p.waiting" class="waiting" title="Wartet auf den Server">⏳</span>
       </div>
     </div>
 
@@ -366,6 +367,12 @@ onBeforeUnmount(() => {
   font-size: 1.1rem;
   background: rgba(255, 255, 255, 0.9);
   border: 1px solid #ddd;
+}
+.waiting {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  font-size: 1.3rem;
 }
 .bar {
   display: flex;
