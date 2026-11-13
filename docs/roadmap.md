@@ -24,9 +24,18 @@ These were tested with automated tests and in a desktop browser, but not where t
 - **A Cinema film played to its end** (only tested with the player's messages).
 - **The DSM reverse proxy's upload limit** for paintings: if paintings keep showing ⏳ on the NAS, see the troubleshooting table in `docs/deploy-nas.md`.
 
-## Open review
+## Reviews
 
-No independent code review has been run over stages 5 and 6 (PRs #5–#11). Worth doing before building more.
+**Architecture review (Nov 13, 2026): done.** The family-hub integration follows the hub's "For apps" rules. Its findings were fixed:
+
+- A login that had access keeps it for an hour while the hub doesn't answer. This is in the hub's client package (family-hub PR #53). **Still to do once that is merged:** bump the `family-hub-client` commit in `backend/requirements.txt`.
+- The parents' page asks the hub for its people at most once a minute.
+- Migrations are split where SQLite says a statement ends.
+- The database remembers whether it was made with the hub or with `LOCAL_MODE`, and the server refuses to start in the other mode.
+- Only the MediaPipe WebAssembly build the game loads is copied.
+- The backend's memory limit is now 192 MB. **The NAS's own `compose.yaml` isn't updated by the scripts:** change `mem_limit: 128m` there by hand.
+
+**Still open:** no code-level review has been run over stages 5 and 6 (PRs #5–#11). Worth doing before building more.
 
 ## Calls made without asking, which may be worth revisiting
 
@@ -42,7 +51,7 @@ Not planned as stages yet. Roughly by how much they would add for a five-year-ol
 
 1. **Dressing up the character:** colours, hats, outfits, some unlocked by stickers. Gives the stickers a use.
 2. **Decorating the house:** furniture and a trophy shelf.
-3. **Harder tasks as she grows:** age tiers, and difficulty that adapts (three right in a row step up, two misses step down).
+3. **Harder tasks as she grows:** age tiers, and difficulty that adapts (three right in a row step up, two misses step down). The hub knows no age or birthday: the child's age (or tier) becomes a per-child setting in Brightville's parent area, next to the daily goal, not a field in the hub (decided in the architecture review).
 4. **More learning buildings:** Language Café (first English words), World Tower (flags, animals of the world), Building Yard (physics blocks to stack and knock over), Code Workshop (for older children).
 5. **For parents:** a weekly report, playing hours (e.g. not after 19:30), the camera on or off per child.
 6. **Polish:** day and night in the town, background music; in the town, carrying things (Q), a map (M), a quest board.

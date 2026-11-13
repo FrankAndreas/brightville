@@ -3,8 +3,8 @@
 //   public/mediapipe/wasm/                     copied from node_modules on every install (git-ignored)
 //   public/mediapipe/pose_landmarker_lite.task downloaded once and committed
 // Run: node scripts/fetch-pose-assets.mjs   (also runs after `npm install`)
-import { cp, mkdir, stat, writeFile } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { cp, mkdir, rm, stat, writeFile } from 'node:fs/promises'
+import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -19,7 +19,13 @@ const exists = path => stat(path).then(() => true, () => false)
 await mkdir(target, { recursive: true })
 
 if (await exists(wasmFrom)) {
-  await cp(wasmFrom, join(target, 'wasm'), { recursive: true })
+  // Only the pair FilesetResolver.forVisionTasks() loads (vision_wasm_internal.*): the package also has a
+  // "_module_" build for module workers, another 15 MB the game never asks for
+  await rm(join(target, 'wasm'), { recursive: true, force: true })
+  await cp(wasmFrom, join(target, 'wasm'), {
+    recursive: true,
+    filter: source => !basename(source).includes('_module_'),
+  })
   console.log('pose assets: copied wasm files')
 } else {
   console.error(`pose assets: ${wasmFrom} is missing; run npm install first`)

@@ -35,7 +35,8 @@ services:
       - LOCAL_PEOPLE=${LOCAL_PEOPLE:-}
       # The day starts over at midnight here
       - TZ=${TZ:-Europe/Zurich}
-    mem_limit: 128m
+    # About 60 MB at rest; a painting from Malen arriving (up to 9 MB as text) briefly needs some 30 MB more
+    mem_limit: 192m
     restart: unless-stopped
     healthcheck:
       test: [ "CMD-SHELL", "python3 -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000/health\")' || exit 1" ]

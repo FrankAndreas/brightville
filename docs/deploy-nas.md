@@ -128,6 +128,7 @@ It shows how the NAS's `nas-update.sh` differs from the repository's, uploads it
 | A closed door with "noch nicht freigeschaltet" | The person isn't ticked in the hub tile, or the tile has no app key or a different one | Hub → Einstellungen → Apps → Brightville |
 | A sleeping cloud | The backend isn't running, or can't reach the hub | `sudo docker logs brightville-backend` |
 | A sleeping cloud, and the backend's log says "Neither HUB_URL nor LOCAL_MODE=1" | `HUB_URL` is missing in `.env` | Set it, then `sudo docker-compose up -d` |
+| The backend keeps restarting; its log says "The database ... was made without the family hub" (or "with") | The database in `data/` comes from the other mode: one made while trying the game with `LOCAL_MODE=1`, whose people (numbered from 1) aren't the hub's, so the Stars would go to the wrong person | Move `data/brightville.db` aside and start again with an empty `data/` folder. Only if it holds nothing worth keeping: `sqlite3 data/brightville.db "DELETE FROM settings WHERE key = 'mode'"` |
 | Everyone can pick who plays, without a login | `LOCAL_MODE=1` is set | Remove it from `.env` and set `HUB_URL`, then `sudo docker-compose up -d` |
 | Paintings in Malen keep showing ⏳ | The painting can't reach the server; a reverse proxy in front may refuse large uploads (nginx inside the container takes up to 10 MB) | `sudo docker logs brightville-frontend`; in DSM's reverse proxy, allow larger requests |
 | The Yoga Studio door is grey | The page is open over plain `http://` | Use the HTTPS address |
