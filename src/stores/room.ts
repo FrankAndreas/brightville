@@ -55,6 +55,7 @@ export const useRoomStore = defineStore('room', () => {
     loaded.value = false
     known.value = false
     unanswered.clear()
+    changes = 0
   }
 
   function readWaiting(at: string): Waiting {
@@ -79,13 +80,17 @@ export const useRoomStore = defineStore('room', () => {
   }
 
   /** The server's room, with what still waits on this device laid over it */
-  function take(state: RoomState) {
-    const next = { ...state.placed }
+  function overlay(placed: Partial<Record<Spot, string>>): Partial<Record<Spot, string>> {
+    const next = { ...placed }
     for (const [spot, id] of Object.entries(readWaiting(key).placed ?? {}) as [Spot, string | null][]) {
       if (id === null) delete next[spot]
       else next[spot] = id
     }
-    stored.value = next
+    return next
+  }
+
+  function take(state: RoomState) {
+    stored.value = overlay(state.placed)
     owned.value = state.owned
     boughtToday.value = state.bought_today
     loaded.value = true
@@ -122,8 +127,12 @@ export const useRoomStore = defineStore('room', () => {
       if (owner !== key || changes !== before) return
       take(state)
     } catch {
-      // Not an empty room: the house shows what is known here, and the next refresh asks again
-      if (owner === key) loaded.value = true
+      // Not an empty room: the house shows what is known here, with what waits on the device, and the next refresh
+      // asks again
+      if (owner === key) {
+        stored.value = overlay(stored.value)
+        loaded.value = true
+      }
     } finally {
       clearTimeout(patience)
     }
@@ -136,17 +145,21 @@ export const useRoomStore = defineStore('room', () => {
     else next[spot] = id
     stored.value = next
     const owner = key
+    // Waits on the device until the server has it: an answer to an earlier placement then keeps this one on screen,
+    // and if the server is away it is kept for the child who placed it, even if the device changes hands meanwhile
+    writeWaiting(owner, { placed: { ...(readWaiting(owner).placed ?? {}), [spot]: id } })
     try {
       const state = await api!.setPlaced({ [spot]: id })
-      changes += 1
+      sent(owner, { [spot]: id })
       if (owner !== key) return
-      const waiting = readWaiting(owner).placed
-      if (waiting && spot in waiting) sent(owner, { [spot]: waiting[spot] ?? null })
+      changes += 1
       take(state)
-    } catch {
-      // Kept for the child who placed it, even if the device changed hands meanwhile
-      const waiting = readWaiting(owner)
-      writeWaiting(owner, { placed: { ...(waiting.placed ?? {}), [spot]: id } })
+    } catch (e) {
+      // Refused for good: let it go, and show the server's room again
+      if (refused(e)) {
+        sent(owner, { [spot]: id })
+        if (owner === key) void load()
+      }
     }
   }
 
@@ -160,8 +173,8 @@ export const useRoomStore = defineStore('room', () => {
     try {
       const answer = await api.buyFurniture(item, buyKey)
       unanswered.delete(item)
-      changes += 1
       if (owner !== key) return 'offline'
+      changes += 1
       usePlayerStore().applyState(answer.state)
       take(answer.room)
       // One purchase a day across both shops

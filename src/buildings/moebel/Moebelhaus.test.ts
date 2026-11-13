@@ -172,6 +172,15 @@ describe('the Möbelhaus', () => {
     w.unmount()
   })
 
+  it('is refused by the fake server, as by the real one, when a key bought something else today', async () => {
+    const { w } = await open()
+    await api.buyFurniture('kaktus', 'k')
+    api.wardrobe_.bought_today = false
+    await expect(api.buyFurniture('holzbett', 'k')).rejects.toMatchObject({ code: 'key_used' })
+    await expect(api.buy('schal', 'k')).rejects.toMatchObject({ code: 'key_used' })
+    w.unmount()
+  })
+
   it('sends a purchase whose answer got lost again under the same key: it buys once', async () => {
     const { w, player } = await open()
     await item(w, 'kaktus').trigger('click')
@@ -184,6 +193,26 @@ describe('the Möbelhaus', () => {
     await flushPromises()
     expect(lastSaid()).toBe('Der Kaktus ist deiner!')
     expect(player.stars).toBe(85)
+    w.unmount()
+  })
+  it('after midnight, forgets yesterday\'s purchase in the other shop as soon as it opens', async () => {
+    api = fakeApi({ stars: 100, visits: 2 })
+    const player = usePlayerStore()
+    player.init(api, 1)
+    await player.refresh()
+    const wardrobe = useWardrobeStore()
+    wardrobe.init(api, 1)
+    await wardrobe.load()
+    const room = useRoomStore()
+    room.init(api, 1)
+    await room.load()
+    // Both stores still think yesterday's purchase was today; the server knows better
+    wardrobe.boughtToday = true
+    room.boughtToday = true
+    const w = mount(Moebelhaus, { attachTo: document.body })
+    await flushPromises()
+    await item(w, 'kaktus').trigger('click')
+    expect(w.find('[data-test="buy"]').attributes('data-ready')).toBe('true')
     w.unmount()
   })
 })

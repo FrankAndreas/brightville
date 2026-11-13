@@ -21,15 +21,28 @@ def owned_ids(db: sqlite3.Connection, person_id: int) -> list[str]:
     return [r["item_id"] for r in _owned_rows(db, person_id)]
 
 
-def _placed(db: sqlite3.Connection, person_id: int) -> dict[str, str]:
-    """What stands where: only owned, known pieces, each on its own spot"""
+def _stored(db: sqlite3.Connection, person_id: int) -> dict:
+    """What was written down for her room; a value that isn't a JSON object (broken by hand) counts as an empty room"""
     row = db.execute("SELECT placed FROM rooms WHERE person_id = ?", (person_id,)).fetchone()
-    mine = set(owned_ids(db, person_id))
-    stored = json.loads(row["placed"]) if row else {}
+    try:
+        stored = json.loads(row["placed"]) if row else {}
+    except TypeError, ValueError:
+        return {}
+    return stored if isinstance(stored, dict) else {}
+
+
+def _placed(db: sqlite3.Connection, person_id: int, mine: Optional[set[str]] = None) -> dict[str, str]:
+    """What stands where: only owned, known pieces, each on its own spot. `mine`: her pieces, if already read"""
+    if mine is None:
+        mine = set(owned_ids(db, person_id))
+    stored = _stored(db, person_id)
     return {
         spot: item_id
         for spot, item_id in stored.items()
-        if item_id in mine and (p := furniture.piece(item_id)) is not None and p.spot == spot
+        if isinstance(item_id, str)
+        and item_id in mine
+        and (p := furniture.piece(item_id)) is not None
+        and p.spot == spot
     }
 
 
@@ -42,9 +55,10 @@ def _store(db: sqlite3.Connection, person_id: int, placed: dict[str, str]) -> No
 
 
 def state(db: sqlite3.Connection, person_id: int) -> dict:
+    rows = _owned_rows(db, person_id)
     return {
-        "placed": _placed(db, person_id),
-        "owned": [{"id": r["item_id"], "got_at": r["got_at"]} for r in _owned_rows(db, person_id)],
+        "placed": _placed(db, person_id, {r["item_id"] for r in rows}),
+        "owned": [{"id": r["item_id"], "got_at": r["got_at"]} for r in rows],
         "bought_today": shop.bought_today(db, person_id),
     }
 
@@ -52,8 +66,8 @@ def state(db: sqlite3.Connection, person_id: int) -> dict:
 def place(db: sqlite3.Connection, person_id: int, changes: dict[str, Optional[str]]) -> None:
     """Puts a piece on its spot, or (None) takes it away, spot by spot. Only owned pieces, each on its own spot."""
     with writing(db):
-        placed = _placed(db, person_id)
         mine = set(owned_ids(db, person_id))
+        placed = _placed(db, person_id, mine)
         for spot, item_id in changes.items():
             if spot not in furniture.SPOTS:
                 continue
@@ -89,4 +103,4 @@ def buy(db: sqlite3.Connection, person_id: int, item_id: str, key: str) -> game.
 
         return shop.Offer(item_id, p.price, lambda: furniture.shelf_open(p.shelf, mine), record)
 
-    return shop.purchase(db, person_id, key, offer)
+    return shop.purchase(db, person_id, key, item_id, offer)

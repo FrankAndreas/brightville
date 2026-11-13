@@ -6,11 +6,11 @@ import os
 import sqlite3
 from contextlib import asynccontextmanager
 from dataclasses import asdict
-from typing import Optional
+from typing import Annotated, Optional
 
 from fastapi import Depends, FastAPI, Path, Query, Request, Response
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from . import auth, films, game, hub, local, paintings, people, room, stickers, wardrobe
@@ -148,8 +148,12 @@ class LookIn(BaseModel):
     look: LookFields
 
 
+# A place, a spot or an item id: short words (the catalogues' longest id is under 20 letters)
+ShortId = Annotated[str, StringConstraints(max_length=40)]
+
+
 class WornIn(BaseModel):
-    worn: dict[str, Optional[str]] = Field(max_length=8)
+    worn: dict[ShortId, Optional[ShortId]] = Field(max_length=8)
 
 
 class BuyIn(BaseModel):
@@ -158,7 +162,7 @@ class BuyIn(BaseModel):
 
 
 class PlacedIn(BaseModel):
-    placed: dict[str, Optional[str]] = Field(max_length=10)
+    placed: dict[ShortId, Optional[ShortId]] = Field(max_length=10)
 
 
 class ChooseIn(BaseModel):

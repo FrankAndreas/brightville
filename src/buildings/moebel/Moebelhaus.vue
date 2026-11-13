@@ -22,7 +22,9 @@ const { ownedIds, trying, celebrating, canBuy, ready, open, tap, buy } = useShop
   shelfOpen: furnitureShelfOpen,
   boughtToday: () => room.boughtToday || wardrobe.boughtToday,
   buy: id => room.buy(id),
-  catchUp: () => room.load(),
+  // Both stores: a purchase in either shop counts for both (and yesterday's, after midnight, for neither). Only this
+  // shop's own is waited for: the other one hanging mustn't hold up a purchase
+  catchUp: () => { void wardrobe.load(); return room.load() },
   welcome: 'Willkommen im Möbelhaus! Tipp auf etwas, dann siehst du es in deinem Zimmer.',
   leave: () => emit('finished', { stars: 0 }),
 })

@@ -5,6 +5,7 @@ import { ApiError } from '@/services/api'
 import { speak } from '@/services/tts'
 import { fakeApi, type FakeApi } from '@/services/fakeApi'
 import { usePlayerStore } from '@/stores/player'
+import { useRoomStore } from '@/stores/room'
 import { useWardrobeStore } from '@/stores/wardrobe'
 import Laden from './Laden.vue'
 
@@ -186,6 +187,21 @@ describe('the Kleiderladen', () => {
     w.unmount()
   })
 
+  it('celebrates a purchase whose answer got lost even when her room never answers', async () => {
+    const { w } = await open()
+    const room = useRoomStore()
+    room.init(api, 1)
+    await room.load()
+    await item(w, 'schal').trigger('click')
+    const buyOnce = api.buy
+    api.buy = async (it, key) => { await buyOnce(it, key); throw new ApiError(0, 'offline') }
+    api.room = () => new Promise(() => {})
+    await w.find('[data-test="buy"]').trigger('click')
+    await flushPromises()
+    expect(lastSaid()).toBe('Der Schal ist deiner!')
+    w.unmount()
+  })
+
   it('says when the server can\'t be reached, and takes nothing', async () => {
     const { w, player } = await open()
     await item(w, 'schal').trigger('click')
@@ -210,6 +226,26 @@ describe('the Kleiderladen', () => {
   it('says what to do when it opens', async () => {
     const { w } = await open()
     expect(speak).toHaveBeenCalledWith('Willkommen im Kleiderladen! Tipp auf etwas, dann probierst du es an.')
+    w.unmount()
+  })
+  it('after midnight, forgets yesterday\'s purchase in the other shop as soon as it opens', async () => {
+    api = fakeApi({ stars: 100, visits: 2 })
+    const player = usePlayerStore()
+    player.init(api, 1)
+    await player.refresh()
+    const wardrobe = useWardrobeStore()
+    wardrobe.init(api, 1)
+    await wardrobe.load()
+    const room = useRoomStore()
+    room.init(api, 1)
+    await room.load()
+    // Both stores still think yesterday's purchase was today; the server knows better
+    wardrobe.boughtToday = true
+    room.boughtToday = true
+    const w = mount(Laden, { attachTo: document.body })
+    await flushPromises()
+    await item(w, 'schal').trigger('click')
+    expect(w.find('[data-test="buy"]').attributes('data-ready')).toBe('true')
     w.unmount()
   })
 })

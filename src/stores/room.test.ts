@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
+import { flushPromises } from '@vue/test-utils'
 import { ApiError } from '@/services/api'
 import { fakeApi, type FakeApi } from '@/services/fakeApi'
 import { usePlayerStore } from './player'
@@ -71,6 +72,67 @@ describe('room store', () => {
     room.init(api, 2, storage)
     await pending
     expect(JSON.parse(storage.getItem('brightville.room.1')!)).toEqual({ placed: { pflanze: 'kaktus' } })
+  })
+
+  it('keeps a second placement on screen when the first one\'s answer arrives before it', async () => {
+    api.room_.owned = owned('holzbett', 'kaktus')
+    const { room } = await open()
+    const send = api.setPlaced
+    const answers: (() => void)[] = []
+    api.setPlaced = placed => new Promise((resolve, reject) => {
+      answers.push(() => { send(placed).then(resolve, reject) })
+    })
+    const first = room.place('bett', 'holzbett')
+    const second = room.place('pflanze', 'kaktus')
+    answers[0]()
+    await first
+    expect(room.placed).toEqual({ bett: 'holzbett', pflanze: 'kaktus' })
+    answers[1]()
+    await second
+    expect(room.placed).toEqual({ bett: 'holzbett', pflanze: 'kaktus' })
+  })
+
+  it('shows what waits on the device when the page opens while the server is away', async () => {
+    api.room_.owned = owned('holzbett')
+    const { room } = await open()
+    api.offline = true
+    await room.place('bett', 'holzbett')
+    // The page is opened again, still without the server
+    setActivePinia(createPinia())
+    const again = useRoomStore()
+    again.init(api, 1, storage)
+    await again.load()
+    expect(again.placed).toEqual({ bett: 'holzbett' })
+  })
+
+  it('takes a refused placement off the screen again', async () => {
+    api.room_.owned = owned('holzbett')
+    const { room } = await open()
+    api.setPlaced = () => Promise.reject(new ApiError(422, 'invalid'))
+    await room.place('bett', 'holzbett')
+    await flushPromises()
+    expect(room.placed).toEqual({})
+  })
+
+  it('doesn\'t let an answer for the child before undo the next child\'s room', async () => {
+    api.room_.owned = owned('holzbett')
+    const { room } = await open(1)
+    const send = api.setPlaced
+    let answerA = () => {}
+    api.setPlaced = placed => new Promise((resolve, reject) => { answerA = () => { send(placed).then(resolve, reject) } })
+    const placing = room.place('bett', 'holzbett')
+    // The device passes to child 2, whose room is asked for while child 1's answer is still out
+    room.init(api, 2, storage)
+    const ask = api.room
+    let answerB = () => {}
+    api.room = () => new Promise((resolve, reject) => { answerB = () => { ask().then(resolve, reject) } })
+    const loading = room.load()
+    await flushPromises()
+    answerA()
+    await placing
+    answerB()
+    await loading
+    expect(room.known).toBe(true)
   })
 
   it('draws an unknown piece as an empty spot', async () => {
