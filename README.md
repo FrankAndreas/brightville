@@ -33,6 +33,7 @@ Who is playing comes from the family hub's login; a coloured circle with the fir
 Parents get a gear next to the "?": their page shows every child's Stars and today's numbers, and sets the daily goal, the play time per day and the Stars. Below, they keep the Cinema's list of YouTube films (a link and a name each, at most 30, the same for every child). Each child's card has a folded "Tagebuch" with the last seven days as text and the stickers earned.
 
 The idea behind the game is in [Learning City – Gameplay Design.md](Learning%20City%20%E2%80%93%20Gameplay%20Design.md).
+Where the project stands, what wasn't checked on real hardware and what is left to build: [docs/roadmap.md](docs/roadmap.md).
 How it is built and what comes next is in [docs/superpowers/specs/2026-11-12-brightville-stage1-design.md](docs/superpowers/specs/2026-11-12-brightville-stage1-design.md);
 the plan for stage 1 is in [docs/superpowers/plans/2026-11-12-brightville-stage1.md](docs/superpowers/plans/2026-11-12-brightville-stage1.md).
 Stage 2 (School, Arcade, daily goal) has its own [design](docs/superpowers/specs/2026-11-12-brightville-stage2-design.md) and [plan](docs/superpowers/plans/2026-11-12-brightville-stage2.md).

@@ -1,0 +1,50 @@
+# Brightville – Where It Stands and What Is Left
+
+Nov 13, 2026. Read this first when picking the project up again.
+
+## Done
+
+The six stages of the roadmap in [the stage 1 design](superpowers/specs/2026-11-12-brightville-stage1-design.md) are built and merged (PRs #1–#11):
+
+1. Tiny town, Yoga, Stars
+2. School, Arcade, daily goal
+3. iPad and NAS (touch controls, Schreiben, deployment, family-hub tile)
+4. Family login, server with Stars per child, parent area
+5. Spielzeugkiste's games as buildings (Ausmalen, Malen, Unterschiede, Schlange, Bonbonjagd), Bibliothek, Farblabor, Cinema, paintings on the server, turning (J K L I), playground, 60 m square
+6. Hüpfhalle, Tanzsaal, Mein Haus with logbook and sticker book, stickers
+
+Each stage has its design in `docs/superpowers/specs/`; what the game does now is in the README.
+
+## Not yet checked in real life
+
+These were tested with automated tests and in a desktop browser, but not where they matter:
+
+- **Hüpfhalle and Tanzsaal with a real child and camera.** The rules are tested against made-up bodies. A separate camera is planned because the laptop's built-in one needs too much distance. If moves count too easily or not at all, the thresholds are in `src/core/moves/reps.ts` (Hüpfhalle) and `src/core/moves/dance.ts` (Tanzsaal).
+- **Everything on a real iPad:** turn buttons, swiping, drawing, Schreiben with the pen, the camera buildings.
+- **A Cinema film played to its end** (only tested with the player's messages).
+- **The DSM reverse proxy's upload limit** for paintings: if paintings keep showing ⏳ on the NAS, see the troubleshooting table in `docs/deploy-nas.md`.
+
+## Open review
+
+No independent code review has been run over stages 5 and 6 (PRs #5–#11). Worth doing before building more.
+
+## Calls made without asking, which may be worth revisiting
+
+- The Cinema costs 3 Stars per film, not per minute; one film list for all children.
+- The Hüpfhalle pays 3 Stars per round (at most 9), not the gameplay document's 5.
+- No version without a camera for the Hüpfhalle and Tanzsaal: their doors stay closed on a device without one, like Yoga's.
+- Stickers: the list of 17 in `shared/stickers.json`. Past days count as "goal reached" against today's goal, because earlier goals weren't kept.
+- A visit to Malen or Ausmalen made while the server can't be reached isn't kept for later.
+
+## Left from the gameplay document
+
+Not planned as stages yet. Roughly by how much they would add for a five-year-old:
+
+1. **Dressing up the character:** colours, hats, outfits, some unlocked by stickers. Gives the stickers a use.
+2. **Decorating the house:** furniture and a trophy shelf.
+3. **Harder tasks as she grows:** age tiers, and difficulty that adapts (three right in a row step up, two misses step down).
+4. **More learning buildings:** Language Café (first English words), World Tower (flags, animals of the world), Building Yard (physics blocks to stack and knock over), Code Workshop (for older children).
+5. **For parents:** a weekly report, playing hours (e.g. not after 19:30), the camera on or off per child.
+6. **Polish:** day and night in the town, background music; in the town, carrying things (Q), a map (M), a quest board.
+
+Suggested order: let the child play stage 6 first (especially the camera buildings with the new camera), fix what that turns up, then the character's outfits.
