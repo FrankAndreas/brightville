@@ -10,7 +10,7 @@ from typing import Optional
 
 from fastapi import Depends, FastAPI, Path, Query, Request, Response
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from . import auth, films, game, hub, local, paintings, people, stickers, wardrobe
@@ -134,8 +134,18 @@ class PaintingIn(BaseModel):
 PaintingId = Path(pattern=paintings.ID.pattern)
 
 
+class LookFields(BaseModel):
+    """Her look's shape, refused before it is read in full; the values are checked by wardrobe.save_look"""
+
+    model_config = ConfigDict(extra="forbid")
+    body: str = Field(max_length=16)
+    hair: str = Field(max_length=16)
+    hairColor: str = Field(max_length=16)  # noqa: N815 - the page's name
+    glasses: str = Field(max_length=16)
+
+
 class LookIn(BaseModel):
-    look: dict
+    look: LookFields
 
 
 class WornIn(BaseModel):
@@ -312,7 +322,7 @@ def save_look(
     body: LookIn, person: Person = Depends(auth.current_person), db: sqlite3.Connection = Depends(get_db)
 ) -> dict:
     try:
-        wardrobe.save_look(db, person.id, body.look)
+        wardrobe.save_look(db, person.id, body.look.model_dump())
     except wardrobe.BadLook:
         raise error(422, "bad_look") from None
     return wardrobe.state(db, person.id)

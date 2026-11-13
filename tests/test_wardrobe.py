@@ -244,3 +244,34 @@ def test_parents_see_savings_and_owned(mia, papa):
     row = next(r for r in papa.get("/api/players").json() if r["id"] == 2)
     assert row["owned"] == ["schal"]
     assert row["savings"] == 0
+
+
+def test_ids_the_catalogue_no_longer_has_are_left_out(mia, papa):
+    learn(mia)
+    buy(mia, "schal")
+    with database.connect() as connection:
+        connection.execute(
+            "INSERT INTO outfits (person_id, item_id, how, got_at)"
+            " VALUES (2, 'gibtsnicht', 'bought', '2026-11-01T10:00:00')"
+        )
+        connection.execute("""UPDATE looks SET worn = '{"neck": "schal", "head": "gibtsnicht"}' WHERE person_id = 2""")
+    state = mia.get("/api/wardrobe").json()
+    assert [o["id"] for o in state["owned"]] == ["schal"]
+    assert state["worn"] == {"neck": "schal"}
+    row = next(r for r in papa.get("/api/players").json() if r["id"] == 2)
+    assert row["owned"] == ["schal"]
+
+
+def test_a_look_is_checked_for_its_shape_before_it_is_read(mia):
+    answer = mia.put("/api/look", json={"look": {**LOOK, "hair": "x" * 10_000}})
+    assert answer.status_code == 422
+    # Refused by the request's shape, not after reading it all
+    assert isinstance(answer.json()["detail"], list)
+    assert mia.put("/api/look", json={"look": {**LOOK, "extra": 1}}).status_code == 422
+
+
+def test_a_key_from_something_else_today_buys_nothing_and_says_so(mia):
+    learn(mia)
+    answer = buy(mia, "schal", key="d-1")
+    assert answer.status_code == 409 and code(answer) == "key_used"
+    assert owned(mia) == []
