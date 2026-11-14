@@ -334,6 +334,17 @@ describe('Schreiben', () => {
       w.unmount()
     })
 
+    it('shows the start dot of a known letter after a touch on the letter away from it', async () => {
+      await meet({ I: met(4) })
+      const w = await open([{ glyph: 'I', help: 'none', counts: true }, { glyph: 'L', help: 'full' }])
+      const stroke = GLYPHS.I.strokes[0]
+      send(w, 'pointerdown', 1, stroke[stroke.length - 1])
+      send(w, 'pointerup', 1, stroke[stroke.length - 1])
+      await run(10)
+      expect(help(w)).toBe('start')
+      w.unmount()
+    })
+
     it('shows nothing of a known letter, and the start dot after a miss, which makes it bumpy', async () => {
       const writing = await meet({ I: met(4) })
       const w = await open([{ glyph: 'I', help: 'none', counts: true }, { glyph: 'L', help: 'full' }])
@@ -428,6 +439,19 @@ describe('Schreiben', () => {
       await writeAll(w, 'EEE')
       expect(Object.keys(api.writing_.letters).sort()).toEqual(['E', 'L'])
       expect(useWritingStore().newLeft).toBe(0)
+      w.unmount()
+    })
+
+    it('keeps both new letters on a day after two were met', async () => {
+      api.writing_.texts = ['LENA']
+      api.writing_.letters = { L: { level: 1, streak: 0, practised_at: null }, E: { level: 1, streak: 0, practised_at: null } }
+      api.writing_.introducedOn = { L: '2026-11-11', E: '2026-11-11' }
+      const w = await enter()
+      await w.find('[data-test="dice-card"]').trigger('click')
+      await run(10)
+      await writeAll(w, 'NNNAAA')
+      expect(Object.keys(api.writing_.letters).sort()).toEqual(['A', 'E', 'L', 'N'])
+      expect(useWritingStore().letters.A?.level).toBe(1)
       w.unmount()
     })
 

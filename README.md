@@ -163,7 +163,7 @@ Lifting early starts that stroke again. Nothing is ever taken away.
 
 A write is *bumpy* when she started at the wrong place or the wrong end, or lifted early in a real try; otherwise it is *clean*. Three clean writes in a row move a letter up a level, three bumpy ones down (never below 1). The parents' page shows the levels as a coloured grid.
 
-**Today's letters (🎲).** Two letters, each written three times. New letters come first, at most two a day: one while she has three or more letters at level 1, none while five or more. A new letter is written with the whole path, then dots, then the start dot; it counts as met after the third. The letters of her own words come first, then the other letters, then the digits. The other places go to her weakest letters (lowest level, then the longest unpractised). Writes and new letters wait on the device while the server is away.
+**Today's letters (🎲).** Two letters, each written three times. New letters come first, at most two a day: one while she has three or more letters at level 1, none while five or more (counting the letters she met before today, so the first new letter of the day never takes the second one's place). A new letter is written with the whole path, then dots, then the start dot; it counts as met after the third. The letters of her own words come first, then the other letters, then the digits. The other places go to her weakest letters (lowest level, then the longest unpractised). Writes and new letters wait on the device while the server is away.
 
 The door is open only on a device with a touch screen.
 

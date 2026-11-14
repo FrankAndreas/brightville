@@ -93,10 +93,18 @@ def test_two_new_letters_a_day_then_409(mia, monkeypatch):
     assert code(answer) == "no_new_today"
     set_time(monkeypatch, "2026-11-13 08:00")
     assert state(mia)["new_left_today"] == 2
+    # The day's pace is set by the letters from before today: today's own new letters don't lower it
     assert introduce(mia, "N").status_code == 200
-    # Three letters at level 1 now: that was today's one
-    assert state(mia)["new_left_today"] == 0
-    assert introduce(mia, "O").status_code == 409
+    assert state(mia)["new_left_today"] == 1
+    assert introduce(mia, "O").status_code == 200
+    assert code(introduce(mia, "P")) == "no_new_today"
+
+
+def test_the_pace_of_a_day_with_three_weak_letters_from_before(mia):
+    for g in "ABC":
+        put_letter(g, 1)
+    assert introduce(mia, "L").status_code == 200
+    assert code(introduce(mia, "E")) == "no_new_today"
 
 
 def test_pacing_holds_back(mia):

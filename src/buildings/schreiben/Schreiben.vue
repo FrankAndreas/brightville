@@ -156,8 +156,9 @@ function onDown(e: PointerEvent) {
     ink.push([p])
   } else {
     // With nothing shown, any touch but a hand's means she didn't know where to start: show the dot
-    const lost = help === 'none' && result.reason === 'off-letter'
-    if (lost || result.reason === 'wrong-end' || result.reason === 'far-from-start') bumpy = true
+    const missed = result.reason === 'wrong-end' || result.reason === 'far-from-start'
+    const lost = help === 'none' && (missed || result.reason === 'off-letter')
+    if (lost || missed) bumpy = true
     if (lost) {
       help = 'start'
       shownHelp.value = help

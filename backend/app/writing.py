@@ -65,9 +65,11 @@ def set_texts(db: sqlite3.Connection, person_id: int, texts: list[str]) -> None:
 
 
 def new_left_today(db: sqlite3.Connection, person_id: int) -> int:
-    """Two new letters a day; one while three or more sit at the first level, none while five or more do"""
+    """Two new letters a day; one while three or more sit at the first level, none while five or more do. The day's
+    pace is set by the letters from before today, so the round's first new letter doesn't take its second's place."""
     weak = db.execute(
-        "SELECT COUNT(*) FROM writing_letters WHERE person_id = ? AND level = ?", (person_id, FIRST_LEVEL)
+        "SELECT COUNT(*) FROM writing_letters WHERE person_id = ? AND level = ? AND introduced_on != ?",
+        (person_id, FIRST_LEVEL, clock.today()),
     ).fetchone()[0]
     base = 0 if weak >= 5 else 1 if weak >= 3 else NEW_A_DAY
     met = db.execute(

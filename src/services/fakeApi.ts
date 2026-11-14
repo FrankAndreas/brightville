@@ -264,7 +264,9 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
   const writingKeys = new Set<string>()
   // As backend/app/writing.py new_left_today
   const newLeft = () => {
-    const weak = Object.values(api.writing_.letters).filter(l => l.level === 1).length
+    // The day's pace comes from the letters met before today
+    const weak = Object.entries(api.writing_.letters)
+      .filter(([g, l]) => l.level === 1 && api.writing_.introducedOn[g] !== state.day).length
     const base = weak >= 5 ? 0 : weak >= 3 ? 1 : 2
     return Math.max(0, base - Object.values(api.writing_.introducedOn).filter(d => d === state.day).length)
   }
