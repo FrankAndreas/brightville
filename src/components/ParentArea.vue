@@ -7,9 +7,11 @@ import { furnitureDef } from '@/core/furniture'
 import { outfitDef } from '@/core/outfits'
 import type { Api, PlayerRow, Rules, StickerRow } from '@/services/api'
 import FilmList from './FilmList.vue'
+import WritingSettings from './WritingSettings.vue'
 
 // The parents' page: plain German, for grown-ups who read. One card per person who may play,
-// with today's numbers, three settings and their logbook of the last days, then the Cinema's films.
+// with today's numbers, three settings, their logbook of the last days and (children) their words for
+// Schreiben, then the Cinema's films.
 const props = defineProps<{
   api: Api
   /** With the family hub: where to log out; the page adds its own address */
@@ -151,6 +153,7 @@ onMounted(load)
             <p v-if="diaries[row.id].stickers.length" data-test="diary-stickers">{{ stickerLine(diaries[row.id].stickers) }}</p>
           </template>
         </details>
+        <WritingSettings v-if="row.role !== 'PARENT'" :api="api" :person-id="row.id" />
       </article>
 
       <FilmList :api="api" @changed="emit('filmsChanged')" />

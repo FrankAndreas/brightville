@@ -31,6 +31,12 @@ describe('ParentArea', () => {
     expect(card(w, 1).find('[data-test="stars-input"]').exists()).toBe(true)
   })
 
+  it('has a child\'s words for Schreiben, but none for a parent', async () => {
+    const { w } = await open()
+    expect(card(w, 2).find('[data-test="writing"]').exists()).toBe(true)
+    expect(card(w, 1).find('[data-test="writing"]').exists()).toBe(false)
+  })
+
   it('shows a child\'s savings and her add-ons, to read only', async () => {
     const api = fakeApi()
     api.rows = ROWS.map(r => (r.id === 2 ? { ...r, stars: 160, savings: 140, owned: ['schleife', 'gibtsnicht'] } : { ...r }))
