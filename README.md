@@ -147,7 +147,7 @@ Capital letters, Ä Ö Ü and the digits in the Deutschschweizer Basisschrift, w
 The child traces each stroke from the green dot with a finger or a pen; the traced part turns green. A resting hand is ignored: a touch much larger than the pen doesn't count.
 Lifting early starts that stroke again. Nothing is ever taken away.
 
-**Choosing.** Inside, her words and sentences stand as big cards, with a 🎲 for today's letters. Without any words the 🎲 round starts at once. The parents write the list on the parents' page (each child's card, "Schreiben"): capitals, Ä Ö Ü, digits and spaces, at most 30 characters a text and 20 texts; typed lowercase becomes capitals, ß and punctuation are refused. Lowercase letters come later, once she knows the capitals.
+**Choosing.** Inside, her words and sentences stand as big cards, with a 🎲 for today's letters. Without any words the 🎲 round starts at once. The parents write the list on the parents' page (each child's card, "Schreiben"; ↑ ↓ to reorder, ✕ to remove): capitals, Ä Ö Ü, digits and spaces, at most 30 characters a text and 20 texts; typed lowercase becomes capitals and a pasted umlaut (letter + mark) one letter; ß and punctuation are refused. Lowercase letters come later, once she knows the capitals.
 
 **A word or sentence** is written letter by letter. Along the top, each letter she finished shows in her own lines, with a gap between words. The voice says what she writes ("Wir schreiben: Ich mag dich Lena!"), names each new word and each letter, and reads the whole text at the end. One Star per letter, +4 for finishing (the server caps a visit at 10).
 
@@ -163,7 +163,7 @@ Lifting early starts that stroke again. Nothing is ever taken away.
 
 A write is *bumpy* when she started at the wrong place or the wrong end, or lifted early in a real try; otherwise it is *clean*. Three clean writes in a row move a letter up a level, three bumpy ones down (never below 1). The parents' page shows the levels as a coloured grid.
 
-**Today's letters (🎲).** Two letters, each written three times. New letters come first, at most two a day: one while she has three or more letters at level 1, none while five or more (counting the letters she met before today, so the first new letter of the day never takes the second one's place). A new letter is written with the whole path, then dots, then the start dot; it counts as met after the third. The letters of her own words come first, then the other letters, then the digits. The other places go to her weakest letters (lowest level, then the longest unpractised). Writes and new letters wait on the device while the server is away.
+**Today's letters (🎲).** Two letters, each written three times. New letters come first, at most two a day: one while she has three or more letters at level 1, none while five or more (counting the letters she met before today, so the first new letter of the day never takes the second one's place). A new letter is written with the whole path, then dots, then the start dot; it counts as met after the third. The letters of her own words come first, then the other letters, then the digits. The other places go to her weakest letters (lowest level, then the longest unpractised); with too few letters to repeat, other letters are practised without counting as met. Writes and new letters wait on the device while the server is away; a letter met offline counts for the day she met it (within the last 60 days; otherwise today). The server forgets a write's key after 60 days.
 
 The door is open only on a device with a touch screen.
 

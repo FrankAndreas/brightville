@@ -64,9 +64,10 @@ async function add() {
   if (await send([...texts.value, normalizeText(draft.value)])) draft.value = ''
 }
 
-function up(i: number) {
+/** Swaps the text at `i` with its neighbour above (-1) or below (+1) */
+function move(i: number, by: -1 | 1) {
   const next = [...texts.value]
-  ;[next[i - 1], next[i]] = [next[i], next[i - 1]]
+  ;[next[i + by], next[i]] = [next[i], next[i + by]]
   void send(next)
 }
 
@@ -88,8 +89,12 @@ const levelOf = (glyph: string) => letters.value[glyph]?.level ?? 0
         <li v-for="(t, i) in texts" :key="t" data-test="text-item">
           <span class="text" data-test="text">{{ t }}</span>
           <button
-            data-test="text-up" :disabled="busy || i === 0" :aria-label="`${t} nach oben`" @click="up(i)"
+            data-test="text-up" :disabled="busy || i === 0" :aria-label="`${t} nach oben`" @click="move(i, -1)"
           >↑</button>
+          <button
+            data-test="text-down" :disabled="busy || i === texts.length - 1" :aria-label="`${t} nach unten`"
+            @click="move(i, 1)"
+          >↓</button>
           <button data-test="text-remove" :disabled="busy" :aria-label="`${t} entfernen`" @click="remove(i)">✕</button>
         </li>
       </ol>

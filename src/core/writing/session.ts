@@ -51,16 +51,18 @@ function weakest(letters: Letters): string[] {
 
 /**
  * Today's letters (🎲): two glyphs, each written three times. New ones (as many as `newLeft` allows) come with falling
- * help; the other places go to her weakest letters at their own help. With nothing to repeat, more new ones.
+ * help; the other places go to her weakest letters at their own help. With too few to repeat, other new letters
+ * for practice, with falling help: no new letter is met that the day's limit wouldn't allow.
  */
 export function buildDailyRound(o: { letters: Letters; texts: string[]; newLeft: number; rand: () => number }): WritingTask[] {
   const fresh = newOnes(o.letters, o.texts, o.rand)
   const intros = fresh.slice(0, Math.max(0, Math.min(o.newLeft, LETTERS_PER_VISIT)))
   const repeats = weakest(o.letters).slice(0, LETTERS_PER_VISIT - intros.length)
-  intros.push(...fresh.slice(intros.length, intros.length + LETTERS_PER_VISIT - intros.length - repeats.length))
+  const practice = fresh.slice(intros.length, intros.length + LETTERS_PER_VISIT - intros.length - repeats.length)
   return [
     ...intros.flatMap(glyph => INTRO.map(help => ({ glyph, help, intro: true }))),
     ...repeats.flatMap(glyph => Array.from({ length: TIMES }, () => ({ glyph, help: helpFor(o.letters[glyph].level), counts: true }))),
+    ...practice.flatMap(glyph => INTRO.map(help => ({ glyph, help }))),
   ]
 }
 

@@ -153,6 +153,11 @@ CREATE TABLE writing_keys (
     PRIMARY KEY (person_id, key)
 );
 """,
+    # Schreiben: the day of each write's key, so old keys can be let go; keys from before start their time now
+    """
+ALTER TABLE writing_keys ADD COLUMN day TEXT NOT NULL DEFAULT '';
+UPDATE writing_keys SET day = date('now', 'localtime');
+""",
 ]
 VERSION = len(MIGRATIONS)
 

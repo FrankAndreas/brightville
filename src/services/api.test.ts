@@ -25,6 +25,25 @@ describe('httpApi', () => {
     expect(new Headers(init.headers).get('X-Requested-With')).toBe('brightville')
   })
 
+  it('gives up on a write for Schreiben that hangs, as offline', async () => {
+    vi.useFakeTimers()
+    try {
+      const api = httpApi((_url, init) => new Promise((_, reject) => {
+        init.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')))
+      }))
+      const writes = api.sendWrites([{ key: 'k', glyph: 'L', level: 1, clean: true }])
+      const intro = api.introduced('L', 'k')
+      const caught = Promise.all([writes.catch(e => e), intro.catch(e => e)])
+      await vi.advanceTimersByTimeAsync(15_000)
+      expect(await caught).toEqual([
+        expect.objectContaining({ status: 0, code: 'offline' }),
+        expect.objectContaining({ status: 0, code: 'offline' }),
+      ])
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('turns a refusal into an error with the server\'s code', async () => {
     const api = httpApi(async () => json(409, { detail: { code: 'poor' } }))
     await expect(api.play('arcade', 'k')).rejects.toMatchObject({ status: 409, code: 'poor' })

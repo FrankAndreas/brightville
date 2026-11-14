@@ -176,3 +176,74 @@ def test_each_child_has_their_own(papa, mia, family_hub):
     set_texts(papa, ["MIA"])
     ben = as_person("Ben")
     assert state(ben) == {"texts": [], "letters": {}, "new_left_today": 2}
+
+
+def test_texts_with_combining_marks_or_ligatures(papa, mia):
+    # An umlaut pasted as A + U+0308, and the "fi" ligature some keyboards make
+    answer = set_texts(papa, ["A\u0308PFEL", "\ufb01sch"])  # escaped: an editor must not make them precomposed
+    assert answer.status_code == 200
+    assert answer.json()["texts"] == ["ÄPFEL", "FISCH"]
+
+
+def test_an_introduction_made_offline_yesterday_counts_for_yesterday(mia):
+    answer = mia.post("/api/writing/introduced", json={"glyph": "L", "key": "k", "day": "2026-11-11"})
+    assert answer.status_code == 200
+    assert answer.json()["new_left_today"] == 2
+    with database.connect() as connection:
+        day = connection.execute("SELECT introduced_on FROM writing_letters WHERE glyph = 'L'").fetchone()[0]
+    assert day == "2026-11-11"
+
+
+def test_an_introduction_dated_in_the_future_counts_for_today(mia):
+    answer = mia.post("/api/writing/introduced", json={"glyph": "L", "key": "k", "day": "2027-01-01"})
+    assert answer.json()["new_left_today"] == 1
+
+
+def test_yesterday_had_its_own_limit(mia):
+    for g in "AB":
+        mia.post("/api/writing/introduced", json={"glyph": g, "key": g, "day": "2026-11-11"})
+    late = mia.post("/api/writing/introduced", json={"glyph": "C", "key": "C", "day": "2026-11-11"})
+    assert code(late) == "no_new_today"
+    assert state(mia)["new_left_today"] == 2
+
+
+def test_old_write_keys_are_forgotten_and_introductions_keep_none(mia, monkeypatch):
+    introduce(mia, "L")
+    write(mia, "L", 1, True, "old")
+    with database.connect() as connection:
+        keys = [r[0] for r in connection.execute("SELECT key FROM writing_keys")]
+    assert keys == ["old"]
+    set_time(monkeypatch, "2027-03-01 10:00")
+    write(mia, "L", 1, True, "new")
+    with database.connect() as connection:
+        keys = [r[0] for r in connection.execute("SELECT key FROM writing_keys")]
+    assert keys == ["new"]
+
+
+def test_a_day_long_past_counts_as_today(mia):
+    # A device whose clock was reset (a dead battery) would put every new letter on one old day
+    answer = mia.post("/api/writing/introduced", json={"glyph": "L", "key": "k", "day": "1970-01-01"})
+    assert answer.json()["new_left_today"] == 1
+
+
+def test_a_day_within_sixty_days_is_kept(mia):
+    mia.post("/api/writing/introduced", json={"glyph": "L", "key": "k", "day": "2026-09-14"})
+    with database.connect() as connection:
+        day = connection.execute("SELECT introduced_on FROM writing_letters WHERE glyph = 'L'").fetchone()[0]
+    assert day == "2026-09-14"
+
+
+def test_migration_keeps_existing_write_keys_for_their_time(tmp_path, monkeypatch):
+    import sqlite3
+
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    old = sqlite3.connect(tmp_path / "brightville.db")
+    for step in database.MIGRATIONS[:9]:
+        old.executescript(step)
+    old.execute("PRAGMA user_version = 9")
+    old.execute("INSERT INTO writing_keys (person_id, key) VALUES (2, 'before')")
+    old.commit()
+    old.close()
+    with database.connect() as connection:
+        day = connection.execute("SELECT day FROM writing_keys WHERE key = 'before'").fetchone()[0]
+    assert day != ""

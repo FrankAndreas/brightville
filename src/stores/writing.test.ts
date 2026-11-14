@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { flushPromises } from '@vue/test-utils'
 import { fakeApi, type FakeApi } from '@/services/fakeApi'
@@ -123,6 +123,105 @@ describe('writing store', () => {
     writing.init(api, 2, storage)
     await flushPromises()
     expect(writing.letters).toEqual({})
+  })
+
+  it('does not count a write twice when the letters come back before the write\'s own answer', async () => {
+    api.writing_.letters = { M: met(1) }
+    const writing = await open()
+    // The server has the write at once, but its answer is slow
+    const send = api.sendWrites
+    let answer = () => {}
+    api.sendWrites = writes => {
+      const done = send(writes)
+      return new Promise(resolve => { answer = () => resolve(done) })
+    }
+    writing.recordWrite('M', 1, true)
+    await flushPromises()
+    expect(api.writing_.letters.M.streak).toBe(1)
+    await writing.load()
+    expect(writing.letters.M.streak).toBe(1)
+    answer()
+    await flushPromises()
+    expect(writing.letters.M.streak).toBe(1)
+  })
+
+  it('keeps the newest answer when two writes are answered out of order', async () => {
+    api.writing_.letters = { M: met(1) }
+    const writing = await open()
+    const send = api.sendWrites
+    const answers: (() => void)[] = []
+    api.sendWrites = writes => {
+      const done = send(writes)
+      return new Promise(resolve => { answers.push(() => resolve(done)) })
+    }
+    writing.recordWrite('M', 1, true)
+    writing.recordWrite('M', 1, true)
+    await flushPromises()
+    // The second answer (with both writes) comes first, the first (with one) last
+    answers[1]()
+    await flushPromises()
+    answers[0]()
+    await flushPromises()
+    expect(writing.letters.M.streak).toBe(2)
+  })
+
+  it('does not count a waiting write twice while a load is sending it', async () => {
+    api.writing_.letters = { M: met(1) }
+    const writing = await open()
+    api.offline = true
+    writing.recordWrite('M', 1, true)
+    await flushPromises()
+    api.offline = false
+    // The load's own sending is slow; the server has it at once
+    const send = api.sendWrites
+    let slow: (() => void) | null = null
+    api.sendWrites = writes => {
+      const done = send(writes)
+      if (slow) return done
+      return new Promise(resolve => { slow = () => resolve(done) })
+    }
+    const loading = writing.load()
+    await flushPromises()
+    writing.recordWrite('M', 1, true)
+    await flushPromises()
+    expect(writing.letters.M.streak).toBe(2)
+    slow!()
+    await loading
+    expect(writing.letters.M.streak).toBe(2)
+  })
+
+  it('leaves out broken entries waiting on the device', async () => {
+    api.writing_.letters = { M: met(1) }
+    storage.setItem('brightville.writing.1', JSON.stringify({ writes: [null, { key: 'w', glyph: 'M', level: 1, clean: true }, 5], intros: [{}] }))
+    const writing = await open()
+    expect(api.writing_.letters.M.streak).toBe(1)
+    expect(writing.letters.M.streak).toBe(1)
+    expect(storage.getItem('brightville.writing.1')).toBeNull()
+  })
+
+  it('sends no day with a letter met while the server is there', async () => {
+    const writing = await open()
+    writing.introduce('L')
+    await flushPromises()
+    expect(api.calls).toContain('introduced L')
+  })
+
+  describe('a letter met while the server is away', () => {
+    afterEach(() => { vi.useRealTimers() })
+
+    it('counts for the day she met it', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] })
+      vi.setSystemTime(new Date(2026, 10, 11, 18, 0))
+      const writing = await open()
+      api.offline = true
+      writing.introduce('L')
+      await flushPromises()
+      vi.setSystemTime(new Date(2026, 10, 12, 9, 0))
+      api.offline = false
+      await writing.load()
+      expect(api.writing_.introducedOn.L).toBe('2026-11-11')
+      expect(writing.newLeft).toBe(2)
+    })
   })
 
   it('goes on without the server after a while', async () => {

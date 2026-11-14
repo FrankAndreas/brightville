@@ -4,7 +4,9 @@ away; the server is the truth."""
 
 import re
 import sqlite3
-from typing import TypedDict
+import unicodedata
+from datetime import date, timedelta
+from typing import Optional, TypedDict
 
 from . import clock
 from .db import writing
@@ -20,6 +22,8 @@ KNOWN = 4
 # Three in a row, up or down
 STREAK = 3
 NEW_A_DAY = 2
+# A write's key is kept this long: a device away from the server longer sends nothing anyone remembers
+KEEP_KEYS_DAYS = 60
 
 
 class Write(TypedDict):
@@ -30,8 +34,9 @@ class Write(TypedDict):
 
 
 def normalize(text: str) -> str:
-    """Capitals, single spaces, nothing around"""
-    return re.sub(r"\s+", " ", text).strip().upper()
+    """Capitals, single spaces, nothing around. NFKC first: an umlaut pasted as letter + mark becomes one letter, "ﬁ"
+    two, full-width ＭＩＡ plain MIA"""
+    return re.sub(r"\s+", " ", unicodedata.normalize("NFKC", text)).strip().upper()
 
 
 def check(texts: list[str]) -> list[str]:
@@ -64,16 +69,19 @@ def set_texts(db: sqlite3.Connection, person_id: int, texts: list[str]) -> None:
         )
 
 
-def new_left_today(db: sqlite3.Connection, person_id: int) -> int:
+def new_left_today(db: sqlite3.Connection, person_id: int, day: Optional[str] = None) -> int:
     """Two new letters a day; one while three or more sit at the first level, none while five or more do. The day's
-    pace is set by the letters from before today, so the round's first new letter doesn't take its second's place."""
+    pace is set by the letters from before it, so the round's first new letter doesn't take its second's place.
+    `day`: another day than today, for a letter met on the device while the server was away. Its letters at level 1
+    are counted as they are now, not as they were that day: it errs towards one more new letter, never one fewer."""
+    day = day or clock.today()
     weak = db.execute(
-        "SELECT COUNT(*) FROM writing_letters WHERE person_id = ? AND level = ? AND introduced_on != ?",
-        (person_id, FIRST_LEVEL, clock.today()),
+        "SELECT COUNT(*) FROM writing_letters WHERE person_id = ? AND level = ? AND introduced_on < ?",
+        (person_id, FIRST_LEVEL, day),
     ).fetchone()[0]
     base = 0 if weak >= 5 else 1 if weak >= 3 else NEW_A_DAY
     met = db.execute(
-        "SELECT COUNT(*) FROM writing_letters WHERE person_id = ? AND introduced_on = ?", (person_id, clock.today())
+        "SELECT COUNT(*) FROM writing_letters WHERE person_id = ? AND introduced_on = ?", (person_id, day)
     ).fetchone()[0]
     return int(max(0, base - met))
 
@@ -94,13 +102,27 @@ def state(db: sqlite3.Connection, person_id: int) -> dict:
 
 
 def _first_time(db: sqlite3.Connection, person_id: int, key: str) -> bool:
-    return (
-        db.execute("INSERT OR IGNORE INTO writing_keys (person_id, key) VALUES (?, ?)", (person_id, key)).rowcount == 1
+    inserted = db.execute(
+        "INSERT OR IGNORE INTO writing_keys (person_id, key, day) VALUES (?, ?, ?)", (person_id, key, clock.today())
     )
+    return inserted.rowcount == 1
 
 
-def introduce(db: sqlite3.Connection, person_id: int, glyph: str, key: str) -> None:
-    """She wrote a new letter three times: it is at the first level now. Refused('unknown' | 'no_new_today')"""
+def _the_day(day: Optional[str]) -> str:
+    """The day a new letter was met on the device: today when not given, not a date, later than today, or further back
+    than a write's key is kept (a device clock reset to an old date would put every new letter on one day)"""
+    today = clock.today()
+    earliest = (date.fromisoformat(today) - timedelta(days=KEEP_KEYS_DAYS)).isoformat()
+    try:
+        on = date.fromisoformat(day).isoformat() if day else today
+    except ValueError:
+        return today
+    return on if earliest <= on <= today else today
+
+
+def introduce(db: sqlite3.Connection, person_id: int, glyph: str, day: Optional[str] = None) -> None:
+    """She wrote a new letter three times (on `day`, if the device kept it while the server was away): it is at the
+    first level now. Refused('unknown' | 'no_new_today'). Meeting a letter twice is meeting it once: no key needed."""
     if glyph not in GLYPHS:
         raise Refused("unknown")
     with writing(db):
@@ -109,12 +131,12 @@ def introduce(db: sqlite3.Connection, person_id: int, glyph: str, key: str) -> N
         ).fetchone()
         if known:
             return
-        if new_left_today(db, person_id) <= 0:
+        on = _the_day(day)
+        if new_left_today(db, person_id, on) <= 0:
             raise Refused("no_new_today")
-        _first_time(db, person_id, key)
         db.execute(
             "INSERT INTO writing_letters (person_id, glyph, level, streak, introduced_on) VALUES (?, ?, ?, 0, ?)",
-            (person_id, glyph, FIRST_LEVEL, clock.today()),
+            (person_id, glyph, FIRST_LEVEL, on),
         )
 
 
@@ -131,7 +153,9 @@ def apply(level: int, streak: int, clean: bool) -> tuple[int, int]:
 def record(db: sqlite3.Connection, person_id: int, writes: list[Write]) -> None:
     """Counts each write once (by its key), and only one shown at the letter's level now"""
     at = clock.now().isoformat(timespec="seconds")
+    forget = (date.fromisoformat(clock.today()) - timedelta(days=KEEP_KEYS_DAYS)).isoformat()
     with writing(db):
+        db.execute("DELETE FROM writing_keys WHERE person_id = ? AND day < ?", (person_id, forget))
         for w in writes:
             row = db.execute(
                 "SELECT level, streak FROM writing_letters WHERE person_id = ? AND glyph = ?", (person_id, w["glyph"])

@@ -41,6 +41,12 @@ describe('her texts', () => {
     expect(normalizeText(' ich  mag ä ')).toBe('ICH MAG Ä')
   })
 
+  it('take an umlaut pasted as letter and mark as one letter, and a ligature as its letters', () => {
+    expect(normalizeText('A\u0308PFEL')).toBe('ÄPFEL')
+    expect(checkText('A\u0308PFEL', [])).toBeNull()
+    expect(normalizeText('\ufb01sch')).toBe('FISCH')
+  })
+
   it('are refused with a reason', () => {
     expect(checkText('GRÜSSE', [])).toBeNull()
     expect(checkText('Grüße', [])).toBe('letters')

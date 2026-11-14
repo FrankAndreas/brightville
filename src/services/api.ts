@@ -163,7 +163,7 @@ export interface Api {
   writing(): Promise<WritingState>
   sendWrites(writes: WriteIn[]): Promise<WritingState>
   /** She wrote a new letter three times. Rejects with 'no_new_today' or 'unknown'. */
-  introduced(glyph: string, key: string): Promise<WritingState>
+  introduced(glyph: string, key: string, day?: string): Promise<WritingState>
   /** Parents only */
   playerWriting(personId: number): Promise<WritingState>
   /** Parents only; the whole list. Rejects with 'empty', 'letters', 'too-long', 'exists' or 'too-many'. */
@@ -172,28 +172,37 @@ export interface Api {
 
 type Fetch = (url: string, init: RequestInit) => Promise<Response>
 
+const WRITING_TIMEOUT_MS = 15_000
+
 /** `onRenew`: the hub login is in its last week and wants one trip through the hub. */
 export function httpApi(fetchFn: Fetch = (url, init) => fetch(url, init), onRenew: () => void = () => {}): Api {
-  async function call<T>(method: string, url: string, body?: unknown): Promise<T> {
+  /** `timeoutMs`: give up then, as offline (what waits on the device is sent again later) */
+  async function call<T>(method: string, url: string, body?: unknown, timeoutMs?: number): Promise<T> {
     let response: Response
+    const abort = timeoutMs ? new AbortController() : null
+    const timer = abort ? setTimeout(() => abort.abort(), timeoutMs) : null
     try {
       response = await fetchFn(url, {
         method,
+        signal: abort?.signal,
         credentials: 'same-origin',
         // The server takes changes only with this header, which another site can't send
         headers: { 'X-Requested-With': 'brightville', ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
         body: body === undefined ? undefined : JSON.stringify(body),
       })
     } catch {
+      if (timer) clearTimeout(timer)
       throw new ApiError(0, 'offline')
     }
     let data: unknown
     try {
       data = await response.json()
     } catch {
-      // A proxy's error page, or the dev server without a backend
+      if (timer) clearTimeout(timer)
+      // A proxy's error page, the dev server without a backend, or an answer cut off by the timeout
       throw new ApiError(response.status, 'offline')
     }
+    if (timer) clearTimeout(timer)
     if (!response.ok) {
       const detail = (data as { detail?: { code?: unknown; login_url?: unknown; retry_after?: unknown } } | null)?.detail
       const code = typeof detail?.code === 'string' ? detail.code : 'offline'
@@ -236,8 +245,9 @@ export function httpApi(fetchFn: Fetch = (url, init) => fetch(url, init), onRene
     setPlaced: placed => call('PUT', '/api/room/placed', { placed }),
     buyFurniture: (item, key) => call('POST', '/api/moebel/buy', { item, key }),
     writing: () => call('GET', '/api/writing'),
-    sendWrites: writes => call('POST', '/api/writing/writes', { writes }),
-    introduced: (glyph, key) => call('POST', '/api/writing/introduced', { glyph, key }),
+    // A write that hangs would hold the letters shown back (stores/writing.ts): it waits on the device instead
+    sendWrites: writes => call('POST', '/api/writing/writes', { writes }, WRITING_TIMEOUT_MS),
+    introduced: (glyph, key, day) => call('POST', '/api/writing/introduced', { glyph, key, day }, WRITING_TIMEOUT_MS),
     playerWriting: personId => call('GET', `/api/players/${personId}/writing`),
     setPlayerTexts: (personId, texts) => call('PUT', `/api/players/${personId}/writing/texts`, { texts }),
   }

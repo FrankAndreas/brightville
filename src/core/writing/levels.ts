@@ -41,9 +41,9 @@ export const MAX_TEXTS = 20
 
 export type TextProblem = 'empty' | 'letters' | 'too-long' | 'exists' | 'too-many'
 
-/** Capitals, single spaces, nothing around */
+/** Capitals, single spaces, nothing around; an umlaut pasted as letter + mark becomes one letter, 'ﬁ' two */
 export function normalizeText(text: string): string {
-  return text.replace(/\s+/g, ' ').trim().toUpperCase()
+  return text.normalize('NFKC').replace(/\s+/g, ' ').trim().toUpperCase()
 }
 
 /** Why a text can't join the list, or null if it can */
