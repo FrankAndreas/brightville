@@ -6,6 +6,7 @@ import { BUILDINGS, toDoors } from '@/buildings/registry'
 import { createCharacter } from './character'
 import { HILLS, LAKE, TOWN_HALF, heightAt, inLake, solidAreas } from './map'
 import { createFollowCamera } from './followCamera'
+import { NATURE_SEED, placeNature } from './nature'
 import { TRAMPOLINES } from './props'
 import { BUILDING_COLORS, GRAVITY, buildTown, cameraBlocker, disposeScene } from './world'
 
@@ -159,10 +160,13 @@ describe('the camera in the real town', () => {
     expect(walls.length).toBeGreaterThan(20)
     const ray = new THREE.Raycaster()
     const hidden: string[] = []
+    const trees = placeNature(NATURE_SEED, doors).filter(i => i.kind === 'tree')
     // Off the whole metres, where walls stand: a ray grazing a wall exactly is no cover
     for (let x = -TOWN_HALF + 3.3; x <= TOWN_HALF - 3; x += 4) {
       for (let z = -TOWN_HALF + 3.3; z <= TOWN_HALF - 3; z += 4) {
         if (inLake(x, z) || solid.some(f => x >= f.minX && x <= f.maxX && z >= f.minZ && z <= f.maxZ)) continue
+        // Under a tree's crown she is hidden from above, whatever the camera does, while she walks under it
+        if (trees.some(t => Math.hypot(t.x - x, t.z - z) < 1.7 * t.scale)) continue
         const y = heightAt(x, z) + 0.6
         for (const yaw of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) {
           const view = createFollowCamera()

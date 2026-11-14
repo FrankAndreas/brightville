@@ -3,6 +3,7 @@ import type RAPIER from '@dimforge/rapier3d-compat'
 import { HOUSE_DEPTH, HOUSE_WIDTH, facingAngle, footprint, type DoorDef } from './doors'
 import { houseParts, wallHeight, type HouseSpec } from './houseKit'
 import { mergeParts, type PlacedPart } from './merge'
+import { NATURE_SEED, buildNature, placeNature } from './nature'
 import { EMPTY_LOTS, JETTY, LAKE, PLAZA, SCENERY_HOUSES, STREETS, TOWN_HALF, heightAt, sceneryArea } from './map'
 
 type Rapier = typeof RAPIER
@@ -87,8 +88,12 @@ export function cameraBlocker(R: Rapier, world: RAPIER.World) {
     const length = Math.hypot(d.x, d.y, d.z)
     if (length < 1e-6) return null
     const ray = new R.Ray(from, { x: d.x / length, y: d.y / length, z: d.z / length })
+    // A camera-only box she stands under or right against (a tree's crown, an awning) is skipped: from there every
+    // ray would meet it, and the camera would end up above it, hiding her completely
+    const under = (c: RAPIER.Collider) => c.isSensor() && c.containsPoint({ x: from.x, y: c.translation().y, z: from.z })
     const hit = world.castRay(
       ray, length, true, R.QueryFilterFlags.EXCLUDE_DYNAMIC | R.QueryFilterFlags.EXCLUDE_KINEMATIC, CAMERA_RAY_GROUPS,
+      undefined, undefined, c => !under(c),
     )
     return hit ? hit.timeOfImpact : null
   }
@@ -407,6 +412,7 @@ export function buildTown(R: Rapier, world: RAPIER.World, doors: DoorDef[]): Tow
   })
   const doorVisuals = doors.map((door, i) => doorBuilding(R, world, scene, parts, door, i))
   for (const mesh of mergeParts(parts)) scene.add(mesh)
+  buildNature(R, world, scene, placeNature(NATURE_SEED, doors))
 
   return { scene, doorVisuals, sun, followSun }
 }
