@@ -226,7 +226,7 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
       }
       return writingCopy()
     }),
-    introduced: (glyph, _key, day) => run(`introduced ${glyph}`, () => {
+    introduced: (glyph, _key, day) => run(`introduced ${glyph}${day ? ` ${day}` : ''}`, () => {
       if (!GLYPHS[glyph]) throw new ApiError(404, 'unknown')
       if (!api.writing_.letters[glyph]) {
         // The device's day, never later than the server's

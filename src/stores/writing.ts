@@ -52,6 +52,8 @@ export const useWritingStore = defineStore('writing', () => {
   const flying = new Set<string>()
   /** Counts `init`s: a send from before one doesn't count as out after it, even for the same child */
   let generation = 0
+  /** The newest answer that came while others were out: taken when the last one is back */
+  let held: { state: WritingState; n: number } | null = null
 
   function init(server: Api, personId: number, store?: Storage) {
     api = server
@@ -65,14 +67,22 @@ export const useWritingStore = defineStore('writing', () => {
     taken = 0
     out = 0
     flying.clear()
+    held = null
     generation++
   }
 
   function readWaiting(at: string): Waiting {
     try {
       const raw: unknown = JSON.parse((storage ?? window.localStorage).getItem(at) ?? '{}')
-      const w = (typeof raw === 'object' && raw !== null ? raw : {}) as Partial<Waiting>
-      return { writes: Array.isArray(w.writes) ? w.writes : [], intros: Array.isArray(w.intros) ? w.intros : [] }
+      const w = (typeof raw === 'object' && raw !== null ? raw : {}) as { writes?: unknown; intros?: unknown }
+      // Anything broken by hand or by an older page is left out, so it can't stop the rest
+      const writes = (Array.isArray(w.writes) ? w.writes : []).filter((x): x is WriteIn =>
+        typeof x === 'object' && x !== null && typeof x.key === 'string' && typeof x.glyph === 'string'
+        && typeof x.level === 'number' && typeof x.clean === 'boolean')
+      const intros = (Array.isArray(w.intros) ? w.intros : []).filter((x): x is Waiting['intros'][number] =>
+        typeof x === 'object' && x !== null && typeof x.key === 'string' && typeof x.glyph === 'string'
+        && (x.day === undefined || typeof x.day === 'string'))
+      return { writes, intros }
     } catch {
       return { writes: [], intros: [] }
     }
@@ -97,9 +107,12 @@ export const useWritingStore = defineStore('writing', () => {
   /** The server's state, with what still waits on this device laid over it */
   function take(state: WritingState, n: number) {
     if (out > 0) {
+      if (!held || n > held.n) held = { state, n }
       loaded.value = true
       return
     }
+    if (held && held.n > n) ({ state, n } = held)
+    held = null
     if (n < taken) return
     taken = n
     const w = readWaiting(key)
@@ -120,6 +133,24 @@ export const useWritingStore = defineStore('writing', () => {
     loaded.value = true
   }
 
+  /**
+   * Counts `keys` as out until the returned function is called (once; a second call does nothing). When the last one
+   * is back with no answer of its own, the newest answer held meanwhile is taken.
+   */
+  function track(keys: string[]): () => void {
+    const gen = generation
+    out++
+    for (const k of keys) flying.add(k)
+    let done = false
+    return () => {
+      if (done || gen !== generation) return
+      done = true
+      out--
+      for (const k of keys) flying.delete(k)
+      if (out === 0 && held) take(held.state, held.n)
+    }
+  }
+
   const refused = (e: unknown) => e instanceof ApiError && e.status >= 400 && e.status < 500 && e.status !== 401 && e.status !== 403
 
   async function load(): Promise<void> {
@@ -131,21 +162,34 @@ export const useWritingStore = defineStore('writing', () => {
       const all = readWaiting(owner)
       // What is on its way already gets its own answer
       const w = { writes: all.writes.filter(x => !flying.has(x.key)), intros: all.intros.filter(x => !flying.has(x.key)) }
+      // Out like any other send: an answer meanwhile isn't laid over them
       for (const i of w.intros) {
+        const back = track([i.key])
         try {
+          // The day she met it: this may be a letter met while the server was away
           await server.introduced(i.glyph, i.key, i.day)
         } catch (e) {
-          if (!refused(e)) throw e
+          if (!refused(e)) {
+            back()
+            throw e
+          }
         }
         sent(owner, [i.key])
+        back()
       }
       if (w.writes.length) {
+        const keys = w.writes.map(x => x.key)
+        const back = track(keys)
         try {
           await server.sendWrites(w.writes)
         } catch (e) {
-          if (!refused(e)) throw e
+          if (!refused(e)) {
+            back()
+            throw e
+          }
         }
-        sent(owner, w.writes.map(x => x.key))
+        sent(owner, keys)
+        back()
       }
       if (owner !== key) return
       const n = ++asked
@@ -163,21 +207,14 @@ export const useWritingStore = defineStore('writing', () => {
     if (!api) return
     const server = api
     const n = ++asked
-    const gen = generation
-    out++
-    flying.add(entryKey)
-    const mine = () => {
-      if (gen !== generation) return
-      out--
-      flying.delete(entryKey)
-    }
+    const back = track([entryKey])
     try {
       const state = await call(server)
       sent(owner, [entryKey])
-      mine()
+      back()
       if (owner === key) take(state, n)
     } catch (e) {
-      mine()
+      back()
       // Refused for good: let it go, and show the server's state again
       if (refused(e)) {
         sent(owner, [entryKey])
@@ -207,7 +244,8 @@ export const useWritingStore = defineStore('writing', () => {
     const intro = { glyph, key: newKey(), day: deviceDay() }
     const w = readWaiting(owner)
     writeWaiting(owner, { ...w, intros: [...w.intros, intro] })
-    void send(owner, intro.key, server => server.introduced(glyph, intro.key, intro.day))
+    // The server's today; the day is kept for a later load in case the server is away now
+    void send(owner, intro.key, server => server.introduced(glyph, intro.key))
   }
 
   return { texts, letters, newLeft, loaded, init, load, recordWrite, introduce }

@@ -34,7 +34,8 @@ class Write(TypedDict):
 
 
 def normalize(text: str) -> str:
-    """Capitals, single spaces, nothing around; an umlaut pasted as letter + mark becomes one letter, "ﬁ" two"""
+    """Capitals, single spaces, nothing around. NFKC first: an umlaut pasted as letter + mark becomes one letter, "ﬁ"
+    two, full-width ＭＩＡ plain MIA"""
     return re.sub(r"\s+", " ", unicodedata.normalize("NFKC", text)).strip().upper()
 
 
@@ -71,7 +72,8 @@ def set_texts(db: sqlite3.Connection, person_id: int, texts: list[str]) -> None:
 def new_left_today(db: sqlite3.Connection, person_id: int, day: Optional[str] = None) -> int:
     """Two new letters a day; one while three or more sit at the first level, none while five or more do. The day's
     pace is set by the letters from before it, so the round's first new letter doesn't take its second's place.
-    `day`: another day than today, for a letter met on the device while the server was away."""
+    `day`: another day than today, for a letter met on the device while the server was away. Its letters at level 1
+    are counted as they are now, not as they were that day: it errs towards one more new letter, never one fewer."""
     day = day or clock.today()
     weak = db.execute(
         "SELECT COUNT(*) FROM writing_letters WHERE person_id = ? AND level = ? AND introduced_on < ?",
@@ -107,12 +109,15 @@ def _first_time(db: sqlite3.Connection, person_id: int, key: str) -> bool:
 
 
 def _the_day(day: Optional[str]) -> str:
-    """The day a new letter was met on the device: today when not given, not a date, or later than today"""
+    """The day a new letter was met on the device: today when not given, not a date, later than today, or further back
+    than a write's key is kept (a device clock reset to an old date would put every new letter on one day)"""
     today = clock.today()
+    earliest = (date.fromisoformat(today) - timedelta(days=KEEP_KEYS_DAYS)).isoformat()
     try:
-        return min(date.fromisoformat(day).isoformat(), today) if day else today
+        on = date.fromisoformat(day).isoformat() if day else today
     except ValueError:
         return today
+    return on if earliest <= on <= today else today
 
 
 def introduce(db: sqlite3.Connection, person_id: int, glyph: str, day: Optional[str] = None) -> None:

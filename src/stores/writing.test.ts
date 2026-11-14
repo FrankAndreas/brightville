@@ -145,6 +145,67 @@ describe('writing store', () => {
     expect(writing.letters.M.streak).toBe(1)
   })
 
+  it('keeps the newest answer when two writes are answered out of order', async () => {
+    api.writing_.letters = { M: met(1) }
+    const writing = await open()
+    const send = api.sendWrites
+    const answers: (() => void)[] = []
+    api.sendWrites = writes => {
+      const done = send(writes)
+      return new Promise(resolve => { answers.push(() => resolve(done)) })
+    }
+    writing.recordWrite('M', 1, true)
+    writing.recordWrite('M', 1, true)
+    await flushPromises()
+    // The second answer (with both writes) comes first, the first (with one) last
+    answers[1]()
+    await flushPromises()
+    answers[0]()
+    await flushPromises()
+    expect(writing.letters.M.streak).toBe(2)
+  })
+
+  it('does not count a waiting write twice while a load is sending it', async () => {
+    api.writing_.letters = { M: met(1) }
+    const writing = await open()
+    api.offline = true
+    writing.recordWrite('M', 1, true)
+    await flushPromises()
+    api.offline = false
+    // The load's own sending is slow; the server has it at once
+    const send = api.sendWrites
+    let slow: (() => void) | null = null
+    api.sendWrites = writes => {
+      const done = send(writes)
+      if (slow) return done
+      return new Promise(resolve => { slow = () => resolve(done) })
+    }
+    const loading = writing.load()
+    await flushPromises()
+    writing.recordWrite('M', 1, true)
+    await flushPromises()
+    expect(writing.letters.M.streak).toBe(2)
+    slow!()
+    await loading
+    expect(writing.letters.M.streak).toBe(2)
+  })
+
+  it('leaves out broken entries waiting on the device', async () => {
+    api.writing_.letters = { M: met(1) }
+    storage.setItem('brightville.writing.1', JSON.stringify({ writes: [null, { key: 'w', glyph: 'M', level: 1, clean: true }, 5], intros: [{}] }))
+    const writing = await open()
+    expect(api.writing_.letters.M.streak).toBe(1)
+    expect(writing.letters.M.streak).toBe(1)
+    expect(storage.getItem('brightville.writing.1')).toBeNull()
+  })
+
+  it('sends no day with a letter met while the server is there', async () => {
+    const writing = await open()
+    writing.introduce('L')
+    await flushPromises()
+    expect(api.calls).toContain('introduced L')
+  })
+
   describe('a letter met while the server is away', () => {
     afterEach(() => { vi.useRealTimers() })
 
