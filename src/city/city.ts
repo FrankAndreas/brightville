@@ -3,13 +3,15 @@ import RAPIER from '@dimforge/rapier3d-compat'
 import type { IntentSource } from '@/input/intents'
 import { nearestDoor, type DoorDef } from './doors'
 import { createLoop } from './loop'
-import { GRAVITY, buildTown } from './world'
+import { GRAVITY, buildTown, cameraBlocker } from './world'
 import { TRAMPOLINES, buildProps } from './props'
 import { createCharacter, type CharacterFrame } from './character'
 import { createBlob } from './blob'
 import type { Dress } from '@/core/look'
 import { createFollowCamera } from './followCamera'
 import { createView, walkDirection } from './view'
+import { nextPixelRatio } from './quality'
+import { START } from './map'
 
 export interface CityOptions {
   canvas: HTMLCanvasElement
@@ -31,8 +33,6 @@ export interface City {
   dispose(): void
 }
 
-const START = { x: 0, z: 5 }
-
 // Development aid: lets a script or the console see what the character does
 const debug = {
   record(f: CharacterFrame) {
@@ -50,7 +50,9 @@ export async function createCity(opts: CityOptions): Promise<City> {
   const world = new RAPIER.World({ x: 0, y: -GRAVITY, z: 0 })
 
   const renderer = new THREE.WebGLRenderer({ canvas: opts.canvas, antialias: true })
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
+  const maxRatio = Math.min(window.devicePixelRatio || 1, 2)
+  let pixelRatio = maxRatio
+  renderer.setPixelRatio(pixelRatio)
   renderer.shadowMap.enabled = true
 
   const town = buildTown(RAPIER, world, opts.doors)
@@ -60,6 +62,7 @@ export async function createCity(opts: CityOptions): Promise<City> {
   town.scene.add(blob.object)
   const view = createFollowCamera()
   const turning = createView()
+  const blocked = cameraBlocker(RAPIER, world)
 
   const resize = () => {
     const width = opts.canvas.clientWidth || window.innerWidth
@@ -74,25 +77,43 @@ export async function createCity(opts: CityOptions): Promise<City> {
   let time = 0
   let nearId: string | null = null
   let first = true
+  let at = { x: START.x, z: START.z }
+  // Frame times over two seconds: slow ones make the picture a little less sharp (quality.ts)
+  let measured = { since: performance.now(), frames: 0 }
+  function watchSpeed() {
+    measured.frames++
+    const now = performance.now()
+    if (now - measured.since < 2000) return
+    const next = nextPixelRatio(pixelRatio, (now - measured.since) / measured.frames, maxRatio)
+    measured = { since: now, frames: 0 }
+    if (next === pixelRatio) return
+    pixelRatio = next
+    renderer.setPixelRatio(pixelRatio)
+    resize()
+  }
 
   const loop = createLoop(opts.intents, (intents, dt) => {
     time += dt
     world.timestep = dt || 1 / 60
-    turning.step(intents, dt)
+    turning.step(intents, dt, at)
     // The keys walk relative to the view: up is always away from the camera
     const walk = walkDirection(turning.yaw, intents.moveX, intents.moveZ)
     const f = character.step({ ...intents, moveX: walk.x, moveZ: walk.z }, dt)
     if (dt > 0) world.step()
     if (f.event === 'bounce') props.bounce(f.x, f.z)
     if (import.meta.env.DEV) debug.record(f)
+    at = { x: f.x, z: f.z }
 
     props.sync()
     props.update(dt)
     blob.update(f, dt)
     for (const door of town.doorVisuals) door.update(time)
-    view.follow(f, dt, first, turning.yaw)
+    view.follow(f, dt, first, turning.yaw, blocked)
+    town.followSun(f.x, f.z)
     first = false
     renderer.render(town.scene, view.camera)
+    // Only while the town is shown: a paused loop doesn't count as slow
+    if (dt > 0) watchSpeed()
 
     const near = f.tumbling ? null : nearestDoor(f, doors)
     if ((near?.id ?? null) !== nearId) {
@@ -110,7 +131,11 @@ export async function createCity(opts: CityOptions): Promise<City> {
       next.forEach((door, i) => town.doorVisuals[i]?.setState(door.open, door.locked ?? false))
     },
     pause: loop.pause,
-    resume: loop.resume,
+    resume() {
+      // Time spent inside a building isn't a slow frame
+      measured = { since: performance.now(), frames: 0 }
+      loop.resume()
+    },
     dispose() {
       loop.stop()
       window.removeEventListener('resize', resize)

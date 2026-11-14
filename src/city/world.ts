@@ -57,8 +57,36 @@ function box(w: number, h: number, d: number, color: number): THREE.Mesh {
   return mesh
 }
 
-function staticBox(R: Rapier, world: RAPIER.World, x: number, y: number, z: number, w: number, h: number, d: number) {
-  world.createCollider(R.ColliderDesc.cuboid(w / 2, h / 2, d / 2).setTranslation(x, y, z))
+/**
+ * Collision groups (16 bits "member of", 16 bits "meets"): the invisible walls are members of group 2 only, so the
+ * camera's ray (meeting group 1 only) looks through them, while she and the balls still bump into them
+ */
+const UNSEEN_GROUPS = 0x0002ffff
+const CAMERA_RAY_GROUPS = 0xffff0001
+
+function staticBox(
+  R: Rapier, world: RAPIER.World, x: number, y: number, z: number, w: number, h: number, d: number, unseen = false,
+) {
+  const desc = R.ColliderDesc.cuboid(w / 2, h / 2, d / 2).setTranslation(x, y, z)
+  if (unseen) desc.setCollisionGroups(UNSEEN_GROUPS)
+  world.createCollider(desc)
+}
+
+/**
+ * How far from `from` towards `to` the first house, hill or block is, or null when the way is clear: the camera
+ * moves in front of it. Invisible walls, balls and she herself don't count.
+ */
+export function cameraBlocker(R: Rapier, world: RAPIER.World) {
+  return (from: { x: number; y: number; z: number }, to: { x: number; y: number; z: number }): number | null => {
+    const d = { x: to.x - from.x, y: to.y - from.y, z: to.z - from.z }
+    const length = Math.hypot(d.x, d.y, d.z)
+    if (length < 1e-6) return null
+    const ray = new R.Ray(from, { x: d.x / length, y: d.y / length, z: d.z / length })
+    const hit = world.castRay(
+      ray, length, true, R.QueryFilterFlags.EXCLUDE_DYNAMIC | R.QueryFilterFlags.EXCLUDE_KINEMATIC, CAMERA_RAY_GROUPS,
+    )
+    return hit ? hit.timeOfImpact : null
+  }
 }
 
 /** A house of w × d (along x and z before turning) and h high, turned by `angle` about its middle. */
@@ -189,7 +217,15 @@ function doorBuilding(R: Rapier, world: RAPIER.World, scene: THREE.Scene, door: 
 export interface Town {
   scene: THREE.Scene
   doorVisuals: DoorVisual[]
+  sun: THREE.DirectionalLight
+  /** Moves the sun with her: its shadows cover only the town around her, sharp enough on a tablet */
+  followSun(x: number, z: number): void
 }
+
+/** The sun's offset from where it shines, and how far around her it casts shadows */
+const SUN_OFFSET = { x: 14, y: 26, z: 12 }
+const SHADOW_HALF = 22
+const SHADOW_MAP = 2048
 
 /** The ground: a heightfield for the physics and a matching mesh, both sampled from `heightAt` */
 function ground(R: Rapier, world: RAPIER.World, scene: THREE.Scene) {
@@ -268,6 +304,7 @@ function lake(R: Rapier, world: RAPIER.World, scene: THREE.Scene) {
     const length = Math.hypot(p1.x - p0.x, p1.z - p0.z) + 0.1
     world.createCollider(
       R.ColliderDesc.cuboid(length / 2, BARRIER_HEIGHT / 2, 0.2)
+        .setCollisionGroups(UNSEEN_GROUPS)
         .setTranslation(mx, BARRIER_HEIGHT / 2, mz)
         .setRotation(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -Math.atan2(p1.z - p0.z, p1.x - p0.x))),
     )
@@ -281,8 +318,8 @@ function lake(R: Rapier, world: RAPIER.World, scene: THREE.Scene) {
   // Walls along the part over the water, and across the end
   const shore = LAKE.z - LAKE.rz * Math.sqrt(Math.max(0, 1 - (((JETTY.minX + JETTY.maxX) / 2 - LAKE.x) / LAKE.rx) ** 2))
   const over = JETTY.maxZ - shore + 1
-  for (const x of [JETTY.minX - 0.2, JETTY.maxX + 0.2]) staticBox(R, world, x, BARRIER_HEIGHT / 2, JETTY.maxZ - over / 2, 0.4, BARRIER_HEIGHT, over)
-  staticBox(R, world, (JETTY.minX + JETTY.maxX) / 2, BARRIER_HEIGHT / 2, JETTY.maxZ + 0.2, JETTY.maxX - JETTY.minX + 0.8, BARRIER_HEIGHT, 0.4)
+  for (const x of [JETTY.minX - 0.2, JETTY.maxX + 0.2]) staticBox(R, world, x, BARRIER_HEIGHT / 2, JETTY.maxZ - over / 2, 0.4, BARRIER_HEIGHT, over, true)
+  staticBox(R, world, (JETTY.minX + JETTY.maxX) / 2, BARRIER_HEIGHT / 2, JETTY.maxZ + 0.2, JETTY.maxX - JETTY.minX + 0.8, BARRIER_HEIGHT, 0.4, true)
 }
 
 /** Low hedge you see, tall barrier you don't */
@@ -295,7 +332,7 @@ function edge(R: Rapier, world: RAPIER.World, scene: THREE.Scene) {
     const hedge = box(w, HEDGE_HEIGHT, d, COLORS.hedge)
     hedge.position.set(x, HEDGE_HEIGHT / 2, z)
     scene.add(hedge)
-    staticBox(R, world, x, BARRIER_HEIGHT / 2, z, w, BARRIER_HEIGHT, d)
+    staticBox(R, world, x, BARRIER_HEIGHT / 2, z, w, BARRIER_HEIGHT, d, true)
   }
 }
 
@@ -308,16 +345,25 @@ export function buildTown(R: Rapier, world: RAPIER.World, doors: DoorDef[]): Tow
 
   scene.add(new THREE.HemisphereLight(0xffffff, 0xb8e6a3, 1.6))
   const sun = new THREE.DirectionalLight(0xfff2d6, 2.2)
-  sun.position.set(14, 26, 12)
   sun.castShadow = true
-  sun.shadow.mapSize.set(2048, 2048)
+  sun.shadow.mapSize.set(SHADOW_MAP, SHADOW_MAP)
   sun.shadow.radius = 6
   const cam = sun.shadow.camera
-  cam.left = cam.bottom = -TOWN_HALF - 4
-  cam.right = cam.top = TOWN_HALF + 4
+  cam.left = cam.bottom = -SHADOW_HALF
+  cam.right = cam.top = SHADOW_HALF
   cam.near = 1
-  cam.far = 120
-  scene.add(sun)
+  cam.far = 80
+  scene.add(sun, sun.target)
+  // In whole shadow texels, so the shadows' edges don't shimmer as she walks
+  const texel = (SHADOW_HALF * 2) / SHADOW_MAP
+  function followSun(x: number, z: number) {
+    const sx = Math.round(x / texel) * texel
+    const sz = Math.round(z / texel) * texel
+    sun.target.position.set(sx, 0, sz)
+    sun.position.set(sx + SUN_OFFSET.x, SUN_OFFSET.y, sz + SUN_OFFSET.z)
+    sun.target.updateMatrixWorld()
+  }
+  followSun(0, 0)
 
   ground(R, world, scene)
   streets(scene)
@@ -342,5 +388,5 @@ export function buildTown(R: Rapier, world: RAPIER.World, doors: DoorDef[]): Tow
     )
   })
 
-  return { scene, doorVisuals: doors.map((door, i) => doorBuilding(R, world, scene, door, i)) }
+  return { scene, doorVisuals: doors.map((door, i) => doorBuilding(R, world, scene, door, i)), sun, followSun }
 }

@@ -4,9 +4,9 @@ import RAPIER from '@dimforge/rapier3d-compat'
 import * as THREE from 'three'
 import { BUILDINGS, toDoors } from '@/buildings/registry'
 import { createCharacter } from './character'
-import { HILLS, heightAt } from './map'
+import { HILLS, LAKE, TOWN_HALF, heightAt } from './map'
 import { TRAMPOLINES } from './props'
-import { BUILDING_COLORS, GRAVITY, buildTown } from './world'
+import { BUILDING_COLORS, GRAVITY, buildTown, cameraBlocker } from './world'
 
 describe('the town', () => {
   beforeAll(() => RAPIER.init())
@@ -60,5 +60,45 @@ describe('the door buildings', () => {
       expect(sign!.position.y, door.id).toBeGreaterThan(5)
     }
     vi.unstubAllGlobals()
+  })
+})
+
+describe('what the camera sees through', () => {
+  beforeAll(() => RAPIER.init())
+
+  function town() {
+    const world = new RAPIER.World({ x: 0, y: -GRAVITY, z: 0 })
+    const doors = toDoors(BUILDINGS, { camera: true, touch: true, keyboard: true, films: true }, true, 10)
+    vi.stubGlobal('document', { createElement: () => ({ getContext: () => null }) })
+    const built = buildTown(RAPIER, world, doors)
+    vi.unstubAllGlobals()
+    world.step()
+    return { world, built, blocked: cameraBlocker(RAPIER, world) }
+  }
+
+  it('is stopped by a house and by a hill', () => {
+    const { blocked } = town()
+    // Through the school, from the street to behind it
+    const school = BUILDINGS.find(b => b.id === 'school')!.door
+    const d = blocked({ x: school.x - 1, y: 2, z: school.z }, { x: school.x + 9, y: 2, z: school.z })
+    expect(d).not.toBeNull()
+    expect(d!).toBeGreaterThan(1)
+    expect(d!).toBeLessThan(3)
+    const hill = [...HILLS].sort((a, b) => b.height - a.height)[0]
+    expect(blocked({ x: hill.x - hill.radius - 2, y: 1, z: hill.z }, { x: hill.x, y: 1, z: hill.z })).not.toBeNull()
+  })
+
+  it('looks through the invisible walls round the lake and the town', () => {
+    const { blocked } = town()
+    expect(blocked({ x: LAKE.x, y: 2, z: LAKE.z + LAKE.rz + 3 }, { x: LAKE.x, y: 2, z: LAKE.z })).toBeNull()
+    expect(blocked({ x: 0, y: 3, z: TOWN_HALF - 3 }, { x: 0, y: 3, z: TOWN_HALF + 5 })).toBeNull()
+  })
+
+  it('moves the sun\'s shadows with her', () => {
+    const { built } = town()
+    built.followSun(30, -20)
+    expect(built.sun.target.position.x).toBeCloseTo(30, 0)
+    expect(built.sun.target.position.z).toBeCloseTo(-20, 0)
+    expect(built.sun.position.x - built.sun.target.position.x).toBeCloseTo(14, 0)
   })
 })
