@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount, type VueWrapper } from '@vue/test-utils'
+import { createPinia, setActivePinia, type Pinia } from 'pinia'
+import { fakeApi, type FakeApi } from '@/services/fakeApi'
+import { useWritingStore } from '@/stores/writing'
 import { GLYPHS, type Point } from '@/core/writing/letters'
 import type { WritingTask } from '@/core/writing/session'
 import { playBeat } from '@/services/sound'
@@ -24,8 +27,10 @@ const said = () => vi.mocked(speak).mock.calls.map(c => c[0])
 /** Long enough for the cheer and the pause before the next letter */
 const CHEER = 1000
 
+let pinia: Pinia
+let api: FakeApi
 async function open(tasks = TASKS): Promise<VueWrapper> {
-  const w = mount(Schreiben, { props: { tasks }, attachTo: document.body })
+  const w = mount(Schreiben, { props: { tasks }, attachTo: document.body, global: { plugins: [pinia] } })
   await run(10)
   return w
 }
@@ -41,11 +46,26 @@ function write(w: VueWrapper, glyph: string, id = 1) {
     send(w, 'pointerup', id, stroke[stroke.length - 1])
   }
 }
+function memory(): Storage {
+  const data = new Map<string, string>()
+  return {
+    getItem: k => data.get(k) ?? null,
+    setItem: (k, v) => void data.set(k, v),
+    removeItem: k => void data.delete(k),
+    clear: () => data.clear(),
+    key: () => null,
+    get length() { return data.size },
+  }
+}
 const stars = (w: VueWrapper) => w.findAll('[data-test="progress-star"][data-done="true"]').length
 const phase = (w: VueWrapper) => w.find('[data-test="schreiben"]').attributes('data-phase')
 
 describe('Schreiben', () => {
   beforeEach(() => {
+    pinia = createPinia()
+    setActivePinia(pinia)
+    api = fakeApi()
+    useWritingStore().init(api, 1, memory())
     vi.useFakeTimers()
     vi.mocked(speak).mockClear()
     vi.mocked(playBeat).mockClear()
@@ -234,5 +254,99 @@ describe('Schreiben', () => {
     const w = await open()
     expect(w.text().trim()).toBe('')
     w.unmount()
+  })
+
+  describe('clean or bumpy', () => {
+    const met = (level: 1 | 2 | 3 | 4) => ({ level, streak: 0, practised_at: null })
+    const help = (w: VueWrapper) => w.find('[data-test="schreiben"]').attributes('data-help')
+    /** The letters she has met, on the server and in the store */
+    async function meet(letters: Record<string, ReturnType<typeof met>>) {
+      api.writing_.letters = letters
+      const writing = useWritingStore()
+      await writing.load()
+      return writing
+    }
+
+    it('counts a clean write of a letter she has met', async () => {
+      const writing = await meet({ I: met(1) })
+      const w = await open([{ glyph: 'I', help: 'full', counts: true }, { glyph: 'L', help: 'full' }])
+      write(w, 'I')
+      await run(10)
+      expect(writing.letters.I).toMatchObject({ level: 1, streak: 1 })
+      w.unmount()
+    })
+
+    it('counts a write as bumpy after a start at the wrong end', async () => {
+      const writing = await meet({ I: met(1) })
+      const w = await open([{ glyph: 'I', help: 'full', counts: true }, { glyph: 'L', help: 'full' }])
+      const stroke = GLYPHS.I.strokes[0]
+      send(w, 'pointerdown', 1, stroke[stroke.length - 1])
+      send(w, 'pointerup', 1, stroke[stroke.length - 1])
+      write(w, 'I')
+      await run(10)
+      expect(writing.letters.I).toMatchObject({ level: 1, streak: -1 })
+      w.unmount()
+    })
+
+    it('counts a write as bumpy after lifting early in a real try, not after a tap', async () => {
+      const writing = await meet({ I: met(1), L: met(1) })
+      const w = await open([{ glyph: 'I', help: 'full', counts: true }, { glyph: 'L', help: 'full', counts: true }])
+      const stroke = GLYPHS.I.strokes[0]
+      send(w, 'pointerdown', 1, stroke[0])
+      send(w, 'pointerup', 1, stroke[0])
+      write(w, 'I')
+      await run(CHEER)
+      expect(writing.letters.I.streak).toBe(1)
+      const l = GLYPHS.L.strokes[0]
+      send(w, 'pointerdown', 1, l[0])
+      for (const p of l.slice(0, 20)) send(w, 'pointermove', 1, p)
+      send(w, 'pointerup', 1, l[19])
+      write(w, 'L')
+      await run(10)
+      expect(writing.letters.L.streak).toBe(-1)
+      w.unmount()
+    })
+
+    it('takes a touch beside the letter as nothing, while help is shown', async () => {
+      const writing = await meet({ I: met(1) })
+      const w = await open([{ glyph: 'I', help: 'full', counts: true }, { glyph: 'L', help: 'full' }])
+      send(w, 'pointerdown', 2, { x: 119, y: 5 })
+      send(w, 'pointerup', 2, { x: 119, y: 5 })
+      write(w, 'I')
+      await run(10)
+      expect(writing.letters.I.streak).toBe(1)
+      w.unmount()
+    })
+
+    it('records nothing for a letter she has not met', async () => {
+      const writing = useWritingStore()
+      const w = await open([{ glyph: 'I', help: 'full', counts: false }, { glyph: 'L', help: 'full' }])
+      write(w, 'I')
+      await run(10)
+      expect(writing.letters).toEqual({})
+      w.unmount()
+    })
+
+    it('shows the help her level gives now', async () => {
+      await meet({ I: met(3) })
+      const w = await open([{ glyph: 'I', help: 'full', counts: true }, { glyph: 'L', help: 'full' }])
+      expect(help(w)).toBe('start')
+      w.unmount()
+    })
+
+    it('shows nothing of a known letter, and the start dot after a miss, which makes it bumpy', async () => {
+      const writing = await meet({ I: met(4) })
+      const w = await open([{ glyph: 'I', help: 'none', counts: true }, { glyph: 'L', help: 'full' }])
+      expect(help(w)).toBe('none')
+      send(w, 'pointerdown', 2, { x: 119, y: 5 })
+      send(w, 'pointerup', 2, { x: 119, y: 5 })
+      await run(10)
+      expect(help(w)).toBe('start')
+      expect(said().at(-1)).toBe('Fang beim grünen Punkt an.')
+      write(w, 'I')
+      await run(10)
+      expect(writing.letters.I.streak).toBe(-1)
+      w.unmount()
+    })
   })
 })

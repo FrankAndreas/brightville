@@ -3,10 +3,12 @@ import { onBeforeUnmount, onMounted, ref } from 'vue'
 import Confetti from '@/components/Confetti.vue'
 import { seededRandom } from '@/core/numbers'
 import { BOX, GLYPHS, fitView, viewBox, type Glyph, type Point } from '@/core/writing/letters'
+import { helpFor } from '@/core/writing/levels'
 import { buildDailyRound, starsFor, type Help, type WritingTask } from '@/core/writing/session'
 import { createTracer, penDown, penMove, penUp, type MissReason, type Tracer } from '@/core/writing/tracing'
 import { playBeat } from '@/services/sound'
 import { instruct, speak, stopSpeaking } from '@/services/tts'
+import { useWritingStore } from '@/stores/writing'
 import { onLeaveRequest } from '../leave'
 import type { BuildingResult } from '../types'
 import { drawLetter, drawLines } from './letterCanvas'
@@ -49,6 +51,9 @@ const written = ref(0)
 const phase = ref<'writing' | 'cheering' | 'done'>('writing')
 /** The letter on the board, for tests and browser checks */
 const glyphName = ref('')
+/** How much of the letter on the board is shown, for tests and browser checks */
+const shownHelp = ref<Help>('full')
+const writing = useWritingStore()
 
 let letter: Glyph | null = null
 let tracer: Tracer | null = null
@@ -58,6 +63,10 @@ let fit = { scale: 1, ox: 0, oy: 0 }
 let lastHint = -Infinity
 /** How much of the letter on the board is shown */
 let help: Help = 'full'
+/** The level the letter is shown at, when this write counts towards it */
+let countingLevel: number | null = null
+/** A wrong start or a real try lifted early: this write wasn't smooth */
+let bumpy = false
 let sizeWatch: ResizeObserver | null = null
 let stopLeaveRequests = () => {}
 
@@ -74,8 +83,14 @@ function later(fn: () => void, ms: number) {
 }
 
 function startTask() {
-  letter = GLYPHS[tasks[written.value].glyph]
-  help = tasks[written.value].help
+  const task = tasks[written.value]
+  letter = GLYPHS[task.glyph]
+  // A letter she has met gets the help her level gives now (it may have changed earlier in this visit)
+  const known = task.counts ? writing.letters[task.glyph] : undefined
+  countingLevel = known ? known.level : null
+  help = known ? helpFor(known.level) : task.help
+  shownHelp.value = help
+  bumpy = false
   glyphName.value = letter.name
   // The pen's size carries over, so a resting hand stays known
   tracer = createTracer(letter, tracer?.smallest)
@@ -127,8 +142,15 @@ function onDown(e: PointerEvent) {
     canvas.value?.setPointerCapture?.(e.pointerId)
     ink.push([p])
   } else {
+    // With nothing shown, any touch but a hand's means she didn't know where to start: show the dot
+    const lost = help === 'none' && result.reason === 'off-letter'
+    if (lost || result.reason === 'wrong-end' || result.reason === 'far-from-start') bumpy = true
+    if (lost) {
+      help = 'start'
+      shownHelp.value = help
+    }
     // On the letter but not at the start dot: probably the pen in the wrong place
-    const hint = HINTS[result.reason]
+    const hint = lost ? HINTS['far-from-start'] : HINTS[result.reason]
     if (hint && Date.now() - lastHint > HINT_GAP_MS) {
       lastHint = Date.now()
       void speak(hint)
@@ -162,13 +184,18 @@ function onUp(e: PointerEvent) {
   } else if (result === 'too-short') {
     // Only the unfinished stroke goes; finished strokes stay
     ink.pop()
-    if (progress >= SMALL_TRY) void speak('Fast! Fang nochmal beim grünen Punkt an.')
+    if (progress >= SMALL_TRY) {
+      bumpy = true
+      void speak('Fast! Fang nochmal beim grünen Punkt an.')
+    }
   }
   draw()
 }
 
 function finishLetter() {
   const finished = letter!
+  if (countingLevel !== null) writing.recordWrite(finished.name, countingLevel, !bumpy)
+  countingLevel = null
   written.value++
   phase.value = 'cheering'
   playBeat('chime')
@@ -229,7 +256,7 @@ onBeforeUnmount(shutDown)
 </script>
 
 <template>
-  <div class="schreiben" data-test="schreiben" :data-phase="phase" :data-glyph="glyphName">
+  <div class="schreiben" data-test="schreiben" :data-phase="phase" :data-glyph="glyphName" :data-help="shownHelp">
     <div class="progress" aria-hidden="true">
       <svg v-for="n in tasks.length" :key="n" viewBox="0 0 24 24" data-test="progress-star" :data-done="n <= written">
         <path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.2 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z" />
