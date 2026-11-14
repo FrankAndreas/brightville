@@ -3,7 +3,7 @@ import { onBeforeUnmount, onMounted, ref } from 'vue'
 import Confetti from '@/components/Confetti.vue'
 import { seededRandom } from '@/core/numbers'
 import { BOX, GLYPHS, fitView, viewBox, type Glyph, type Point } from '@/core/writing/letters'
-import { buildWritingSession, starsFor, type Help, type WritingTask } from '@/core/writing/session'
+import { buildDailyRound, starsFor, type Help, type WritingTask } from '@/core/writing/session'
 import { createTracer, penDown, penMove, penUp, type MissReason, type Tracer } from '@/core/writing/tracing'
 import { playBeat } from '@/services/sound'
 import { instruct, speak, stopSpeaking } from '@/services/tts'
@@ -35,7 +35,7 @@ const HINTS: Partial<Record<MissReason, string>> = {
 const capital = (text: string) => text[0].toUpperCase() + text.slice(1)
 
 // A visit that names a glyph we can't draw is no visit: better straight back than a letter short
-const tasks = known(props.tasks ?? buildWritingSession(seededRandom(Date.now())))
+const tasks = known(props.tasks ?? buildDailyRound({ letters: {}, texts: [], newLeft: 2, rand: seededRandom(Date.now()) }))
 function known(visit: WritingTask[]): WritingTask[] {
   return visit.every(t => GLYPHS[t.glyph]) ? visit : []
 }
