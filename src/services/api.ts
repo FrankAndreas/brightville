@@ -163,7 +163,7 @@ export interface Api {
   writing(): Promise<WritingState>
   sendWrites(writes: WriteIn[]): Promise<WritingState>
   /** She wrote a new letter three times. Rejects with 'no_new_today' or 'unknown'. */
-  introduced(glyph: string, key: string): Promise<WritingState>
+  introduced(glyph: string, key: string, day?: string): Promise<WritingState>
   /** Parents only */
   playerWriting(personId: number): Promise<WritingState>
   /** Parents only; the whole list. Rejects with 'empty', 'letters', 'too-long', 'exists' or 'too-many'. */
@@ -237,7 +237,7 @@ export function httpApi(fetchFn: Fetch = (url, init) => fetch(url, init), onRene
     buyFurniture: (item, key) => call('POST', '/api/moebel/buy', { item, key }),
     writing: () => call('GET', '/api/writing'),
     sendWrites: writes => call('POST', '/api/writing/writes', { writes }),
-    introduced: (glyph, key) => call('POST', '/api/writing/introduced', { glyph, key }),
+    introduced: (glyph, key, day) => call('POST', '/api/writing/introduced', { glyph, key, day }),
     playerWriting: personId => call('GET', `/api/players/${personId}/writing`),
     setPlayerTexts: (personId, texts) => call('PUT', `/api/players/${personId}/writing/texts`, { texts }),
   }

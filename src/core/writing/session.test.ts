@@ -63,10 +63,14 @@ describe('buildDailyRound', () => {
     expect(tasks[0].intro).toBe(true)
   })
 
-  it('with nothing met and no new letter allowed still gives a round, as introductions', () => {
-    const tasks = buildDailyRound({ letters: {}, texts: ['MIA'], newLeft: 0, rand: seededRandom(1) })
-    expect(glyphsOf(tasks)).toEqual(['M', 'I'])
-    expect(tasks.every(t => t.intro)).toBe(true)
+  it('with too few letters met and no new letter allowed, fills the round with practice that introduces nothing', () => {
+    const tasks = buildDailyRound({ letters: { A: known(2) }, texts: ['MIA'], newLeft: 0, rand: seededRandom(1) })
+    expect(glyphsOf(tasks)).toEqual(['A', 'M'])
+    expect(tasks.slice(3)).toEqual([
+      { glyph: 'M', help: 'full' },
+      { glyph: 'M', help: 'dots' },
+      { glyph: 'M', help: 'start' },
+    ])
   })
 
   it('with everything known, repeats', () => {

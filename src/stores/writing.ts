@@ -6,7 +6,8 @@ import { ApiError, type Api, type WriteIn, type WritingState } from '@/services/
 /** What happened while the server was away (or before it answered), sent with the next load */
 interface Waiting {
   writes: WriteIn[]
-  intros: { glyph: string; key: string }[]
+  /** `day`: the device's day she met it, so a letter met offline counts for its own day */
+  intros: { glyph: string; key: string; day?: string }[]
 }
 
 const newKey = () =>
@@ -17,6 +18,12 @@ const newKey = () =>
 /** How long Schreiben waits for her letters before it goes on without them */
 const PATIENCE_MS = 5000
 const NEW_A_DAY = 2
+
+/** The device's calendar day, 'YYYY-MM-DD' */
+function deviceDay(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 
 /**
  * Schreiben: her words and sentences, how well she knows each letter and how many new letters are left today. The
@@ -35,6 +42,16 @@ export const useWritingStore = defineStore('writing', () => {
   /** Answers are numbered: an older one arriving late doesn't undo a newer one */
   let asked = 0
   let taken = 0
+  /**
+   * Writes and introductions sent and not answered yet. While any is out, an answer isn't laid over what is shown:
+   * the server may already have one that still waits here, and laying it over again would count it twice. The
+   * answer to the last one out brings everything.
+   */
+  let out = 0
+  /** The keys of those, so a load doesn't send them a second time */
+  const flying = new Set<string>()
+  /** Counts `init`s: a send from before one doesn't count as out after it, even for the same child */
+  let generation = 0
 
   function init(server: Api, personId: number, store?: Storage) {
     api = server
@@ -46,6 +63,9 @@ export const useWritingStore = defineStore('writing', () => {
     loaded.value = false
     asked = 0
     taken = 0
+    out = 0
+    flying.clear()
+    generation++
   }
 
   function readWaiting(at: string): Waiting {
@@ -76,6 +96,10 @@ export const useWritingStore = defineStore('writing', () => {
 
   /** The server's state, with what still waits on this device laid over it */
   function take(state: WritingState, n: number) {
+    if (out > 0) {
+      loaded.value = true
+      return
+    }
     if (n < taken) return
     taken = n
     const w = readWaiting(key)
@@ -104,10 +128,12 @@ export const useWritingStore = defineStore('writing', () => {
     const server = api
     const patience = setTimeout(() => { if (owner === key) loaded.value = true }, PATIENCE_MS)
     try {
-      const w = readWaiting(owner)
+      const all = readWaiting(owner)
+      // What is on its way already gets its own answer
+      const w = { writes: all.writes.filter(x => !flying.has(x.key)), intros: all.intros.filter(x => !flying.has(x.key)) }
       for (const i of w.intros) {
         try {
-          await server.introduced(i.glyph, i.key)
+          await server.introduced(i.glyph, i.key, i.day)
         } catch (e) {
           if (!refused(e)) throw e
         }
@@ -137,11 +163,21 @@ export const useWritingStore = defineStore('writing', () => {
     if (!api) return
     const server = api
     const n = ++asked
+    const gen = generation
+    out++
+    flying.add(entryKey)
+    const mine = () => {
+      if (gen !== generation) return
+      out--
+      flying.delete(entryKey)
+    }
     try {
       const state = await call(server)
       sent(owner, [entryKey])
+      mine()
       if (owner === key) take(state, n)
     } catch (e) {
+      mine()
       // Refused for good: let it go, and show the server's state again
       if (refused(e)) {
         sent(owner, [entryKey])
@@ -168,10 +204,10 @@ export const useWritingStore = defineStore('writing', () => {
     letters.value = { ...letters.value, [glyph]: { level: 1, streak: 0, practised_at: null } }
     newLeft.value = Math.max(0, newLeft.value - 1)
     const owner = key
-    const intro = { glyph, key: newKey() }
+    const intro = { glyph, key: newKey(), day: deviceDay() }
     const w = readWaiting(owner)
     writeWaiting(owner, { ...w, intros: [...w.intros, intro] })
-    void send(owner, intro.key, server => server.introduced(glyph, intro.key))
+    void send(owner, intro.key, server => server.introduced(glyph, intro.key, intro.day))
   }
 
   return { texts, letters, newLeft, loaded, init, load, recordWrite, introduce }

@@ -77,6 +77,16 @@ describe('WritingSettings', () => {
     expect(api.writing_.texts).toEqual(['BEN', 'LENA'])
   })
 
+  it('moves a text down', async () => {
+    const api = fakeApi()
+    api.writing_.texts = ['MIA', 'LENA', 'BEN']
+    const w = await open(api)
+    await w.findAll('[data-test="text-item"]')[0].find('[data-test="text-down"]').trigger('click')
+    await flushPromises()
+    expect(items(w)).toEqual(['LENA', 'MIA', 'BEN'])
+    expect(w.findAll('[data-test="text-item"]')[2].find('[data-test="text-down"]').attributes('disabled')).toBeDefined()
+  })
+
   it('says so when saving fails, and keeps the list as it was', async () => {
     const api = fakeApi()
     api.writing_.texts = ['MIA']

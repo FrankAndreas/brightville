@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { flushPromises } from '@vue/test-utils'
 import { fakeApi, type FakeApi } from '@/services/fakeApi'
@@ -123,6 +123,44 @@ describe('writing store', () => {
     writing.init(api, 2, storage)
     await flushPromises()
     expect(writing.letters).toEqual({})
+  })
+
+  it('does not count a write twice when the letters come back before the write\'s own answer', async () => {
+    api.writing_.letters = { M: met(1) }
+    const writing = await open()
+    // The server has the write at once, but its answer is slow
+    const send = api.sendWrites
+    let answer = () => {}
+    api.sendWrites = writes => {
+      const done = send(writes)
+      return new Promise(resolve => { answer = () => resolve(done) })
+    }
+    writing.recordWrite('M', 1, true)
+    await flushPromises()
+    expect(api.writing_.letters.M.streak).toBe(1)
+    await writing.load()
+    expect(writing.letters.M.streak).toBe(1)
+    answer()
+    await flushPromises()
+    expect(writing.letters.M.streak).toBe(1)
+  })
+
+  describe('a letter met while the server is away', () => {
+    afterEach(() => { vi.useRealTimers() })
+
+    it('counts for the day she met it', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] })
+      vi.setSystemTime(new Date(2026, 10, 11, 18, 0))
+      const writing = await open()
+      api.offline = true
+      writing.introduce('L')
+      await flushPromises()
+      vi.setSystemTime(new Date(2026, 10, 12, 9, 0))
+      api.offline = false
+      await writing.load()
+      expect(api.writing_.introducedOn.L).toBe('2026-11-11')
+      expect(writing.newLeft).toBe(2)
+    })
   })
 
   it('goes on without the server after a while', async () => {

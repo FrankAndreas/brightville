@@ -66,6 +66,7 @@ const points = (line: Point[]) => line.map(p => `${p.x.toFixed(1)},${p.y.toFixed
 .slot[data-done='true'] { background: #fffdf8; border-color: #7ed957; }
 .slot svg { width: 100%; height: 100%; }
 .slot polyline { fill: none; stroke: #2c3e50; stroke-width: 9; stroke-linecap: round; stroke-linejoin: round; }
-.word { display: flex; gap: 4px; }
+/* A word stays on one row, unless it alone is wider than the row */
+.word { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; max-width: 100%; }
 .gap { width: 14px; }
 </style>

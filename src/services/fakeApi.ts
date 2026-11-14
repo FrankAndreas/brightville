@@ -226,12 +226,14 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
       }
       return writingCopy()
     }),
-    introduced: glyph => run(`introduced ${glyph}`, () => {
+    introduced: (glyph, _key, day) => run(`introduced ${glyph}`, () => {
       if (!GLYPHS[glyph]) throw new ApiError(404, 'unknown')
       if (!api.writing_.letters[glyph]) {
-        if (newLeft() <= 0) throw new ApiError(409, 'no_new_today')
+        // The device's day, never later than the server's
+        const on = day && /^\d{4}-\d{2}-\d{2}$/.test(day) && day < state.day ? day : state.day
+        if (newLeft(on) <= 0) throw new ApiError(409, 'no_new_today')
         api.writing_.letters[glyph] = { level: 1, streak: 0, practised_at: null }
-        api.writing_.introducedOn[glyph] = state.day
+        api.writing_.introducedOn[glyph] = on
       }
       return writingCopy()
     }),
@@ -263,12 +265,12 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
   }
   const writingKeys = new Set<string>()
   // As backend/app/writing.py new_left_today
-  const newLeft = () => {
-    // The day's pace comes from the letters met before today
+  const newLeft = (day = state.day) => {
+    // The day's pace comes from the letters met before it
     const weak = Object.entries(api.writing_.letters)
-      .filter(([g, l]) => l.level === 1 && api.writing_.introducedOn[g] !== state.day).length
+      .filter(([g, l]) => l.level === 1 && (api.writing_.introducedOn[g] ?? '') < day).length
     const base = weak >= 5 ? 0 : weak >= 3 ? 1 : 2
-    return Math.max(0, base - Object.values(api.writing_.introducedOn).filter(d => d === state.day).length)
+    return Math.max(0, base - Object.values(api.writing_.introducedOn).filter(d => d === day).length)
   }
   const writingCopy = (): WritingState => ({
     texts: [...api.writing_.texts],
