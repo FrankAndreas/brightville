@@ -115,6 +115,14 @@ function house(
   // Only quarter turns: a turned house swaps its width and depth
   const turned = Math.abs(Math.sin(angle)) > 0.5
   staticBox(R, world, x, h / 2, z, turned ? d : w, h, turned ? w : d)
+  // The roof, for the camera only: a sensor nothing bumps into or stands on, but the camera's ray meets it, so a roof
+  // never hides her. A box round the whole roof with its overhang, a little more than it needs
+  const roofHeight = h * 0.6
+  world.createCollider(
+    R.ColliderDesc.cuboid((turned ? d : w) / 2 + 0.4, roofHeight / 2, (turned ? w : d) / 2 + 0.4)
+      .setTranslation(x, h + roofHeight / 2, z)
+      .setSensor(true),
+  )
   return group
 }
 

@@ -8,7 +8,7 @@ const LOOK_HEIGHT = 1
 // the picture, and the buildings with their signs sit in the middle instead of under the Star bar (UX review)
 const LOOK_AHEAD = 6
 const FOLLOW_RATE = 5
-/** How quickly the camera glides to a higher or further place (it comes closer at once, never through a wall) */
+/** How quickly the camera glides to another place while she stays in sight (it jumps when she is hidden) */
 const PLACE_RATE = 4
 // Up and down only slowly while she is in the air, so jumps don't shake the whole picture; on the ground (a hill) at
 // the full rate, so she stays where she is in the picture
@@ -32,6 +32,23 @@ const OVERHEAD = { up: 5, lookAhead: 1 }
 const REST_Y = 0.6
 
 type Vec3 = { x: number; y: number; z: number }
+type Place = { up: number; back: number; lookAhead: number }
+
+/** The first of PLACES from which nothing hides her; else in front of what is in the way; else straight above her */
+function bestPlace(head: Vec3, at: (p: Place) => Vec3, blocked?: (from: Vec3, to: Vec3) => number | null): Place {
+  let best: { p: Place; hit: number } | null = null
+  for (const p of PLACES) {
+    const hit = blocked?.(head, at(p)) ?? null
+    if (hit === null) return p
+    if (!best || hit > best.hit) best = { p, hit }
+  }
+  const length = Math.hypot(best!.p.back, best!.p.up - LOOK_HEIGHT)
+  const k = (best!.hit - CLEARANCE) / length
+  if (best!.hit - CLEARANCE >= MIN_BACK) {
+    return { up: LOOK_HEIGHT + (best!.p.up - LOOK_HEIGHT) * k, back: best!.p.back * k, lookAhead: best!.p.lookAhead }
+  }
+  return { up: LOOK_HEIGHT + OVERHEAD.up, back: 0, lookAhead: OVERHEAD.lookAhead }
+}
 
 export function createFollowCamera(): {
   camera: THREE.PerspectiveCamera
@@ -47,8 +64,11 @@ export function createFollowCamera(): {
 } {
   const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 200)
   const focus = new THREE.Vector3()
-  const wanted = new THREE.Vector3()
-  let ahead = LOOK_AHEAD
+  /**
+   * Where the camera is, in its own terms: how high above her feet, how far behind her (along the view's turn) and how
+   * far ahead it looks. It glides in these, so it always stays on the circle around her and turns with the view.
+   */
+  const place: Place = { ...PLACES[0] }
   return {
     camera,
     follow(target, dt, snap = false, yaw = 0, blocked) {
@@ -58,42 +78,19 @@ export function createFollowCamera(): {
       focus.z += (target.z - focus.z) * blend
       focus.y += (target.y - REST_Y - focus.y) * rise
       const head = { x: focus.x, y: focus.y + LOOK_HEIGHT, z: focus.z }
-      const at = (p: (typeof PLACES)[number]) =>
-        ({ x: focus.x + Math.sin(yaw) * p.back, y: focus.y + p.up, z: focus.z + Math.cos(yaw) * p.back })
-      let lookAhead = LOOK_AHEAD
-      let best: { place: Vec3; hit: number; lookAhead: number } | null = null
-      let clear = false
-      for (const p of PLACES) {
-        const place = at(p)
-        const hit = blocked?.(head, place) ?? null
-        if (hit === null) {
-          wanted.set(place.x, place.y, place.z)
-          lookAhead = p.lookAhead
-          clear = true
-          break
-        }
-        if (!best || hit > best.hit) best = { place, hit, lookAhead: p.lookAhead }
-      }
-      if (!clear && best && best.hit - CLEARANCE >= MIN_BACK) {
-        // Nowhere clear: in front of what is in the way, where that is furthest from her
-        const { place, hit } = best
-        const k = (hit - CLEARANCE) / Math.hypot(place.x - head.x, place.y - head.y, place.z - head.z)
-        wanted.set(head.x + (place.x - head.x) * k, head.y + (place.y - head.y) * k, head.z + (place.z - head.z) * k)
-        lookAhead = best.lookAhead
-      } else if (!clear) {
-        wanted.set(head.x, head.y + OVERHEAD.up, head.z)
-        lookAhead = OVERHEAD.lookAhead
-      }
-      const head3 = new THREE.Vector3(head.x, head.y, head.z)
-      if (snap || wanted.distanceTo(head3) < camera.position.distanceTo(head3)) {
-        camera.position.copy(wanted)
-        ahead = lookAhead
-      } else {
-        const glide = 1 - Math.exp(-PLACE_RATE * dt)
-        camera.position.lerp(wanted, glide)
-        ahead += (lookAhead - ahead) * glide
-      }
-      camera.lookAt(focus.x - Math.sin(yaw) * ahead, focus.y + LOOK_HEIGHT, focus.z - Math.cos(yaw) * ahead)
+      const at = (p: Place): Vec3 => ({ x: focus.x + Math.sin(yaw) * p.back, y: focus.y + p.up, z: focus.z + Math.cos(yaw) * p.back })
+
+      const goal = bestPlace(head, at, blocked)
+      // Hidden where it is now: straight to where she is seen. Otherwise it glides, also back down once a house is gone
+      const hidden = blocked?.(head, at(place)) != null
+      const glide = snap || hidden ? 1 : 1 - Math.exp(-PLACE_RATE * dt)
+      place.up += (goal.up - place.up) * glide
+      place.back += (goal.back - place.back) * glide
+      place.lookAhead += (goal.lookAhead - place.lookAhead) * glide
+
+      const p = at(place)
+      camera.position.set(p.x, p.y, p.z)
+      camera.lookAt(focus.x - Math.sin(yaw) * place.lookAhead, focus.y + LOOK_HEIGHT, focus.z - Math.cos(yaw) * place.lookAhead)
     },
     resize(width, height) {
       camera.aspect = width / Math.max(1, height)

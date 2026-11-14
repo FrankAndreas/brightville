@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { describe, expect, it } from 'vitest'
 import { createFollowCamera } from './followCamera'
+import { createView } from './view'
 
 describe('createFollowCamera', () => {
   it('looks from behind and above, along -z when not turned', () => {
@@ -91,14 +92,39 @@ describe('createFollowCamera', () => {
     expect(her.y).toBeLessThan(0.5)
   })
 
-  it('glides to a new place instead of jumping', () => {
+  it('jumps at once when a house comes between it and her, never gliding while she is hidden', () => {
     const view = createFollowCamera()
     view.follow({ x: 0, y: 0.6, z: 0, grounded: true }, 0, true)
-    const before = view.camera.position.clone()
     const blocked = (_from: { y: number }, to: { y: number }) => (to.y >= 10 ? null : 2)
     view.follow({ x: 0, y: 0.6, z: 0, grounded: true }, 1 / 60, false, 0, blocked)
-    expect(view.camera.position.y - before.y).toBeLessThan(1.5)
-    for (let i = 0; i < 90; i++) view.follow({ x: 0, y: 0.6, z: 0, grounded: true }, 1 / 60, false, 0, blocked)
-    expect(view.camera.position.y).toBeGreaterThan(9.5)
+    expect(view.camera.position.y).toBeGreaterThanOrEqual(10)
+  })
+
+  it('glides back down once the house is gone', () => {
+    const view = createFollowCamera()
+    const high = (_from: { y: number }, to: { y: number }) => (to.y >= 10 ? null : 2)
+    view.follow({ x: 0, y: 0.6, z: 0, grounded: true }, 0, true, 0, high)
+    const clear = () => null
+    view.follow({ x: 0, y: 0.6, z: 0, grounded: true }, 1 / 60, false, 0, clear)
+    expect(view.camera.position.y).toBeGreaterThan(9)
+    for (let i = 0; i < 120; i++) view.follow({ x: 0, y: 0.6, z: 0, grounded: true }, 1 / 60, false, 0, clear)
+    expect(view.camera.position.y).toBeCloseTo(6, 1)
+  })
+
+  it('keeps her in the picture through a turn-around and while the camera glides', () => {
+    const view = createFollowCamera()
+    const turning = createView()
+    const her = { x: 0, y: 0.6, z: 0, grounded: true }
+    const high = (_from: { y: number }, to: { y: number }) => (to.y >= 10 ? null : 2)
+    view.follow(her, 0, true, 0, high)
+    turning.step({ turn: 0, turnAround: true, lookHome: false }, 1 / 60)
+    for (let i = 0; i < 90; i++) {
+      turning.step({ turn: 0, turnAround: false, lookHome: false }, 1 / 60)
+      view.follow(her, 1 / 60, false, turning.yaw, () => null)
+      view.camera.updateMatrixWorld()
+      const p = new THREE.Vector3(0, 0.6, 0).project(view.camera)
+      expect(Math.abs(p.x), `frame ${i}`).toBeLessThan(1)
+      expect(Math.abs(p.y), `frame ${i}`).toBeLessThan(1)
+    }
   })
 })

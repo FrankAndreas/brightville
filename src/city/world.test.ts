@@ -4,7 +4,8 @@ import RAPIER from '@dimforge/rapier3d-compat'
 import * as THREE from 'three'
 import { BUILDINGS, toDoors } from '@/buildings/registry'
 import { createCharacter } from './character'
-import { HILLS, LAKE, TOWN_HALF, heightAt } from './map'
+import { HILLS, LAKE, TOWN_HALF, heightAt, inLake, solidAreas } from './map'
+import { createFollowCamera } from './followCamera'
 import { TRAMPOLINES } from './props'
 import { BUILDING_COLORS, GRAVITY, buildTown, cameraBlocker } from './world'
 
@@ -88,6 +89,18 @@ describe('what the camera sees through', () => {
     expect(blocked({ x: hill.x - hill.radius - 2, y: 1, z: hill.z }, { x: hill.x, y: 1, z: hill.z })).not.toBeNull()
   })
 
+  it('is stopped by a roof too, but she still can\'t stand on one', () => {
+    const { blocked, world } = town()
+    const school = BUILDINGS.find(b => b.id === 'school')!.door
+    // Above the walls (5 m), through the roof
+    expect(blocked({ x: school.x - 1, y: 6.5, z: school.z }, { x: school.x + 9, y: 6.5, z: school.z })).not.toBeNull()
+    // Nothing solid up there: a ball dropped onto the roof falls through to the wall's top
+    const ball = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(school.x + 3.5, 7.5, school.z))
+    world.createCollider(RAPIER.ColliderDesc.ball(0.3), ball)
+    for (let i = 0; i < 120; i++) world.step()
+    expect(ball.translation().y).toBeLessThan(5.5)
+  })
+
   it('looks through the invisible walls round the lake and the town', () => {
     const { blocked } = town()
     expect(blocked({ x: LAKE.x, y: 2, z: LAKE.z + LAKE.rz + 3 }, { x: LAKE.x, y: 2, z: LAKE.z })).toBeNull()
@@ -100,5 +113,48 @@ describe('what the camera sees through', () => {
     expect(built.sun.target.position.x).toBeCloseTo(30, 0)
     expect(built.sun.target.position.z).toBeCloseTo(-20, 0)
     expect(built.sun.position.x - built.sun.target.position.x).toBeCloseTo(14, 0)
+  })
+})
+
+describe('the camera in the real town', () => {
+  beforeAll(() => RAPIER.init())
+
+  it('sees her from everywhere she can walk, in every direction the view turns', () => {
+    const world = new RAPIER.World({ x: 0, y: -GRAVITY, z: 0 })
+    const doors = toDoors(BUILDINGS, { camera: true, touch: true, keyboard: true, films: true }, true, 10)
+    vi.stubGlobal('document', { createElement: () => ({ getContext: () => null }) })
+    const { scene } = buildTown(RAPIER, world, doors)
+    vi.unstubAllGlobals()
+    world.step()
+    scene.updateMatrixWorld(true)
+    const blocked = cameraBlocker(RAPIER, world)
+    const solid = solidAreas(doors).map(f => ({ minX: f.minX - 0.5, maxX: f.maxX + 0.5, minZ: f.minZ - 0.5, maxZ: f.maxZ + 0.5 }))
+    // Houses, roofs and doors: what could stand between the camera and her
+    const walls: THREE.Object3D[] = []
+    scene.traverse(o => {
+      const type = (o as THREE.Mesh).geometry?.type
+      if (type === 'BoxGeometry' || type === 'ConeGeometry') walls.push(o)
+    })
+    const ray = new THREE.Raycaster()
+    const hidden: string[] = []
+    // Off the whole metres, where walls stand: a ray grazing a wall exactly is no cover
+    for (let x = -TOWN_HALF + 3.3; x <= TOWN_HALF - 3; x += 4) {
+      for (let z = -TOWN_HALF + 3.3; z <= TOWN_HALF - 3; z += 4) {
+        if (inLake(x, z) || solid.some(f => x >= f.minX && x <= f.maxX && z >= f.minZ && z <= f.maxZ)) continue
+        const y = heightAt(x, z) + 0.6
+        for (const yaw of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) {
+          const view = createFollowCamera()
+          view.follow({ x, y, z, grounded: true }, 0, true, yaw, blocked)
+          const her = new THREE.Vector3(x, y + 0.4, z)
+          const from = view.camera.position.clone()
+          const length = from.distanceTo(her)
+          ray.set(from, her.clone().sub(from).normalize())
+          ray.far = length - 0.3
+          const hits = ray.intersectObjects(walls, false)
+          if (hits.length) hidden.push(`${x},${z} yaw ${yaw.toFixed(2)} cam ${from.toArray().map(v => v.toFixed(1))} hit ${(hits[0].object as THREE.Mesh).geometry.type} at ${hits[0].point.toArray().map(v => v.toFixed(1))} d ${hits[0].distance.toFixed(1)}/${length.toFixed(1)}`)
+        }
+      }
+    }
+    expect(hidden).toEqual([])
   })
 })
