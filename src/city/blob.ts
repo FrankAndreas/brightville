@@ -19,7 +19,10 @@ export interface Blob {
   setDress(dress: Dress): void
 }
 
-export function createBlob(dress?: Dress): Blob {
+/** `detail` 'low': fewer segments and no shadows, for the townsfolk */
+export function createBlob(dress?: Dress, detail: 'full' | 'low' = 'full'): Blob {
+  const low = detail === 'low'
+  const seg = (n: number) => (low ? Math.max(4, Math.round(n / 3)) : n)
   const root = new THREE.Group()
   // Origin at the feet, so squash and lean pivot on the ground
   const feet = new THREE.Group()
@@ -31,7 +34,7 @@ export function createBlob(dress?: Dress): Blob {
   const skin = new THREE.MeshStandardMaterial({ color: BODY_COLOR, roughness: 0.55 })
   const limb = new THREE.MeshStandardMaterial({ color: LIMB_COLOR, roughness: 0.6 })
 
-  const body = new THREE.Mesh(new THREE.SphereGeometry(0.5, 32, 24), skin)
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.5, seg(32), seg(24)), skin)
   body.scale.set(1, 1.15, 1)
   body.position.y = 0.62
   body.castShadow = true
@@ -40,13 +43,13 @@ export function createBlob(dress?: Dress): Blob {
   const white = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 })
   const black = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.3 })
   for (const side of [-1, 1]) {
-    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 12), white)
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.13, seg(16), seg(12)), white)
     eye.position.set(side * 0.19, 0.82, 0.4)
-    const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.065, 12, 8), black)
+    const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.065, seg(12), seg(8)), black)
     pupil.position.set(side * 0.19, 0.82, 0.51)
     lean.add(eye, pupil)
   }
-  const smile = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.025, 8, 16, Math.PI), black)
+  const smile = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.025, seg(8), seg(16), Math.PI), black)
   smile.position.set(0, 0.62, 0.48)
   smile.rotation.z = Math.PI
   lean.add(smile)
@@ -78,7 +81,7 @@ export function createBlob(dress?: Dress): Blob {
     const shoulder = new THREE.Group()
     shoulder.position.set(side * 0.46, 0.78, 0)
     shoulder.rotation.z = side * 0.5
-    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 0.34, 6, 12), limb)
+    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 0.34, seg(6), seg(12)), limb)
     arm.position.y = -0.24
     arm.castShadow = true
     shoulder.add(arm)
@@ -87,7 +90,7 @@ export function createBlob(dress?: Dress): Blob {
   })
 
   const legs = [-1, 1].map(side => {
-    const foot = new THREE.Mesh(new THREE.SphereGeometry(0.15, 16, 12), limb)
+    const foot = new THREE.Mesh(new THREE.SphereGeometry(0.15, seg(16), seg(12)), limb)
     foot.scale.set(1, 0.7, 1.35)
     foot.position.set(side * 0.2, 0.1, 0.05)
     foot.castShadow = true
@@ -99,6 +102,8 @@ export function createBlob(dress?: Dress): Blob {
   let tilt: Spring = { value: 0, velocity: 0 }
   const swing: Spring[] = [{ value: 0, velocity: 0 }, { value: 0, velocity: 0 }]
   let phase = 0
+
+  if (low) root.traverse(o => { o.castShadow = false })
 
   return {
     object: root,

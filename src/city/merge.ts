@@ -9,10 +9,10 @@ export type PlacedPart = Part & { at: THREE.Matrix4 }
 export const CELL = 30
 
 /**
- * Many coloured boxes as a few meshes: one per CELL square, all sharing one material that takes each box's colour
+ * Many coloured boxes as a few meshes: one per `cell` square (CELL for the town; Infinity for one shape in one mesh), all sharing one material that takes each box's colour
  * from its corners. A town of a few thousand boxes is then a few draw calls, not thousands.
  */
-export function mergeParts(parts: PlacedPart[]): THREE.Mesh[] {
+export function mergeParts(parts: PlacedPart[], cell = CELL): THREE.Mesh[] {
   const material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 })
   const cells = new Map<string, THREE.BufferGeometry[]>()
   const centre = new THREE.Vector3()
@@ -28,7 +28,7 @@ export function mergeParts(parts: PlacedPart[]): THREE.Mesh[] {
     for (let i = 0; i < colors.length; i += 3) colors.set([color.r, color.g, color.b], i)
     box.setAttribute('color', new THREE.BufferAttribute(colors, 3))
     centre.set(p.x, p.y, p.z).applyMatrix4(p.at)
-    const key = `${Math.floor(centre.x / CELL)},${Math.floor(centre.z / CELL)}`
+    const key = `${Math.floor(centre.x / cell)},${Math.floor(centre.z / cell)}`
     const list = cells.get(key) ?? []
     list.push(box)
     cells.set(key, list)
