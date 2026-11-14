@@ -98,7 +98,8 @@ describe('building registry', () => {
     const MOVING = ['huepfhalle', 'tanzsaal']
     for (const b of BUILDINGS) {
       const side = b.door.side ?? 'back'
-      const expected = b.id === 'haus' ? 'front' : MOVING.includes(b.id) ? 'left' : { earn: 'back', free: 'left', play: 'right', shop: 'front' }[b.kind]
+      // The right side is full: the Flatterflug plays at the front, by the playground
+      const expected = b.id === 'haus' || b.id === 'flatterflug' ? 'front' : MOVING.includes(b.id) ? 'left' : { earn: 'back', free: 'left', play: 'right', shop: 'front' }[b.kind]
       expect(side, b.id).toBe(expected)
     }
   })
@@ -114,6 +115,12 @@ describe('building registry', () => {
     const moebel = BUILDINGS.find(b => b.id === 'moebel')
     expect(moebel).toMatchObject({ spokenName: 'Möbelhaus', icon: '🛋️', kind: 'shop', needs: [], door: { side: 'front' } })
     expect(moebel?.preload).toBeTypeOf('function')
+  })
+
+  it('lists the Flatterflug at the front as a play building for 3 Stars that needs nothing', () => {
+    const b = BUILDINGS.find(x => x.id === 'flatterflug')
+    expect(b).toMatchObject({ spokenName: 'Flatterflug', icon: '🪽', kind: 'play', cost: 3, needs: [], door: { side: 'front' } })
+    expect(b?.preload).toBeTypeOf('function')
   })
 
   it('lists the house at the front, free, needing nothing, and kept out of the logbook', () => {
@@ -182,6 +189,24 @@ describe('building registry', () => {
     // ...or on top of each other, except the steps that lead up to the platform
     const all = [...blocks.filter((_, i) => BLOCKS[i].kind === 'hurdle'), ...pads]
     for (const a of all) for (const b of all) if (a !== b) expect(gap(a, b)).toBeGreaterThan(1)
+  })
+
+  it('keeps the steps and the platform off every path from the plaza to a door', () => {
+    // A path runs straight from the middle to a door and is 2.4 m wide (city/world.ts); the hurdles are for hopping
+    const solid = BLOCKS.filter(b => b.kind !== 'hurdle')
+    for (const b of BUILDINGS) {
+      for (const block of solid) {
+        let closest = Infinity
+        for (let t = 0; t <= 1; t += 0.002) {
+          const x = b.door.x * t
+          const z = b.door.z * t
+          const dx = Math.max(block.x - block.w / 2 - x, 0, x - block.x - block.w / 2)
+          const dz = Math.max(block.z - block.d / 2 - z, 0, z - block.z - block.d / 2)
+          closest = Math.min(closest, Math.hypot(dx, dz))
+        }
+        expect(closest, `${block.kind} at ${block.x},${block.z} / path to ${b.id}`).toBeGreaterThanOrEqual(1.2)
+      }
+    }
   })
 
   it('leaves room to walk up to every door: 3 m to any other house', () => {

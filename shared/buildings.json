@@ -15,5 +15,6 @@
   { "id": "bonbonjagd", "kind": "play", "cost": 3 },
   { "id": "kino", "kind": "play", "cost": 3 },
   { "id": "laden", "kind": "shop" },
-  { "id": "moebel", "kind": "shop" }
+  { "id": "moebel", "kind": "shop" },
+  { "id": "flatterflug", "kind": "play", "cost": 3 }
 ]

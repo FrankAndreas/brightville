@@ -41,8 +41,9 @@ const STEP_COLORS = [0xff8fab, 0xffd93d, 0x95d5b2, 0x8ecae6]
  * and low hurdles to hop over.
  */
 export const BLOCKS: Block[] = [
-  ...STEP_COLORS.map((color, i): Block => ({ kind: 'step', x: 5 + i * 2, z: 22, w: 2, d: 2.4, h: 0.5 * (i + 1), color })),
-  { kind: 'platform', x: 14, z: 22, w: 4, d: 4, h: 2.5, color: 0xc8b6ff },
+  // Climbing towards the front edge, between the paths to Mein Haus and the Flatterflug
+  ...STEP_COLORS.map((color, i): Block => ({ kind: 'step', x: 4, z: 17 + i * 2, w: 2.4, d: 2, h: 0.5 * (i + 1), color })),
+  { kind: 'platform', x: 4, z: 26, w: 4, d: 4, h: 2.5, color: 0xc8b6ff },
   ...[13, 16, 19].map((z): Block => ({ kind: 'hurdle', x: 0, z, w: 3, d: 0.3, h: 0.45, color: 0xff9a3c })),
 ]
 
