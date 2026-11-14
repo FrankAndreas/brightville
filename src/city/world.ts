@@ -362,13 +362,19 @@ export function buildTown(R: Rapier, world: RAPIER.World, doors: DoorDef[]): Tow
   cam.near = 1
   cam.far = 80
   scene.add(sun, sun.target)
-  // In whole shadow texels, so the shadows' edges don't shimmer as she walks
+  // In whole shadow texels along the sun's own axes (it looks at the town at a slant), so the shadows' edges don't
+  // shimmer as she walks
   const texel = (SHADOW_HALF * 2) / SHADOW_MAP
+  const forward = new THREE.Vector3(-SUN_OFFSET.x, -SUN_OFFSET.y, -SUN_OFFSET.z).normalize()
+  const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize()
+  const up = new THREE.Vector3().crossVectors(right, forward)
+  const her = new THREE.Vector3()
   function followSun(x: number, z: number) {
-    const sx = Math.round(x / texel) * texel
-    const sz = Math.round(z / texel) * texel
-    sun.target.position.set(sx, 0, sz)
-    sun.position.set(sx + SUN_OFFSET.x, SUN_OFFSET.y, sz + SUN_OFFSET.z)
+    her.set(x, 0, z)
+    const r = Math.round(her.dot(right) / texel) * texel
+    const u = Math.round(her.dot(up) / texel) * texel
+    sun.target.position.copy(right).multiplyScalar(r).addScaledVector(up, u).addScaledVector(forward, her.dot(forward))
+    sun.position.copy(sun.target.position).add(new THREE.Vector3(SUN_OFFSET.x, SUN_OFFSET.y, SUN_OFFSET.z))
     sun.target.updateMatrixWorld()
   }
   followSun(0, 0)

@@ -10,7 +10,7 @@ import { createBlob } from './blob'
 import type { Dress } from '@/core/look'
 import { createFollowCamera } from './followCamera'
 import { createView, walkDirection } from './view'
-import { nextPixelRatio } from './quality'
+import { createSpeedWatch } from './quality'
 import { START } from './map'
 
 export interface CityOptions {
@@ -84,14 +84,10 @@ export async function createCity(opts: CityOptions): Promise<City> {
   let first = true
   let at = { x: START.x, z: START.z }
   // Frame times over two seconds: slow ones make the picture a little less sharp (quality.ts)
-  let measured = { since: performance.now(), frames: 0 }
+  const speed = createSpeedWatch(maxRatio)
   function watchSpeed() {
-    measured.frames++
-    const now = performance.now()
-    if (now - measured.since < 2000) return
-    const next = nextPixelRatio(pixelRatio, (now - measured.since) / measured.frames, maxRatio)
-    measured = { since: now, frames: 0 }
-    if (next === pixelRatio) return
+    const next = speed.frame(performance.now())
+    if (next === null) return
     pixelRatio = next
     renderer.setPixelRatio(pixelRatio)
     resize()
@@ -139,7 +135,7 @@ export async function createCity(opts: CityOptions): Promise<City> {
     pause: loop.pause,
     resume() {
       // Time spent inside a building isn't a slow frame
-      measured = { since: performance.now(), frames: 0 }
+      speed.reset()
       loop.resume()
     },
     dispose() {

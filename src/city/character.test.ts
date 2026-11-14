@@ -1,19 +1,21 @@
 // @vitest-environment node
-import { beforeAll, describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it, vi } from 'vitest'
 import RAPIER from '@dimforge/rapier3d-compat'
 import * as THREE from 'three'
 import { createCharacter, type CharacterFrame } from './character'
 import { BLOCKS, TRAMPOLINE, TRAMPOLINES, buildProps } from './props'
 import { GRAVITY, buildTown } from './world'
+import type { DoorDef } from './doors'
+import { BUILDINGS, toDoors } from '@/buildings/registry'
 import { HILLS, JETTY, LAKE, TOWN_HALF, heightAt, inLake } from './map'
 
 // The real physics engine, without any drawing
 const DT = 1 / 60
 const still = { moveX: 0, moveZ: 0, jump: false }
 
-function setup(start = { x: 0, z: 5 }) {
+function setup(start = { x: 0, z: 5 }, doors: DoorDef[] = []) {
   const world = new RAPIER.World({ x: 0, y: -GRAVITY, z: 0 })
-  buildTown(RAPIER, world, [])
+  buildTown(RAPIER, world, doors)
   buildProps(RAPIER, world, new THREE.Scene())
   const character = createCharacter(RAPIER, world, start, TRAMPOLINES)
   const run = (seconds: number, intents = still, dt = DT): CharacterFrame[] => {
@@ -199,11 +201,14 @@ describe('character', () => {
     expect(f.z).toBeLessThan(JETTY.maxZ)
   })
 
-  it('a bounce on every trampoline lands her on walkable ground', () => {
+  it('a bounce on every trampoline lands her on walkable ground, with every building standing', () => {
+    // The signs draw on a canvas: none here, so they stay blank
+    vi.stubGlobal('document', { createElement: () => ({ getContext: () => null }) })
+    const doors = toDoors(BUILDINGS, { camera: true, touch: true, keyboard: true, films: true }, true, 10)
     for (const t of TRAMPOLINES) {
       for (let k = 0; k < 8; k++) {
         const a = (k * Math.PI) / 4
-        const { run } = setup({ x: t.x, z: t.z })
+        const { run } = setup({ x: t.x, z: t.z }, doors)
         run(1)
         run(2.5, { ...still, moveX: Math.cos(a), moveZ: Math.sin(a) })
         const f = run(3).at(-1)!
@@ -213,5 +218,6 @@ describe('character', () => {
         expect(f.y, where).toBeLessThan(heightAt(f.x, f.z) + 1.5)
       }
     }
+    vi.unstubAllGlobals()
   })
 })

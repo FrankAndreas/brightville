@@ -107,6 +107,24 @@ describe('what the camera sees through', () => {
     expect(blocked({ x: 0, y: 3, z: TOWN_HALF - 3 }, { x: 0, y: 3, z: TOWN_HALF + 5 })).toBeNull()
   })
 
+  it('moves the shadows only in whole texels as the sun sees them, so their edges don\'t shimmer', () => {
+    const { built } = town()
+    const texel = (22 * 2) / 2048
+    for (const [x, z] of [[3.21, -7.77], [-40.05, 12.3], [0.004, 0.009], [17.5, 33.3]]) {
+      built.followSun(x, z)
+      const t = built.sun.target.position
+      const forward = t.clone().sub(built.sun.position).normalize()
+      const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize()
+      const up = new THREE.Vector3().crossVectors(right, forward)
+      for (const axis of [right, up]) {
+        const steps = t.dot(axis) / texel
+        expect(Math.abs(steps - Math.round(steps)), `${x},${z}`).toBeLessThan(1e-3)
+      }
+      // Still where she is, give or take a texel or two
+      expect(Math.hypot(t.x - x, t.z - z)).toBeLessThan(texel * 3)
+    }
+  })
+
   it('moves the sun\'s shadows with her', () => {
     const { built } = town()
     built.followSun(30, -20)
