@@ -8,7 +8,7 @@ The town square (62 m across) has balls to push, three trampolines, a playground
 | Building | What happens inside | Stars |
 |---|---|---|
 | 🔢 School | Five tasks: counting, a die, first sums up to 9 | +1 per task, +5 for all five |
-| ✏️ Schreiben | Two letters or digits, each traced three times with less help (touch screen only) | +1 per tracing, +4 for all six |
+| ✏️ Schreiben | Her own words and short sentences (from the parents), or today's two letters, each traced three times; less help for letters she knows (touch screen only) | +1 per letter, +4 for finishing |
 | 🧘 Yoga Studio | The camera checks three poses | +3 per pose held |
 | 🔍 Unterschiede | Ten differences between two pictures | +1 per difference found without the lamp |
 | 📚 Bibliothek | A short story read aloud with pictures, then three picture questions | +3 per question |
@@ -145,8 +145,25 @@ Leaving the sheet (✅, Esc or the leave button) keeps it on the server, so the 
 Capital letters, Ä Ö Ü and the digits in the Deutschschweizer Basisschrift, with the stroke order Swiss schools teach. The paths and the tracing rules come from Spielzeugkiste.
 
 The child traces each stroke from the green dot with a finger or a pen; the traced part turns green. A resting hand is ignored: a touch much larger than the pen doesn't count.
-Each letter comes three times: with the whole path and arrows, with dots only, then with just the start.
 Lifting early starts that stroke again. Nothing is ever taken away.
+
+**Choosing.** Inside, her words and sentences stand as big cards, with a 🎲 for today's letters. Without any words the 🎲 round starts at once. The parents write the list on the parents' page (each child's card, "Schreiben"): capitals, Ä Ö Ü, digits and spaces, at most 30 characters a text and 20 texts; typed lowercase becomes capitals, ß and punctuation are refused. Lowercase letters come later, once she knows the capitals.
+
+**A word or sentence** is written letter by letter. Along the top, each letter she finished shows in her own lines, with a gap between words. The voice says what she writes ("Wir schreiben: Ich mag dich Lena!"), names each new word and each letter, and reads the whole text at the end. One Star per letter, +4 for finishing (the server caps a visit at 10).
+
+**How well she knows each letter.** Every letter and digit has a level per child, kept on the server, which sets the help wherever the letter comes:
+
+| Level | On the board |
+|---|---|
+| new | not met yet; in a word the whole letter, and the write doesn't count |
+| 1 | the whole path with arrows |
+| 2 | dots along the path |
+| 3 | only the green start dot |
+| learned | only the lines; after a wrong start the start dot appears |
+
+A write is *bumpy* when she started at the wrong place or the wrong end, or lifted early in a real try; otherwise it is *clean*. Three clean writes in a row move a letter up a level, three bumpy ones down (never below 1). The parents' page shows the levels as a coloured grid.
+
+**Today's letters (🎲).** Two letters, each written three times. New letters come first, at most two a day: one while she has three or more letters at level 1, none while five or more. A new letter is written with the whole path, then dots, then the start dot; it counts as met after the third. The letters of her own words come first, then the other letters, then the digits. The other places go to her weakest letters (lowest level, then the longest unpractised). Writes and new letters wait on the device while the server is away.
 
 The door is open only on a device with a touch screen.
 

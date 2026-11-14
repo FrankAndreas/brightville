@@ -15,6 +15,7 @@ The six stages of the roadmap in [the stage 1 design](superpowers/specs/2026-11-
 7. Her own character (look on the first visit), the Kleiderladen (three shelves, one purchase a day, saved Stars count half), sticker gifts, the wardrobe in Mein Haus (PRs #18–#20)
 8. Her room in Mein Haus: a trophy shelf, a proper wardrobe, furniture on seven spots, the Möbelhaus (one purchase a day across both shops) (PRs #22–#24)
 9. The Flatterflug: her wobbly with wings, flying through the clouds (a play building)
+10. Schreiben with her own words and sentences (Spielzeugkiste's name writing, grown into short sentences), a level per letter that sets the help, and new letters paced
 
 Each stage has its design in `docs/superpowers/specs/`; what the game does now is in the README.
 
@@ -85,6 +86,7 @@ These were tested with automated tests and in a desktop browser, but not where t
 - Stage 8: no spot near Mein Haus had room for the Möbelhaus, so it stands at the front right, past the playground, and the square grew by a metre to 62 m for it (`HALF_SIZE` 31).
 - Stage 8: the furniture, its prices and spots, and the room's drawing are first guesses (`shared/furniture.json`, `src/buildings/haus/RoomPicture.vue`). The trophies are the stickers, not something new to earn.
 - Flatterflug: 15 gates a round, three hearts, the meadow never ends the round, gap sizes and cloud speeds are first guesses for a five-year-old (`SPEEDS` in `src/core/flight.ts`). Its door is at the front (the right side is full), and the playground's staircase was turned to climb towards the front edge for it.
+- Schreiben: three in a row up or down and the pacing (two new letters a day, one from three letters at level 1, none from five) are Andreas's; that a text's letters are introduced first, that a known letter shows its start dot after a miss, and the limits (30 characters, 20 texts) are first guesses. **Next:** lowercase letters, once she knows the capitals (the paths need generating with Spielzeugkiste's `scripts/letters/generate.py`).
 - The path to the Kleiderladen runs over the big trampoline at (−14, 18) (since stage 7): she may bounce on the way. Left as it is: moving the trampoline is a playground change of its own.
 
 ## Left from the gameplay document
