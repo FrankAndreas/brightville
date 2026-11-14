@@ -130,6 +130,29 @@ CREATE TABLE rooms (
     placed TEXT NOT NULL DEFAULT '{}'
 );
 """,
+    # Schreiben: her words and sentences, how well she knows each letter, and the writes already counted
+    """
+CREATE TABLE writing_texts (
+    person_id INTEGER NOT NULL,
+    position INTEGER NOT NULL,
+    text TEXT NOT NULL,
+    PRIMARY KEY (person_id, position)
+);
+CREATE TABLE writing_letters (
+    person_id INTEGER NOT NULL,
+    glyph TEXT NOT NULL,
+    level INTEGER NOT NULL,
+    streak INTEGER NOT NULL DEFAULT 0,
+    practised_at TEXT,
+    introduced_on TEXT NOT NULL,
+    PRIMARY KEY (person_id, glyph)
+);
+CREATE TABLE writing_keys (
+    person_id INTEGER NOT NULL,
+    key TEXT NOT NULL,
+    PRIMARY KEY (person_id, key)
+);
+""",
 ]
 VERSION = len(MIGRATIONS)
 

@@ -3,9 +3,11 @@ import buildings from '../../shared/buildings.json'
 import { DEFAULT_LOOK } from '@/core/look'
 import { furnitureDef, furnitureShelfOpen, type Spot } from '@/core/furniture'
 import { outfitDef, pay, shelfOpen, type Place } from '@/core/outfits'
+import { GLYPHS } from '@/core/writing/letters'
+import { applyWrite, checkText, normalizeText, type Letters } from '@/core/writing/levels'
 import {
   ApiError, type Api, type Film, type LogDay, type Me, type Person, type PlayerRow, type ServerState, type StickerRow,
-  type RoomState, type WardrobeState,
+  type RoomState, type WardrobeState, type WritingState,
 } from './api'
 
 export interface FakePainting { id: string; updated: number; image: string; thumb: string }
@@ -30,6 +32,8 @@ export interface FakeApi extends Api {
   wardrobe_: WardrobeState
   /** Her room; its `bought_today` is the wardrobe's: one purchase a day across both shops */
   room_: RoomState
+  /** Schreiben, as the server keeps it: `introducedOn` is the day each letter was met */
+  writing_: { texts: string[]; letters: Letters; introducedOn: Record<string, string> }
   /** The server's calendar turns a page */
   newDay(day: string): void
 }
@@ -69,6 +73,7 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
     // Someone who chose her look already; a first visit sets `look: null`
     wardrobe_: { look: { ...DEFAULT_LOOK }, worn: {}, owned: [], bought_today: false },
     room_: { placed: {}, owned: [], bought_today: false },
+    writing_: { texts: [], letters: {}, introducedOn: {} },
     newDay(day) {
       Object.assign(state, { day, visits: 0, play_seconds: 0 })
       api.wardrobe_.bought_today = false
@@ -210,6 +215,37 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
       api.wardrobe_.bought_today = true
       return { state: { ...state }, room: roomCopy() }
     }),
+    writing: () => run('writing', () => writingCopy()),
+    // The server's rules (backend/app/writing.py record)
+    sendWrites: writes => run(`sendWrites ${writes.length}`, () => {
+      for (const w of writes) {
+        const now = api.writing_.letters[w.glyph]
+        if (!now || now.level !== w.level || writingKeys.has(w.key)) continue
+        writingKeys.add(w.key)
+        api.writing_.letters[w.glyph] = applyWrite(now, w.clean, `${state.day}T10:00:00+01:00`)
+      }
+      return writingCopy()
+    }),
+    introduced: glyph => run(`introduced ${glyph}`, () => {
+      if (!GLYPHS[glyph]) throw new ApiError(404, 'unknown')
+      if (!api.writing_.letters[glyph]) {
+        if (newLeft() <= 0) throw new ApiError(409, 'no_new_today')
+        api.writing_.letters[glyph] = { level: 1, streak: 0, practised_at: null }
+        api.writing_.introducedOn[glyph] = state.day
+      }
+      return writingCopy()
+    }),
+    playerWriting: id => run(`playerWriting ${id}`, () => writingCopy()),
+    setPlayerTexts: (id, texts) => run(`setPlayerTexts ${id} ${JSON.stringify(texts)}`, () => {
+      const kept: string[] = []
+      for (const t of texts) {
+        const problem = checkText(t, kept)
+        if (problem) throw new ApiError(422, problem)
+        kept.push(normalizeText(t))
+      }
+      api.writing_.texts = kept
+      return writingCopy()
+    }),
     choose: id => run(`choose ${id}`, () => {
       const person = api.me_.people.find(p => p.id === id)
       if (!person) throw new ApiError(404, 'unknown_person')
@@ -225,6 +261,20 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
       .filter(([spot, id]) => id && owned.includes(id) && furnitureDef(id)?.spot === spot))
     return { placed, owned: api.room_.owned.map(o => ({ ...o })), bought_today: api.wardrobe_.bought_today }
   }
+  const writingKeys = new Set<string>()
+  // As backend/app/writing.py new_left_today
+  const newLeft = () => {
+    // The day's pace comes from the letters met before today
+    const weak = Object.entries(api.writing_.letters)
+      .filter(([g, l]) => l.level === 1 && api.writing_.introducedOn[g] !== state.day).length
+    const base = weak >= 5 ? 0 : weak >= 3 ? 1 : 2
+    return Math.max(0, base - Object.values(api.writing_.introducedOn).filter(d => d === state.day).length)
+  }
+  const writingCopy = (): WritingState => ({
+    texts: [...api.writing_.texts],
+    letters: JSON.parse(JSON.stringify(api.writing_.letters)),
+    new_left_today: newLeft(),
+  })
   async function run<T>(name: string, fn: () => T): Promise<T> {
     api.calls.push(name)
     if (api.offline) throw new ApiError(0, 'offline')

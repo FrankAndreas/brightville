@@ -52,14 +52,15 @@ export function drawLines(ctx: Ctx, box: { lines: number[] }, view: ViewBox) {
 }
 
 /**
- * The letter with as much help as asked for ('full', 'dots' or 'start'):
+ * The letter with as much help as asked for ('full', 'dots', 'start' or 'none'):
  * bands to trace in, the traced part in green, the child's ink, and the
- * start dot of the next stroke.
+ * start dot of the next stroke. With 'none' only what she traced and her ink.
  */
 export function drawLetter(ctx: Ctx, { letter, tracer, help, ink }: { letter: Glyph; tracer: Tracer; help: Help; ink: Point[][] }) {
   ctx.lineCap = ctx.lineJoin = 'round'
   const many = letter.strokes.length > 1
   letter.strokes.forEach(g => {
+    if (help === 'none') return
     if (g.length === 1) {
       dot(ctx, g[0], BAND, help === 'start' ? '#f1ece4' : '#ece3d6')
       return
@@ -95,7 +96,7 @@ export function drawLetter(ctx: Ctx, { letter, tracer, help, ink }: { letter: Gl
 
   drawInk(ctx, ink)
 
-  if (tracer.done) return
+  if (tracer.done || help === 'none') return
   const g = letter.strokes[tracer.stroke]
   ctx.fillStyle = '#2ECC71'
   ctx.beginPath()

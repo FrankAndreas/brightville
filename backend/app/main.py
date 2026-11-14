@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from . import auth, films, game, hub, local, paintings, people, room, stickers, wardrobe
+from . import auth, films, game, hub, local, paintings, people, room, stickers, wardrobe, writing
 from . import db as database
 from .auth import error, get_db
 from .buildings import Building, all_buildings
@@ -163,6 +163,27 @@ class BuyIn(BaseModel):
 
 class PlacedIn(BaseModel):
     placed: dict[ShortId, Optional[ShortId]] = Field(max_length=10)
+
+
+class WriteIn(BaseModel):
+    key: str = Field(min_length=1, max_length=64)
+    glyph: str = Field(min_length=1, max_length=2)
+    level: int = Field(ge=1, le=4)
+    clean: bool
+
+
+class WritesIn(BaseModel):
+    writes: list[WriteIn] = Field(max_length=50)
+
+
+class IntroducedIn(BaseModel):
+    glyph: str = Field(min_length=1, max_length=2)
+    key: str = Field(min_length=1, max_length=64)
+
+
+class TextsIn(BaseModel):
+    # Checked again after trimming (writing.check); the list's length too, to answer "too-many" in words
+    texts: list[Annotated[str, StringConstraints(max_length=60)]] = Field(max_length=100)
 
 
 class ChooseIn(BaseModel):
@@ -441,3 +462,55 @@ def remove_painting(
     if not paintings.remove(db, person.id, painting_id):
         raise error(404, "unknown_painting")
     return {"ok": True}
+
+
+@app.get("/api/writing")
+def writing_state(person: Person = Depends(auth.current_person), db: sqlite3.Connection = Depends(get_db)) -> dict:
+    return writing.state(db, person.id)
+
+
+@app.post("/api/writing/writes")
+def writing_writes(
+    body: WritesIn, person: Person = Depends(auth.current_person), db: sqlite3.Connection = Depends(get_db)
+) -> dict:
+    writing.record(db, person.id, [w.model_dump() for w in body.writes])  # type: ignore[misc]
+    return writing.state(db, person.id)
+
+
+@app.post("/api/writing/introduced")
+def writing_introduced(
+    body: IntroducedIn, person: Person = Depends(auth.current_person), db: sqlite3.Connection = Depends(get_db)
+) -> dict:
+    try:
+        writing.introduce(db, person.id, body.glyph, body.key)
+    except game.Refused as refused:
+        raise error(404 if refused.code == "unknown" else 409, refused.code) from None
+    return writing.state(db, person.id)
+
+
+@app.get("/api/players/{person_id}/writing")
+def player_writing(
+    person_id: int, request: Request, _: Person = Depends(auth.parent), db: sqlite3.Connection = Depends(get_db)
+) -> dict:
+    auth.refresh_people(request, db)
+    if not people.is_active(db, person_id):
+        raise error(404, "unknown_person")
+    return writing.state(db, person_id)
+
+
+@app.put("/api/players/{person_id}/writing/texts")
+def player_texts(
+    person_id: int,
+    body: TextsIn,
+    request: Request,
+    _: Person = Depends(auth.parent),
+    db: sqlite3.Connection = Depends(get_db),
+) -> dict:
+    auth.refresh_people(request, db)
+    if not people.is_active(db, person_id):
+        raise error(404, "unknown_person")
+    try:
+        writing.set_texts(db, person_id, body.texts)
+    except game.Refused as refused:
+        raise error(422, refused.code) from None
+    return writing.state(db, person_id)
