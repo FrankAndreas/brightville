@@ -11,7 +11,8 @@ import type { Dress } from '@/core/look'
 import { createFollowCamera } from './followCamera'
 import { createView, walkDirection } from './view'
 import { createSpeedWatch } from './quality'
-import { START } from './map'
+import { START, heightAt } from './map'
+import { WALK_SPEED as STROLL, startWalkers, stepWalker, townsfolkDress, walkerAt } from './walkers'
 
 export interface CityOptions {
   canvas: HTMLCanvasElement
@@ -65,6 +66,26 @@ export async function createCity(opts: CityOptions): Promise<City> {
   const character = createCharacter(RAPIER, world, START, TRAMPOLINES)
   const blob = createBlob()
   town.scene.add(blob.object)
+
+  // Townsfolk: wobblies like hers, in random looks, strolling the streets; without shadows, to spare the tablet
+  let townsfolkSeed = 11
+  const townsfolkRandom = () => ((townsfolkSeed = (townsfolkSeed * 16807) % 2147483647) / 2147483647)
+  const townsfolk = startWalkers().map(walker => {
+    const body = createBlob(townsfolkDress(townsfolkRandom))
+    body.object.traverse(o => { o.castShadow = false })
+    town.scene.add(body.object)
+    return { walker, body }
+  })
+  function strollTownsfolk(her: { x: number; z: number }, dt: number) {
+    for (const t of townsfolk) {
+      t.walker = stepWalker(t.walker, her, dt)
+      const p = walkerAt(t.walker)
+      t.body.update({
+        x: p.x, y: heightAt(p.x, p.z) + 0.6, z: p.z, heading: p.heading, speed: dt > 0 ? STROLL : 0, grounded: true,
+        tumbling: false, rotation: null, event: null, impact: 0,
+      }, dt)
+    }
+  }
   const view = createFollowCamera()
   const turning = createView()
   const blocked = cameraBlocker(RAPIER, world)
@@ -108,6 +129,7 @@ export async function createCity(opts: CityOptions): Promise<City> {
     props.sync()
     props.update(dt)
     blob.update(f, dt)
+    strollTownsfolk(f, dt)
     for (const door of town.doorVisuals) door.update(time)
     view.follow(f, dt, first, turning.yaw, blocked)
     town.followSun(f.x, f.z)
