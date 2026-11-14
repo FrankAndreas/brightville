@@ -349,4 +349,118 @@ describe('Schreiben', () => {
       w.unmount()
     })
   })
+
+  describe('her words and today\'s letters', () => {
+    /** Opens Schreiben as the town does: no tasks given, the store asks the server */
+    async function enter(): Promise<VueWrapper> {
+      const w = mount(Schreiben, { attachTo: document.body, global: { plugins: [pinia] } })
+      await run(10)
+      return w
+    }
+    const cards = (w: VueWrapper) => w.findAll('[data-test="text-card"]').map(c => c.text())
+    const glyph = (w: VueWrapper) => w.find('[data-test="schreiben"]').attributes('data-glyph')
+    const slots = (w: VueWrapper) => w.findAll('[data-test="ink-slot"]')
+    async function writeAll(w: VueWrapper, text: string) {
+      for (const c of text.replace(/ /g, '')) {
+        expect(glyph(w)).toBe(c)
+        write(w, c)
+        await run(CHEER)
+      }
+    }
+
+    it('offers her words and a die', async () => {
+      api.writing_.texts = ['MIA', 'LENA']
+      const w = await enter()
+      expect(cards(w)).toEqual(['MIA', 'LENA'])
+      expect(w.find('[data-test="dice-card"]').exists()).toBe(true)
+      expect(said().at(-1)).toBe('Was möchtest du schreiben? Tipp auf eine Karte.')
+      w.unmount()
+    })
+
+    it('writes a word letter by letter, with her ink in the row, for a Star a letter and the bonus', async () => {
+      api.writing_.texts = ['MIA']
+      const w = await enter()
+      await w.find('[data-test="text-card"]').trigger('click')
+      await run(10)
+      expect(said()).toContain('Wir schreiben: Mia! Zuerst ein Em.')
+      expect(slots(w)).toHaveLength(3)
+      await writeAll(w, 'MIA')
+      expect(slots(w).filter(s => s.attributes('data-done') === 'true')).toHaveLength(3)
+      expect(phase(w)).toBe('done')
+      expect(said()).toContain('Super geschrieben! Mia!')
+      await run(3100)
+      expect(w.emitted('finished')).toEqual([[{ stars: 7 }]])
+      w.unmount()
+    })
+
+    it('leaves a gap between words and names the next word', async () => {
+      api.writing_.texts = ['MIA BEN']
+      const w = await enter()
+      await w.find('[data-test="text-card"]').trigger('click')
+      await run(10)
+      expect(w.findAll('[data-test="ink-gap"]')).toHaveLength(1)
+      await writeAll(w, 'MIA')
+      expect(said()).toContain('Jetzt das Wort Ben. Zuerst ein Be.')
+      w.unmount()
+    })
+
+    it('shows each letter of a word with the help her level gives', async () => {
+      api.writing_.texts = ['MI']
+      api.writing_.letters = { M: { level: 2, streak: 0, practised_at: null } }
+      const w = await enter()
+      await w.find('[data-test="text-card"]').trigger('click')
+      await run(10)
+      expect(w.find('[data-test="schreiben"]').attributes('data-help')).toBe('dots')
+      write(w, 'M')
+      await run(CHEER)
+      expect(w.find('[data-test="schreiben"]').attributes('data-help')).toBe('full')
+      expect(useWritingStore().letters.M.streak).toBe(1)
+      w.unmount()
+    })
+
+    it('introduces two new letters on the die, each after its third write', async () => {
+      api.writing_.texts = ['LENA']
+      const w = await enter()
+      await w.find('[data-test="dice-card"]').trigger('click')
+      await run(10)
+      await writeAll(w, 'LLL')
+      expect(Object.keys(api.writing_.letters)).toEqual(['L'])
+      await writeAll(w, 'EEE')
+      expect(Object.keys(api.writing_.letters).sort()).toEqual(['E', 'L'])
+      expect(useWritingStore().newLeft).toBe(0)
+      w.unmount()
+    })
+
+    it('introduces nothing when she leaves before the third write', async () => {
+      api.writing_.texts = ['LENA']
+      const w = await enter()
+      await w.find('[data-test="dice-card"]').trigger('click')
+      await run(10)
+      await writeAll(w, 'LL')
+      requestLeave()
+      await run(10)
+      expect(api.writing_.letters).toEqual({})
+      expect(useWritingStore().letters).toEqual({})
+      expect(w.emitted('finished')).toEqual([[{ stars: 2 }]])
+      w.unmount()
+    })
+
+    it('starts today\'s letters at once when she has no words', async () => {
+      const w = await enter()
+      expect(w.find('[data-test="text-card"]').exists()).toBe(false)
+      expect(w.find('[data-test="dice-card"]').exists()).toBe(false)
+      expect(glyph(w)).toMatch(/^[A-ZÄÖÜ]$/)
+      expect(said().at(-1)).toMatch(/^Schreib ein/)
+      w.unmount()
+    })
+
+    it('goes on without the server after a while', async () => {
+      api.writing = () => new Promise(() => {})
+      const w = await enter()
+      expect(glyph(w)).toBe('')
+      await run(5100)
+      expect(glyph(w)).toMatch(/^[A-ZÄÖÜ]$/)
+      w.unmount()
+    })
+  })
 })
