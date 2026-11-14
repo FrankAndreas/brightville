@@ -219,5 +219,6 @@ describe('character', () => {
       }
     }
     vi.unstubAllGlobals()
-  })
+    // 24 whole towns with every house: slow next to the rest of the suite
+  }, 30_000)
 })
