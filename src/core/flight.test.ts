@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  FLYER_X, GATES_TO_WIN, GROUND, HEARTS, RADIUS, SPEEDS, createFlight, flap, flyerX, tilt, update, type Flight, type FlightEvent,
+  FLYER_X, GATES_TO_WIN, GROUND, HEARTS, RADIUS, SPEEDS, createFlight, flap, flyerX, setWidth, tilt, update, type Flight, type FlightEvent,
 } from './flight'
 
 // Always the middle: every gap at the same height
@@ -148,6 +148,18 @@ describe('a flight', () => {
     expect(flyerX(upright)).toBeLessThanOrEqual(0.75 * 0.3)
     // At least two seconds from the right edge to the flyer, at the slowest speed
     expect((0.75 - flyerX(upright)) / SPEEDS.langsam.pace).toBeGreaterThanOrEqual(2)
+  })
+
+  it('gives a moment of grace when turning the screen moves the flyer, so it never lands in a cloud', () => {
+    const f = createFlight({ speed: 'langsam', width: 1.6, random: middle })
+    flap(f)
+    setWidth(f, 0.75)
+    expect(f.width).toBe(0.75)
+    expect(f.graceMs).toBeGreaterThan(0)
+    const same = createFlight({ speed: 'langsam', width: 1.6, random: middle })
+    setWidth(same, 1.7)
+    // The flyer stays where it was: nothing to forgive
+    expect(same.graceMs).toBe(0)
   })
 
   it('leans the flyer up while rising and down while falling', () => {

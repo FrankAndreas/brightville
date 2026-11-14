@@ -21,7 +21,8 @@ export interface Flyer {
   draw(tiltRad: number, dtMs: number): void
   /** Slow beats while waiting for the first tap */
   hover(on: boolean): void
-  resize(): void
+  /** Its canvas is `px` CSS pixels square */
+  resize(px: number): void
   dispose(): void
   /** The two wing pivots, left then right; for tests */
   wings: THREE.Object3D[]
@@ -48,6 +49,17 @@ function wingShape(): THREE.Shape {
 
 export function createFlyer(canvas: HTMLCanvasElement): Flyer {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true })
+  try {
+    return build(canvas, renderer)
+  } catch (e) {
+    // The context is taken: give it back, or the town's may be the one the browser drops
+    renderer.dispose()
+    renderer.forceContextLoss()
+    throw e
+  }
+}
+
+function build(canvas: HTMLCanvasElement, renderer: THREE.WebGLRenderer): Flyer {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
   const scene = new THREE.Scene()
   scene.add(new THREE.HemisphereLight(0xffffff, 0xb0a080, 1.6))
@@ -103,14 +115,12 @@ export function createFlyer(canvas: HTMLCanvasElement): Flyer {
     wings.forEach((pivot, i) => { pivot.rotation.z = (i === 0 ? -1 : 1) * angle })
   }
 
-  function resize() {
-    const width = canvas.clientWidth || canvas.width
-    const height = canvas.clientHeight || canvas.height
-    renderer.setSize(width, height, false)
-    camera.aspect = width / Math.max(1, height)
+  function resize(px: number) {
+    renderer.setSize(Math.max(1, px), Math.max(1, px), false)
+    camera.aspect = 1
     camera.updateProjectionMatrix()
   }
-  resize()
+  resize(canvas.clientWidth || 1)
 
   return {
     wings,

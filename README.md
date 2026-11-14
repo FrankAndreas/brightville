@@ -125,7 +125,7 @@ Schlange ends when the snake bites itself; Bonbonjagd when the five lives are go
 
 Her own wobbly, in her look and with what she wears (anything on its back makes room for a pair of feathered wings), flies through the sky. Each tap anywhere (or Space, ↑) makes it flap and rise a little; without flapping it sinks. Columns of clouds come from the right, each with a gap to fly through: 15 make a round, and the voice cheers at half. A cloud costs one of three hearts ("Hoppla!") and the wobbly blinks for a moment, flying on; the meadow below just bounces it up again, so falling never ends the round. Before the start she picks a speed (🐢 🐇 🐆: faster clouds, smaller gaps), remembered on the device. Upright, the wobbly flies further left, so the next gap is always seen two seconds ahead. The rules are in `src/core/flight.ts`, the flying wobbly in `src/city/flyer.ts`.
 
-It is a play building like Schlange (3 Stars a round, after today's learning). The right side of the square is full, so its door is at the front, between Mein Haus and the playground, whose staircase moved 3 m towards the middle to make room.
+It is a play building like Schlange (3 Stars a round, after today's learning). The right side of the square is full, so its door is at the front, between the playground and the Möbelhaus; the playground's staircase now climbs towards the front edge, between the paths to Mein Haus and the Flatterflug (no step or platform stands on a path to a door: a test keeps it so).
 
 ## Kino
 

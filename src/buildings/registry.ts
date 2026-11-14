@@ -111,8 +111,8 @@ export const BUILDINGS: BuildingDef[] = [
   },
   {
     // Her wobbly gets wings: flying through the clouds. A play building, but the right side is full: at the front,
-    // past the playground, whose staircase moved 3 m towards the middle for it
-    id: 'flatterflug', spokenName: 'Flatterflug', icon: '🪽', kind: 'play', cost: 3, needs: [], door: { x: 9, z: 25, side: 'front' },
+    // between the playground's staircase (turned to climb towards the front for it) and the Möbelhaus
+    id: 'flatterflug', spokenName: 'Flatterflug', icon: '🪽', kind: 'play', cost: 3, needs: [], door: { x: 12, z: 25, side: 'front' },
     component: defineAsyncComponent(flatterflug), preload: flatterflug,
   },
 ]

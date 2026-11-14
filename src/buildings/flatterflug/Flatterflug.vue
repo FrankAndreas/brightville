@@ -3,10 +3,10 @@ import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import Confetti from '@/components/Confetti.vue'
 import { createFlyer, type Flyer } from '@/city/flyer'
 import {
-  GATE_WIDTH, GROUND, HEARTS, RADIUS, SPEEDS, createFlight, flap, flyerX, tilt, update, type Flight, type FlightSpeed,
+  GATE_WIDTH, GROUND, HEARTS, RADIUS, SPEEDS, createFlight, flap, flyerX, setWidth, tilt, update, type Flight, type FlightSpeed,
 } from '@/core/flight'
 import { useGameLoop } from '@/services/gameLoop'
-import { instruct, speak, stopSpeaking } from '@/services/tts'
+import { instruct, instruction, speak, stopSpeaking } from '@/services/tts'
 import { useSessionStore } from '@/stores/session'
 import { useWardrobeStore } from '@/stores/wardrobe'
 import { onLeaveRequest } from '../leave'
@@ -94,6 +94,8 @@ function onFlap() {
   if (phase.value === 'ready') {
     phase.value = 'playing'
     flyer?.hover(false)
+    // The speed is chosen: from now on the 🔊 says the goal
+    instruction.value = 'Tipp, dann flattert dein Wobbel! Flieg durch die Lücken zwischen den Wolken.'
   }
   flap(flight)
   flyer?.flap()
@@ -102,6 +104,8 @@ function onFlap() {
 function onKey(e: KeyboardEvent) {
   if (e.repeat) return
   if (e.code === 'Escape') return leave()
+  // A button with the focus (a speed, 🔊) takes its own Space
+  if (e.target instanceof HTMLButtonElement && e.code === 'Space') return
   if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
     e.preventDefault()
     onFlap()
@@ -133,6 +137,13 @@ function flyerY(): number {
 }
 
 function draw(dt: number) {
+  const y = placeFlyer()
+  flyer?.draw(tilt(flight), dt)
+  drawSky(y)
+}
+
+/** Moves the flying wobbly's canvas to where it is; returns its height in the field */
+function placeFlyer(): number {
   const size = FLYER_SIZE * height
   const y = flyerY()
   flyerBox.value = {
@@ -142,8 +153,7 @@ function draw(dt: number) {
     // Just hit: it blinks while a cloud costs nothing
     faded: flight.graceMs > 0 && Math.floor(flight.graceMs / 150) % 2 === 0,
   }
-  flyer?.draw(tilt(flight), dt)
-  drawSky(y)
+  return y
 }
 
 function puff(ctx: CanvasRenderingContext2D, x: number, y: number, r: number) {
@@ -158,6 +168,11 @@ function cloudColumn(ctx: CanvasRenderingContext2D, x: number, top: number, bott
   const w = GATE_WIDTH * h
   const left = x * h
   if (bottom - top <= 0) return
+  ctx.save()
+  // The puffs stay inside the column: the gap looks exactly as big as it is
+  ctx.beginPath()
+  ctx.rect(left - w, top * h, w * 3, (bottom - top) * h)
+  ctx.clip()
   ctx.fillStyle = '#d9ecff'
   ctx.fillRect(left + w * 0.1, top * h, w * 0.8, (bottom - top) * h)
   ctx.fillStyle = '#ffffff'
@@ -172,6 +187,7 @@ function cloudColumn(ctx: CanvasRenderingContext2D, x: number, top: number, bott
     puff(ctx, left + w * 0.2, yy * h, r * 0.8)
     puff(ctx, left + w * 0.8, yy * h, r * 0.8)
   }
+  ctx.restore()
 }
 
 function drawSky(y: number) {
@@ -260,8 +276,9 @@ function fit() {
   const dpr = window.devicePixelRatio || 1
   el.width = Math.round(width * dpr)
   el.height = Math.round(height * dpr)
-  flight.width = rect.width && rect.height ? rect.width / rect.height : 1.6
-  flyer?.resize()
+  setWidth(flight, rect.width && rect.height ? rect.width / rect.height : 1.6)
+  // The renderer is told the canvas's size: the canvas itself gets it with Vue's next update
+  flyer?.resize(FLYER_SIZE * height)
   draw(0)
 }
 
@@ -324,7 +341,7 @@ onBeforeUnmount(shutDown)
         opacity: flyerBox.faded ? 0.35 : 1,
       }"
     />
-    <div class="hud">
+    <div class="flight-hud">
       <span class="hearts" :aria-label="`${hearts} Herzen`">
         <span v-for="i in hearts" :key="i" data-test="heart">❤️</span>
       </span>
@@ -353,11 +370,12 @@ onBeforeUnmount(shutDown)
 .sky { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: pointer; }
 /* Taps go through the wobbly to the sky */
 .flyer { position: absolute; pointer-events: none; transition: opacity 0.1s; }
-.hud {
+/* Not "hud": the town's top bar has that class, and App's style for it is global */
+.flight-hud {
   position: absolute;
   /* Right of the leave and 🔊 buttons in the top-left corner */
   top: calc(16px + env(safe-area-inset-top));
-  right: 16px;
+  right: calc(16px + env(safe-area-inset-right));
   display: flex;
   gap: 14px;
   align-items: center;

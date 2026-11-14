@@ -191,6 +191,24 @@ describe('building registry', () => {
     for (const a of all) for (const b of all) if (a !== b) expect(gap(a, b)).toBeGreaterThan(1)
   })
 
+  it('keeps the steps and the platform off every path from the plaza to a door', () => {
+    // A path runs straight from the middle to a door and is 2.4 m wide (city/world.ts); the hurdles are for hopping
+    const solid = BLOCKS.filter(b => b.kind !== 'hurdle')
+    for (const b of BUILDINGS) {
+      for (const block of solid) {
+        let closest = Infinity
+        for (let t = 0; t <= 1; t += 0.002) {
+          const x = b.door.x * t
+          const z = b.door.z * t
+          const dx = Math.max(block.x - block.w / 2 - x, 0, x - block.x - block.w / 2)
+          const dz = Math.max(block.z - block.d / 2 - z, 0, z - block.z - block.d / 2)
+          closest = Math.min(closest, Math.hypot(dx, dz))
+        }
+        expect(closest, `${block.kind} at ${block.x},${block.z} / path to ${b.id}`).toBeGreaterThanOrEqual(1.2)
+      }
+    }
+  })
+
   it('leaves room to walk up to every door: 3 m to any other house', () => {
     for (const a of BUILDINGS) {
       for (const b of BUILDINGS) {

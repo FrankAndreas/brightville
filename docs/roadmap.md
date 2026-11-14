@@ -84,7 +84,8 @@ These were tested with automated tests and in a desktop browser, but not where t
 - Stage 7: add-on prices, the look's colours and the 3D models are first guesses; the shelves' prices are in `shared/outfits.json`.
 - Stage 8: no spot near Mein Haus had room for the Möbelhaus, so it stands at the front right, past the playground, and the square grew by a metre to 62 m for it (`HALF_SIZE` 31).
 - Stage 8: the furniture, its prices and spots, and the room's drawing are first guesses (`shared/furniture.json`, `src/buildings/haus/RoomPicture.vue`). The trophies are the stickers, not something new to earn.
-- Flatterflug: 15 gates a round, three hearts, the meadow never ends the round, gap sizes and cloud speeds are first guesses for a five-year-old (`SPEEDS` in `src/core/flight.ts`). Its door is at the front (the right side is full), and the playground's staircase and platform moved 3 m towards the middle for it.
+- Flatterflug: 15 gates a round, three hearts, the meadow never ends the round, gap sizes and cloud speeds are first guesses for a five-year-old (`SPEEDS` in `src/core/flight.ts`). Its door is at the front (the right side is full), and the playground's staircase was turned to climb towards the front edge for it.
+- The path to the Kleiderladen runs over the big trampoline at (−14, 18) (since stage 7): she may bounce on the way. Left as it is: moving the trampoline is a playground change of its own.
 
 ## Left from the gameplay document
 

@@ -89,6 +89,14 @@ export function flyerX(f: Flight): number {
   return Math.min(FLYER_X, f.width * 0.3)
 }
 
+/** The field got wider or narrower (the screen turned). If that moves the flyer, it gets a moment of grace: it can't
+ * land in a cloud because of turning the screen. */
+export function setWidth(f: Flight, width: number): void {
+  const before = flyerX(f)
+  f.width = width
+  if (flyerX(f) !== before && f.started && !f.over) f.graceMs = Math.max(f.graceMs, GRACE_MS)
+}
+
 /** A tap: the wings beat, and the flyer rises a little whatever it did before. The first one starts the round. */
 export function flap(f: Flight): void {
   if (f.over) return

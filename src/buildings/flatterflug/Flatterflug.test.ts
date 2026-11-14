@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { speak } from '@/services/tts'
+import { instruction, speak } from '@/services/tts'
 import { useWardrobeStore } from '@/stores/wardrobe'
 import { requestLeave } from '../leave'
 import Flatterflug from './Flatterflug.vue'
@@ -63,6 +63,8 @@ describe('Flatterflug', () => {
     expect(phase(w)).toBe('playing')
     expect(flyer.flap).toHaveBeenCalledTimes(1)
     expect(flyer.hover).toHaveBeenLastCalledWith(false)
+    // The speed is chosen: from now on the 🔊 says the goal
+    expect(instruction.value).toBe('Tipp, dann flattert dein Wobbel! Flieg durch die Lücken zwischen den Wolken.')
     w.unmount()
   })
 
@@ -73,6 +75,16 @@ describe('Flatterflug', () => {
     await run(50)
     expect(flyer.flap).toHaveBeenCalledTimes(2)
     expect(phase(w)).toBe('playing')
+    w.unmount()
+  })
+
+  it('leaves Space to a button that has the focus', async () => {
+    const w = open()
+    const button = w.find('[data-test="speed"][data-speed="mittel"]').element as HTMLButtonElement
+    button.focus()
+    button.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', bubbles: true, cancelable: true }))
+    await run(50)
+    expect(flyer.flap).not.toHaveBeenCalled()
     w.unmount()
   })
 
