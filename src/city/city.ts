@@ -43,6 +43,11 @@ const debug = {
     if (f.event) d.events.push(f.event)
     if (d.events.length > 200) d.events.shift()
   },
+  /** What the last frame cost: draw calls, triangles, and the pixel ratio it was drawn at */
+  drawn(calls: number, triangles: number, ratio: number) {
+    const w = window as unknown as { __city?: Record<string, unknown> }
+    if (w.__city) Object.assign(w.__city, { calls, triangles, ratio })
+  },
 }
 
 export async function createCity(opts: CityOptions): Promise<City> {
@@ -112,6 +117,7 @@ export async function createCity(opts: CityOptions): Promise<City> {
     town.followSun(f.x, f.z)
     first = false
     renderer.render(town.scene, view.camera)
+    if (import.meta.env.DEV) debug.drawn(renderer.info.render.calls, renderer.info.render.triangles, pixelRatio)
     // Only while the town is shown: a paused loop doesn't count as slow
     if (dt > 0) watchSpeed()
 

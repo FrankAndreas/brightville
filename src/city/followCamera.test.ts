@@ -61,4 +61,44 @@ describe('createFollowCamera', () => {
     for (let i = 0; i < 18; i++) view.follow({ x: 0, y: 1.8, z: 0, grounded: false }, 1 / 60)
     expect(view.camera.position.y - before).toBeLessThan(0.5)
   })
+
+  it('rises above her instead of pressing against her when a house is right behind her', () => {
+    const view = createFollowCamera()
+    view.follow({ x: 0, y: 0.6, z: 0, grounded: true }, 0, true, 0, () => 0.5)
+    const head = new THREE.Vector3(0, 0.6 + 1, 0)
+    expect(view.camera.position.distanceTo(head)).toBeGreaterThanOrEqual(2.5)
+    expect(view.camera.position.y - head.y).toBeGreaterThanOrEqual(4)
+    // Still looking at where she goes, with her in the picture
+    const ahead = view.camera.getWorldDirection(new THREE.Vector3())
+    expect(ahead.z).toBeLessThan(0)
+    view.camera.updateMatrixWorld()
+    const her = new THREE.Vector3(0, 0.6, 0).project(view.camera)
+    expect(her.y).toBeGreaterThan(-0.9)
+    expect(her.y).toBeLessThan(0.5)
+  })
+
+  it('climbs higher behind her to see over the houses before it comes closer', () => {
+    const view = createFollowCamera()
+    // Houses 8 m high everywhere behind her: only a camera above 10 m sees her
+    const blocked = (_from: { y: number }, to: { y: number }) => (to.y >= 10 ? null : 2)
+    view.follow({ x: 0, y: 0.6, z: 0, grounded: true }, 0, true, 0, blocked)
+    expect(view.camera.position.y).toBeGreaterThanOrEqual(10)
+    // As far back as it can, not on top of her
+    expect(Math.hypot(view.camera.position.x, view.camera.position.z)).toBeGreaterThanOrEqual(4)
+    view.camera.updateMatrixWorld()
+    const her = new THREE.Vector3(0, 0.6, 0).project(view.camera)
+    expect(her.y).toBeGreaterThan(-0.9)
+    expect(her.y).toBeLessThan(0.5)
+  })
+
+  it('glides to a new place instead of jumping', () => {
+    const view = createFollowCamera()
+    view.follow({ x: 0, y: 0.6, z: 0, grounded: true }, 0, true)
+    const before = view.camera.position.clone()
+    const blocked = (_from: { y: number }, to: { y: number }) => (to.y >= 10 ? null : 2)
+    view.follow({ x: 0, y: 0.6, z: 0, grounded: true }, 1 / 60, false, 0, blocked)
+    expect(view.camera.position.y - before.y).toBeLessThan(1.5)
+    for (let i = 0; i < 90; i++) view.follow({ x: 0, y: 0.6, z: 0, grounded: true }, 1 / 60, false, 0, blocked)
+    expect(view.camera.position.y).toBeGreaterThan(9.5)
+  })
 })
