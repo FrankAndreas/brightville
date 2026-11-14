@@ -20,6 +20,7 @@ The town square (62 m across) has balls to push, three trampolines, a playground
 | 🃏 Arcade | Memory with six pairs of animals | costs 3 per round |
 | 🐍 Schlange | The snake collects treasures until it bites itself | costs 3 per round |
 | 🍬 Bonbonjagd | Collect every sweet in a maze; chasers wander, a power-up turns the tables | costs 3 per round |
+| 🪽 Flatterflug | Her wobbly gets wings: tap to flap through the gaps between the clouds | costs 3 per round |
 | 🎬 Kino | One of the YouTube films the parents chose | costs 3 per film |
 | 🏠 Mein Haus | Her room: the logbook (Tagebuch), the sticker book (Stickerheft), her trophies, her wardrobe (Kleiderschrank) and her furniture | free |
 | 👗 Kleiderladen | Add-ons for her character on three shelves; after today's learning, one purchase a day across both shops | 15–120 per add-on |
@@ -119,6 +120,12 @@ Tap a difference in either picture; the voice says what changed. The lamp 💡 c
 
 Arrow keys or WASD on the keyboard; a swipe anywhere or the arrow pad with a finger. The first direction starts the round.
 Schlange ends when the snake bites itself; Bonbonjagd when the five lives are gone or every sweet is eaten. Then the game goes back to the town by itself. Each look (unicorn or princess) and each maze is picked at random. Before the start, Bonbonjagd offers three speeds (🐢 🐇 🐆); the child's last choice is remembered on the device. The mazes are Brightville's own.
+
+## Flatterflug
+
+Her own wobbly, in her look and with what she wears (anything on its back makes room for a pair of feathered wings), flies through the sky. Each tap anywhere (or Space, ↑) makes it flap and rise a little; without flapping it sinks. Columns of clouds come from the right, each with a gap to fly through: 15 make a round, and the voice cheers at half. A cloud costs one of three hearts ("Hoppla!") and the wobbly blinks for a moment, flying on; the meadow below just bounces it up again, so falling never ends the round. Before the start she picks a speed (🐢 🐇 🐆: faster clouds, smaller gaps), remembered on the device. Upright, the wobbly flies further left, so the next gap is always seen two seconds ahead. The rules are in `src/core/flight.ts`, the flying wobbly in `src/city/flyer.ts`.
+
+It is a play building like Schlange (3 Stars a round, after today's learning). The right side of the square is full, so its door is at the front, between Mein Haus and the playground, whose staircase moved 3 m towards the middle to make room.
 
 ## Kino
 

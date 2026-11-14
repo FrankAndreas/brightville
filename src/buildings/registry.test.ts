@@ -98,7 +98,8 @@ describe('building registry', () => {
     const MOVING = ['huepfhalle', 'tanzsaal']
     for (const b of BUILDINGS) {
       const side = b.door.side ?? 'back'
-      const expected = b.id === 'haus' ? 'front' : MOVING.includes(b.id) ? 'left' : { earn: 'back', free: 'left', play: 'right', shop: 'front' }[b.kind]
+      // The right side is full: the Flatterflug plays at the front, by the playground
+      const expected = b.id === 'haus' || b.id === 'flatterflug' ? 'front' : MOVING.includes(b.id) ? 'left' : { earn: 'back', free: 'left', play: 'right', shop: 'front' }[b.kind]
       expect(side, b.id).toBe(expected)
     }
   })
@@ -114,6 +115,12 @@ describe('building registry', () => {
     const moebel = BUILDINGS.find(b => b.id === 'moebel')
     expect(moebel).toMatchObject({ spokenName: 'Möbelhaus', icon: '🛋️', kind: 'shop', needs: [], door: { side: 'front' } })
     expect(moebel?.preload).toBeTypeOf('function')
+  })
+
+  it('lists the Flatterflug at the front as a play building for 3 Stars that needs nothing', () => {
+    const b = BUILDINGS.find(x => x.id === 'flatterflug')
+    expect(b).toMatchObject({ spokenName: 'Flatterflug', icon: '🪽', kind: 'play', cost: 3, needs: [], door: { side: 'front' } })
+    expect(b?.preload).toBeTypeOf('function')
   })
 
   it('lists the house at the front, free, needing nothing, and kept out of the logbook', () => {
