@@ -178,7 +178,10 @@ class WritesIn(BaseModel):
 
 class IntroducedIn(BaseModel):
     glyph: str = Field(min_length=1, max_length=2)
-    key: str = Field(min_length=1, max_length=64)
+    # Sent by the page from before; meeting a letter twice is meeting it once
+    key: str = Field(default="", max_length=64)
+    # The device's day, when the letter was met while the server was away
+    day: Optional[str] = Field(default=None, max_length=10)
 
 
 class TextsIn(BaseModel):
@@ -482,7 +485,7 @@ def writing_introduced(
     body: IntroducedIn, person: Person = Depends(auth.current_person), db: sqlite3.Connection = Depends(get_db)
 ) -> dict:
     try:
-        writing.introduce(db, person.id, body.glyph, body.key)
+        writing.introduce(db, person.id, body.glyph, body.day)
     except game.Refused as refused:
         raise error(404 if refused.code == "unknown" else 409, refused.code) from None
     return writing.state(db, person.id)
