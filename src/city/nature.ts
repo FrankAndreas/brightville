@@ -5,6 +5,7 @@ import {
   EMPTY_LOTS, HILLS, JETTY, LAKE, PLAZA, SCENERY_HOUSES, STREETS, TOWN_HALF, heightAt, sceneryArea, streetDistance,
 } from './map'
 import { BLOCKS, TRAMPOLINES } from './props'
+import { UNSEEN_GROUPS } from './groups'
 
 type Rapier = typeof RAPIER
 
@@ -34,6 +35,23 @@ const LEAVES = [0x4caf50, 0x6abf4b, 0x3f9142, 0x8bc34a]
 /** Where a lamp stands: this far from the paving */
 const LAMP_OFFSET = 0.6
 const LAMP_EVERY = 12
+/** Trunks and lamp posts are solid this high, far above any crown or lamp: nothing lands on them */
+const PILLAR = 30
+/** The bench's seat, where she can sit (stand) */
+const SEAT = 0.51
+
+/** How far each item reaches out from its middle, for sinking it into a slope */
+const REACH: Record<NatureKind, number> = { tree: 0.3, bush: 0.6, flowers: 0.7, fence: 0.1, lamp: 0.1, bench: 0.8 }
+
+/** The lowest ground under an item: it stands there, so on a slope nothing floats on the downhill side */
+export function groundUnder(i: NatureItem): number {
+  const r = REACH[i.kind] * (i.kind === 'fence' ? 1 : i.scale)
+  let low = heightAt(i.x, i.z)
+  for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1], [0, 1], [0, -1], [1, 0], [-1, 0]]) {
+    low = Math.min(low, heightAt(i.x + dx * r, i.z + dz * r))
+  }
+  return low
+}
 
 /** The ground a solid item takes (a bench as a square round its length, whichever way it is turned) */
 export function natureArea(i: NatureItem): Footprint {
@@ -199,7 +217,7 @@ export function buildNature(R: Rapier, world: RAPIER.World, scene: THREE.Scene, 
   const at = (i: NatureItem, m: THREE.Matrix4, dy: number, sx = 1, sy = 1, sz = 1, local = new THREE.Vector3()) => {
     q.setFromAxisAngle(up, i.rotY)
     const offset = local.clone().applyQuaternion(q)
-    m.compose(new THREE.Vector3(i.x + offset.x, heightAt(i.x, i.z) + dy + offset.y, i.z + offset.z), q, new THREE.Vector3(sx, sy, sz))
+    m.compose(new THREE.Vector3(i.x + offset.x, groundUnder(i) + dy + offset.y, i.z + offset.z), q, new THREE.Vector3(sx, sy, sz))
   }
 
   const trees = of('tree')
@@ -233,21 +251,24 @@ export function buildNature(R: Rapier, world: RAPIER.World, scene: THREE.Scene, 
 
   for (const i of items) {
     if (!SOLID_KINDS.has(i.kind)) continue
-    const y = heightAt(i.x, i.z)
+    const y = groundUnder(i)
     if (i.kind === 'tree') {
-      world.createCollider(R.ColliderDesc.cylinder(0.9 * i.scale, 0.25 * i.scale).setTranslation(i.x, y + 0.9 * i.scale, i.z))
-      // The crown, for the camera only (a sensor: she walks under it), so a tree never hides her
+      // A pillar far above the crown: nothing lands on a tree top, she slides off. The camera looks past trunks and
+      // through crowns: a tree may cover her for a moment, which is calmer than a camera jumping at every tree
       world.createCollider(
-        R.ColliderDesc.cuboid(1.15 * i.scale, 1.25 * i.scale, 1.15 * i.scale).setSensor(true)
-          .setTranslation(i.x, y + 2.8 * i.scale, i.z)
-          .setRotation(new THREE.Quaternion().setFromAxisAngle(up, i.rotY)),
+        R.ColliderDesc.cylinder(PILLAR / 2, 0.25 * i.scale).setTranslation(i.x, y + PILLAR / 2, i.z).setCollisionGroups(UNSEEN_GROUPS),
       )
     }
-    if (i.kind === 'lamp') world.createCollider(R.ColliderDesc.cylinder(1.5, 0.12).setTranslation(i.x, y + 1.5, i.z))
+    if (i.kind === 'lamp') {
+      world.createCollider(R.ColliderDesc.cylinder(PILLAR / 2, 0.12).setTranslation(i.x, y + PILLAR / 2, i.z).setCollisionGroups(UNSEEN_GROUPS))
+    }
     if (i.kind === 'bench') {
+      const turn = new THREE.Quaternion().setFromAxisAngle(up, i.rotY)
+      // The seat, solid down to the ground, and the backrest behind it
+      world.createCollider(R.ColliderDesc.cuboid(0.8, SEAT / 2, 0.25).setTranslation(i.x, y + SEAT / 2, i.z).setRotation(turn))
+      const back = new THREE.Vector3(0, 0, -0.22).applyQuaternion(turn)
       world.createCollider(
-        R.ColliderDesc.cuboid(0.8, 0.45, 0.25).setTranslation(i.x, y + 0.45, i.z)
-          .setRotation(new THREE.Quaternion().setFromAxisAngle(up, i.rotY)),
+        R.ColliderDesc.cuboid(0.8, 0.225, 0.05).setTranslation(i.x + back.x, y + 0.75, i.z + back.z).setRotation(turn),
       )
     }
   }

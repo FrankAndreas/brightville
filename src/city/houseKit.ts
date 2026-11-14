@@ -114,11 +114,13 @@ export function houseParts(spec: HouseSpec): Part[] {
     add('step', 0, 0.08, front + 0.3, 1.5, 0.16, 0.5, shade(wall, 0.7))
   }
 
-  // An awning over the ground floor (above the door building's frame), in the roof's colour
-  if (rand() < 0.5) add('awning', 0, door ? DOOR.top + 0.12 : 2.45, front + 0.3, w * 0.7, 0.12, 0.6, roof)
+  // An awning over the ground floor (above the door building's frame), in the roof's colour, or a balcony on the
+  // second floor; on a door building both would sit at the same height, above the door, so it has one or the other
+  const awning = rand() < 0.5
+  const balcony = floors >= 2 && rand() < 0.5
+  if (awning && !(door && balcony)) add('awning', 0, door ? DOOR.top + 0.12 : 2.45, front + 0.3, w * 0.7, 0.12, 0.6, roof)
 
-  // A balcony on the second floor
-  if (floors >= 2 && rand() < 0.5) {
+  if (balcony) {
     // Above a door building's door frame
     const y = DOOR.top + 0.12
     add('balcony', 0, y, front + 0.28, w * 0.45, 0.12, 0.56, WHITE)

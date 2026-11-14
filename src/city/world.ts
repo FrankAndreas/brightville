@@ -3,6 +3,7 @@ import type RAPIER from '@dimforge/rapier3d-compat'
 import { HOUSE_DEPTH, HOUSE_WIDTH, facingAngle, footprint, type DoorDef } from './doors'
 import { houseParts, wallHeight, type HouseSpec } from './houseKit'
 import { mergeParts, type PlacedPart } from './merge'
+import { CAMERA_RAY_GROUPS, UNSEEN_GROUPS } from './groups'
 import { NATURE_SEED, buildNature, placeNature } from './nature'
 import { EMPTY_LOTS, JETTY, LAKE, PLAZA, SCENERY_HOUSES, STREETS, TOWN_HALF, heightAt, sceneryArea } from './map'
 
@@ -63,12 +64,6 @@ function box(w: number, h: number, d: number, color: number): THREE.Mesh {
   return mesh
 }
 
-/**
- * Collision groups (16 bits "member of", 16 bits "meets"): the invisible walls are members of group 2 only, so the
- * camera's ray (meeting group 1 only) looks through them, while she and the balls still bump into them
- */
-const UNSEEN_GROUPS = 0x0002ffff
-const CAMERA_RAY_GROUPS = 0xffff0001
 
 function staticBox(
   R: Rapier, world: RAPIER.World, x: number, y: number, z: number, w: number, h: number, d: number, unseen = false,
@@ -120,11 +115,16 @@ function house(
   const turned = Math.abs(Math.sin(angle)) > 0.5
   staticBox(R, world, x, h / 2, z, turned ? d : w, h, turned ? w : d)
   // For the camera only: a sensor nothing bumps into or stands on, but the camera's ray meets it, round the whole
-  // house with its roof, awnings and balconies (houseKit.test.ts keeps every part inside it), so none of them hides her
+  // house with its roof, and 0.6 m out at the front for awnings and balconies (houseKit.test.ts keeps every part
+  // inside it), so none of them hides her. Sides and back reach out only for the roof's eaves
   const top = h * 1.6
+  const out = { front: 0.6, rest: 0.25 }
+  const shift = (out.front - out.rest) / 2
   world.createCollider(
-    R.ColliderDesc.cuboid((turned ? d : w) / 2 + 0.6, top / 2, (turned ? w : d) / 2 + 0.6)
-      .setTranslation(x, top / 2, z)
+    R.ColliderDesc.cuboid(
+      (turned ? d / 2 + out.rest + shift : w / 2 + out.rest), top / 2, (turned ? w / 2 + out.rest : d / 2 + out.rest + shift),
+    )
+      .setTranslation(x + Math.sin(angle) * shift, top / 2, z + Math.cos(angle) * shift)
       .setSensor(true),
   )
   return group
@@ -422,6 +422,8 @@ export function disposeScene(scene: THREE.Scene) {
   scene.traverse(object => {
     const mesh = object as THREE.Mesh
     mesh.geometry?.dispose()
+    // Trees, lamps, flowers: their matrices and colours are buffers of the mesh's own
+    if ((object as THREE.InstancedMesh).isInstancedMesh) (object as THREE.InstancedMesh).dispose()
     for (const t of (object.userData.textures as THREE.Texture[] | undefined) ?? []) t.dispose()
     const material = mesh.material as THREE.Material | THREE.Material[] | undefined
     for (const m of Array.isArray(material) ? material : material ? [material] : []) {

@@ -6,7 +6,6 @@ import { BUILDINGS, toDoors } from '@/buildings/registry'
 import { createCharacter } from './character'
 import { HILLS, LAKE, TOWN_HALF, heightAt, inLake, solidAreas } from './map'
 import { createFollowCamera } from './followCamera'
-import { NATURE_SEED, placeNature } from './nature'
 import { TRAMPOLINES } from './props'
 import { BUILDING_COLORS, GRAVITY, buildTown, cameraBlocker, disposeScene } from './world'
 
@@ -153,20 +152,18 @@ describe('the camera in the real town', () => {
     scene.traverse(o => {
       const mesh = o as THREE.Mesh
       const type = mesh.geometry?.type
-      // Door frames and leaves are boxes; the houses are merged boxes, coloured by their corners
+      // Door frames and leaves are boxes; the houses are merged boxes, coloured by their corners. Trees (instanced)
+      // may cover her for a moment: the camera doesn't dodge them, so it doesn't jump at every tree
       const merged = (mesh.material as THREE.MeshStandardMaterial | undefined)?.vertexColors === true
-      if (type === 'BoxGeometry' || merged) walls.push(o)
+      if (((type === 'BoxGeometry' && !(o as THREE.InstancedMesh).isInstancedMesh)) || merged) walls.push(o)
     })
     expect(walls.length).toBeGreaterThan(20)
     const ray = new THREE.Raycaster()
     const hidden: string[] = []
-    const trees = placeNature(NATURE_SEED, doors).filter(i => i.kind === 'tree')
     // Off the whole metres, where walls stand: a ray grazing a wall exactly is no cover
     for (let x = -TOWN_HALF + 3.3; x <= TOWN_HALF - 3; x += 4) {
       for (let z = -TOWN_HALF + 3.3; z <= TOWN_HALF - 3; z += 4) {
         if (inLake(x, z) || solid.some(f => x >= f.minX && x <= f.maxX && z >= f.minZ && z <= f.maxZ)) continue
-        // Under a tree's crown she is hidden from above, whatever the camera does, while she walks under it
-        if (trees.some(t => Math.hypot(t.x - x, t.z - z) < 1.7 * t.scale)) continue
         const y = heightAt(x, z) + 0.6
         for (const yaw of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) {
           const view = createFollowCamera()
@@ -208,7 +205,13 @@ describe('freeing the town', () => {
     vi.spyOn(THREE.BufferGeometry.prototype, 'dispose').mockImplementation(spy)
     vi.spyOn(THREE.Material.prototype, 'dispose').mockImplementation(spy)
     vi.spyOn(THREE.Texture.prototype, 'dispose').mockImplementation(spy)
+    const instanced: THREE.InstancedMesh[] = []
+    scene.traverse(o => { if ((o as THREE.InstancedMesh).isInstancedMesh) instanced.push(o as THREE.InstancedMesh) })
+    expect(instanced.length).toBeGreaterThan(5)
+    // Their matrices and colours live in buffers of their own, freed only by the mesh's dispose
+    vi.spyOn(THREE.InstancedMesh.prototype, 'dispose').mockImplementation(spy)
     disposeScene(scene)
+    expect(instanced.filter(m => !freed.has(m))).toHaveLength(0)
     expect([...geometries].filter(g => !freed.has(g))).toHaveLength(0)
     expect([...materials].filter(m => !freed.has(m))).toHaveLength(0)
     expect(textures.size).toBe(doors.length * 2)

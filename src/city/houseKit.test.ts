@@ -68,3 +68,35 @@ describe('houseParts', () => {
     expect(wallHeight(2)).toBeCloseTo(5)
   })
 })
+
+describe('houseParts, seen up close', () => {
+  const VISIBLE = new Set(['awning', 'balcony', 'railing', 'sill', 'lintel', 'flowers', 'window', 'door', 'step'])
+  it('never lays two parts in the same plane where they overlap (they would flicker)', () => {
+    for (const door of [true, false]) {
+      for (const floors of [1, 2, 3] as const) {
+        for (let seed = 0; seed < 200; seed++) {
+          const parts = houseParts({ ...base, w: door ? 8 : 6, floors, seed, door }).filter(p => VISIBLE.has(p.kind))
+          for (const [i, a] of parts.entries()) {
+            for (const b of parts.slice(i + 1)) {
+              const overlapX = Math.min(a.x + a.w / 2, b.x + b.w / 2) - Math.max(a.x - a.w / 2, b.x - b.w / 2)
+              const overlapZ = Math.min(a.z + a.d / 2, b.z + b.d / 2) - Math.max(a.z - a.d / 2, b.z - b.d / 2)
+              if (overlapX <= 0 || overlapZ <= 0) continue
+              const same = (u: number, v: number) => Math.abs(u - v) < 1e-6
+              const flat = same(a.y + a.h / 2, b.y + b.h / 2) || same(a.y - a.h / 2, b.y - b.h / 2)
+              expect(flat, `${a.kind} / ${b.kind}, seed ${seed}, door ${door}`).toBe(false)
+            }
+          }
+        }
+      }
+    }
+  })
+
+  it('reaches 0.6 m out only at the front; sides and back at most 0.25 m', () => {
+    for (let seed = 0; seed < 50; seed++) {
+      for (const p of houseParts({ ...base, seed })) {
+        expect(Math.abs(p.x) + p.w / 2, p.kind).toBeLessThanOrEqual(base.w / 2 + 0.25)
+        expect(-(p.z - p.d / 2), p.kind).toBeLessThanOrEqual(base.d / 2 + 0.25)
+      }
+    }
+  })
+})
