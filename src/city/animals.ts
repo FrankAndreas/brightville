@@ -3,6 +3,7 @@ import { DOOR_RADIUS, footprint, type DoorSpot } from './doors'
 import type { Part } from './houseKit'
 import { EMPTY_LOTS, LAKE, TOWN_HALF, heightAt, inLake, solidAreas } from './map'
 import { mergeParts } from './merge'
+import { NATURE_SEED, SOLID_KINDS, natureArea, placeNature } from './nature'
 
 /**
  * Life in the town that is only to look at: ducks paddling and boats drifting on the lake, birds hopping that fly up
@@ -25,9 +26,9 @@ export function ducks(t: number): Facing[] {
   return [0, 0.45, 0.85].map(lag => loop(LAKE.x - 4.5, LAKE.z + 1.5, 2, 1.5, 0.3, -lag, t))
 }
 
-/** Two little sailing boats, round the right part of the lake, a long way apart */
+/** Two little sailing boats, round the right part of the lake (the ducks keep to the left), a long way apart */
 export function boats(t: number): Facing[] {
-  return [0, Math.PI].map(phase => loop(LAKE.x + 1.5, LAKE.z + 2.5, 4, 2.5, 0.45, phase, t))
+  return [0, Math.PI].map(phase => loop(LAKE.x + 2.5, LAKE.z + 2.5, 3, 2.5, 0.4, phase, t))
 }
 
 /** The cat sleeps on the back wall of the first garden; the dog plays in the third */
@@ -69,9 +70,12 @@ const SCARED = 3
 const FLIGHT = 8
 const FLIGHT_SPEED = 4
 
-/** Where a bird may sit: on the ground, not in the lake, a house, or near a door */
+/** Where a bird may sit: on the ground, not in the lake, a house, a tree, a lamp, a bench, or near a door */
 export function spotForBird(doors: DoorSpot[]): (x: number, z: number) => boolean {
-  const solids = solidAreas(doors)
+  const solids = [
+    ...solidAreas(doors),
+    ...placeNature(NATURE_SEED, doors).filter(i => SOLID_KINDS.has(i.kind)).map(natureArea),
+  ]
   return (x, z) =>
     Math.max(Math.abs(x), Math.abs(z)) < TOWN_HALF - 3 &&
     !inLake(x, z) && ((x - LAKE.x) / (LAKE.rx + 1.5)) ** 2 + ((z - LAKE.z) / (LAKE.rz + 1.5)) ** 2 > 1 &&
@@ -94,14 +98,19 @@ export function stepBird(b: Bird, her: Point, dt: number, ok: (x: number, z: num
     const dz = b.z - her.z
     const d = Math.hypot(dx, dz)
     if (d < SCARED) {
-      // Away from her, or up to 60° off that if a house or the lake is there: always further from her
+      // Away from her, or up to 60° off that if a house or the lake is there: always further from her. The way there
+      // must be clear too: it flies low, round the houses, never through one
       const away = Math.atan2(dx, dz)
       for (const turn of [0, 0.5, -0.5, 1, -1]) {
         const a = away + turn
-        const tx = b.x + Math.sin(a) * FLIGHT
-        const tz = b.z + Math.cos(a) * FLIGHT
-        if (ok(tx, tz)) return { ...b, state: 'fly', t: 0, fromX: b.x, fromZ: b.z, homeX: tx, homeZ: tz }
+        const clear = Array.from({ length: FLIGHT * 2 }, (_, k) => (k + 1) / 2)
+          .every(r => ok(b.x + Math.sin(a) * r, b.z + Math.cos(a) * r))
+        if (clear) {
+          return { ...b, state: 'fly', t: 0, fromX: b.x, fromZ: b.z, homeX: b.x + Math.sin(a) * FLIGHT, homeZ: b.z + Math.cos(a) * FLIGHT }
+        }
       }
+      // Nowhere to go: up and down again on the spot
+      return { ...b, state: 'fly', t: 0, fromX: b.x, fromZ: b.z, homeX: b.x, homeZ: b.z }
     }
     // A little round its spot, in small hops
     return { ...b, t, x: b.homeX + Math.sin(t * 0.8) * 0.6, z: b.homeZ + (1 - Math.cos(t * 0.8)) * 0.4, y: Math.abs(Math.sin(t * 6)) * 0.12 }
@@ -147,7 +156,8 @@ export function createAnimals(scene: THREE.Scene, doors: DoorSpot[]): Animals {
     const model = shape(parts)
     return Array.from({ length: n }, (_, i) => {
       const mesh = i === 0 ? model : new THREE.Mesh(model.geometry, model.material)
-      mesh.castShadow = true
+      // Small enough not to need a shadow: it would double their draw calls
+      mesh.castShadow = false
       scene.add(mesh)
       return mesh
     })
@@ -177,9 +187,11 @@ export function createAnimals(scene: THREE.Scene, doors: DoorSpot[]): Animals {
       })
       const c = catAt(time)
       cat.position.set(c.x, heightAt(c.x, c.z) + 0.6, c.z)
-      cat.rotation.y = Math.PI / 2
+      // Along the garden's back wall, which runs along z
+      cat.rotation.y = 0
       cat.scale.set(1, c.scale, 1)
-      place(dog, dogAt(time), heightAt(dogAt(time).x, dogAt(time).z))
+      const d = dogAt(time)
+      place(dog, d, heightAt(d.x, d.z))
     },
   }
 }

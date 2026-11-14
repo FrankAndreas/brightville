@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { BUILDINGS } from '@/buildings/registry'
 import { DOOR_RADIUS, footprint } from './doors'
-import { EMPTY_LOTS, JETTY, LAKE, inLake } from './map'
+import { EMPTY_LOTS, JETTY, LAKE, inLake, solidAreas } from './map'
+import { NATURE_SEED, SOLID_KINDS, placeNature } from './nature'
 import * as THREE from 'three'
 import { CAT, DOG_GARDEN, boats, catAt, createAnimals, dogAt, ducks, spotForBird, startBirds, stepBird, type Bird } from './animals'
 
@@ -24,6 +25,14 @@ describe('animals', () => {
     expect(boats(0).length).toBeGreaterThanOrEqual(2)
   })
 
+  it('never puts a duck inside a boat', () => {
+    for (let t = 0; t < 3600; t += 0.25) {
+      for (const d of ducks(t)) {
+        for (const b of boats(t)) expect(Math.hypot(d.x - b.x, d.z - b.z), `at ${t}`).toBeGreaterThan(1.6)
+      }
+    }
+  })
+
   it('moves ducks and boats slowly', () => {
     for (const list of [ducks, boats]) {
       const a = list(10)
@@ -36,8 +45,9 @@ describe('animals', () => {
     }
   })
 
-  it('flies a bird away when she comes within 3 m, never towards her', () => {
+  it('flies a bird away when she comes within 3 m, never towards her or through a house', () => {
     const ok = spotForBird(doors)
+    const solids = solidAreas(doors)
     for (const start of startBirds(doors)) {
       const her = { x: start.x + 2, z: start.z + 1 }
       let bird: Bird = start
@@ -50,6 +60,8 @@ describe('animals', () => {
         expect(now).toBeGreaterThanOrEqual(before - 1e-6)
         before = now
         if (bird.state === 'fly') flew = true
+        // Over the houses' roofs only in thought: it flies round them, never through one
+        expect(solids.some(f => bird.x > f.minX && bird.x < f.maxX && bird.z > f.minZ && bird.z < f.maxZ), `${bird.x},${bird.z}`).toBe(false)
       }
       expect(flew).toBe(true)
       expect(before).toBeGreaterThan(5)
@@ -57,6 +69,29 @@ describe('animals', () => {
       for (let t = 0; t < 4; t += 1 / 30) bird = stepBird(bird, { x: 999, z: 999 }, 1 / 30, ok)
       expect(bird.state).toBe('hop')
       expect(ok(bird.homeX, bird.homeZ)).toBe(true)
+    }
+  })
+
+  it('lets a bird with nowhere to fly flutter up and down on its spot, never towards her', () => {
+    const [start] = startBirds(doors)
+    const her = { x: start.x + 1, z: start.z + 1 }
+    let bird: Bird = start
+    let before = Math.hypot(bird.x - her.x, bird.z - her.z)
+    let flew = false
+    for (let t = 0; t < 1; t += 1 / 30) {
+      bird = stepBird(bird, her, 1 / 30, () => false)
+      if (bird.state === 'fly') flew = true
+      const now = Math.hypot(bird.x - her.x, bird.z - her.z)
+      expect(now).toBeGreaterThanOrEqual(before - 1e-6)
+      before = now
+    }
+    expect(flew).toBe(true)
+  })
+
+  it('keeps birds off trees, lamps and benches', () => {
+    const ok = spotForBird(doors)
+    for (const i of placeNature(NATURE_SEED, doors).filter(i => SOLID_KINDS.has(i.kind))) {
+      expect(ok(i.x, i.z), `${i.kind} at ${i.x},${i.z}`).toBe(false)
     }
   })
 
@@ -84,7 +119,7 @@ describe('animals', () => {
     expect(catAt(1).scale).not.toBeCloseTo(catAt(2.5).scale, 3)
   })
 
-  it(`keeps every animal ${DOOR_RADIUS + 1} m from every door, and birds out of the lake`, () => {
+  it(`keeps every animal ${DOOR_RADIUS + 1} m from every door, and birds start out of the lake`, () => {
     for (let t = 0; t < 60; t += 0.5) {
       for (const p of [...ducks(t), ...boats(t), dogAt(t), catAt(t)]) expect(farFromDoors(p), `${p.x},${p.z}`).toBe(true)
     }
@@ -104,5 +139,7 @@ describe('the animals drawn', () => {
     const corners = new Set(meshes.map(m => m.geometry.attributes.position.count))
     // duck 3 boxes, boat 4, bird 3, cat 5, dog 8: 24 corners each
     expect([...corners].sort((a, b) => a - b), JSON.stringify(meshes.map(m => m.geometry.attributes.position.count))).toEqual([3, 4, 5, 8].map(boxes => boxes * 24))
+    // Small enough not to need shadows: they would double the draw calls
+    expect(meshes.filter(m => m.castShadow)).toEqual([])
   })
 })

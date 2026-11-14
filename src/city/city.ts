@@ -13,7 +13,7 @@ import { createView, walkDirection } from './view'
 import { createSpeedWatch } from './quality'
 import { START, heightAt } from './map'
 import { createAnimals } from './animals'
-import { WALK_SPEED as STROLL, startWalkers, stepWalker, townsfolkDress, walkerAt } from './walkers'
+import { WALK_SPEED as STROLL, startWalkers, stepWalker, townsfolkDress, turnToward, walkerAt } from './walkers'
 
 export interface CityOptions {
   canvas: HTMLCanvasElement
@@ -68,14 +68,13 @@ export async function createCity(opts: CityOptions): Promise<City> {
   const blob = createBlob()
   town.scene.add(blob.object)
 
-  // Townsfolk: wobblies like hers, in random looks, strolling the streets; without shadows, to spare the tablet
+  // Townsfolk: simpler wobblies than hers (createBlob 'low': fewer segments, no shadows), in random looks, strolling
   let townsfolkSeed = 11
   const townsfolkRandom = () => ((townsfolkSeed = (townsfolkSeed * 16807) % 2147483647) / 2147483647)
   const townsfolk = startWalkers().map(walker => {
-    const body = createBlob(townsfolkDress(townsfolkRandom))
-    body.object.traverse(o => { o.castShadow = false })
+    const body = createBlob(townsfolkDress(townsfolkRandom), 'low')
     town.scene.add(body.object)
-    return { walker, body }
+    return { walker, body, facing: walkerAt(walker).heading }
   })
   const animals = createAnimals(town.scene, opts.doors)
 
@@ -83,8 +82,9 @@ export async function createCity(opts: CityOptions): Promise<City> {
     for (const t of townsfolk) {
       t.walker = stepWalker(t.walker, her, dt)
       const p = walkerAt(t.walker)
+      t.facing = turnToward(t.facing, p.heading, dt)
       t.body.update({
-        x: p.x, y: heightAt(p.x, p.z) + 0.6, z: p.z, heading: p.heading, speed: dt > 0 ? STROLL : 0, grounded: true,
+        x: p.x, y: heightAt(p.x, p.z) + 0.6, z: p.z, heading: t.facing, speed: dt > 0 && !t.walker.still ? STROLL : 0, grounded: true,
         tumbling: false, rotation: null, event: null, impact: 0,
       }, dt)
     }

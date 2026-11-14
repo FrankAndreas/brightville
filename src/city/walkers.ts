@@ -36,6 +36,8 @@ export interface Walker {
   along: number
   /** 1 along the loop, -1 back */
   dir: 1 | -1
+  /** Waiting: she is in its way whichever way it turns (at the end of a walk); it stands until she goes on */
+  still?: boolean
 }
 
 const lengths = ROUTES.map(points => points.reduce((sum, p, i) => {
@@ -67,18 +69,35 @@ export function walkerAt(w: Walker): Point & { heading: number } {
   return { ...points[0], heading: 0 }
 }
 
-/** One step: on along the loop, or turned back when she stands in the way */
-export function stepWalker(w: Walker, her: Point, dt: number): Walker {
+const inWay = (w: Walker, her: Point) => {
   const p = walkerAt(w)
   const fx = Math.sin(p.heading)
   const fz = Math.cos(p.heading)
   const dx = her.x - p.x
   const dz = her.z - p.z
   const ahead = dx * fx + dz * fz
-  const beside = Math.abs(dx * fz - dz * fx)
-  const dir: 1 | -1 = ahead > 0 && ahead < AHEAD && beside < BESIDE ? (-w.dir as 1 | -1) : w.dir
+  return ahead > 0 && ahead < AHEAD && Math.abs(dx * fz - dz * fx) < BESIDE
+}
+
+/**
+ * One step: on along the loop, or turned back when she stands in the way. Where both ways lead towards her (at the
+ * end of a walk down a street and back) it waits, rather than turning back and forth.
+ */
+export function stepWalker(w: Walker, her: Point, dt: number): Walker {
   const length = lengths[w.route]
-  return { route: w.route, dir, along: (((w.along + dir * WALK_SPEED * dt) % length) + length) % length }
+  const move = (dir: 1 | -1): Walker => ({ route: w.route, dir, along: (((w.along + dir * WALK_SPEED * dt) % length) + length) % length })
+  const on = move(w.dir)
+  if (!inWay(w, her) && !inWay(on, her)) return on
+  const back = (-w.dir) as 1 | -1
+  const turned = move(back)
+  if (!inWay({ ...w, dir: back }, her) && !inWay(turned, her)) return turned
+  return { route: w.route, dir: w.dir, along: w.along, still: true }
+}
+
+/** The way a walker is shown facing, turning towards `target` in about half a second instead of at once */
+export function turnToward(current: number, target: number, dt: number): number {
+  const gap = Math.atan2(Math.sin(target - current), Math.cos(target - current))
+  return current + gap * (1 - Math.exp(-8 * dt))
 }
 
 /** One walker on each loop, spread out, half of them the other way round */

@@ -235,7 +235,8 @@ export function buildNature(R: Rapier, world: RAPIER.World, scene: THREE.Scene, 
     instances(new THREE.BoxGeometry(1, 0.18, 1), standard(0xffffff), flowers, (i, m) => at(i, m, 0.32, 1.2 * i.scale, 1, 0.7 * i.scale), i => i.color, false),
   )
 
-  scene.add(instances(new THREE.BoxGeometry(1, 0.6, 0.08), standard(0xfff8ec), of('fence'), (i, m) => at(i, m, 0.3, i.scale), undefined, false))
+  // Along its edge: turned by rotY, the box's long side (z) runs from corner to corner
+  scene.add(instances(new THREE.BoxGeometry(0.08, 0.6, 1), standard(0xfff8ec), of('fence'), (i, m) => at(i, m, 0.3, 1, 1, i.scale), undefined, false))
 
   const lamps = of('lamp')
   scene.add(

@@ -3,7 +3,7 @@ import { BUILDINGS } from '@/buildings/registry'
 import { BODY_COLORS, GLASSES, HAIR_COLORS, HAIR_STYLES } from '@/core/look'
 import { DOOR_RADIUS } from './doors'
 import { onStreet } from './map'
-import { ROUTES, WALK_SPEED, routeLength, startWalkers, stepWalker, townsfolkDress, walkerAt, type Walker } from './walkers'
+import { ROUTES, WALK_SPEED, routeLength, startWalkers, stepWalker, townsfolkDress, turnToward, walkerAt, type Walker } from './walkers'
 
 const away = { x: 999, z: 999 }
 const run = (w: Walker, her: { x: number; z: number }, seconds: number, each?: (w: Walker) => void) => {
@@ -93,5 +93,50 @@ describe('townsfolk', () => {
       expect(HAIR_COLORS).toContain(d.look.hairColor)
       expect(GLASSES).toContain(d.look.glasses)
     }
+  })
+})
+
+describe('townsfolk, at the ends of their walks', () => {
+  it('turns away from her once, not back and forth, when she stands near the end of a walk', () => {
+    for (const [route, points] of ROUTES.entries()) {
+      for (const end of points) {
+        // She stands 2 m before the end, on the walker's way
+        const along = (() => {
+          let best = 0
+          let closest = Infinity
+          for (let a = 0; a < routeLength(route); a += 0.25) {
+            const p = walkerAt({ route, along: a, dir: 1 })
+            const d = Math.hypot(p.x - end.x, p.z - end.z)
+            if (d < closest) { closest = d; best = a }
+          }
+          return best
+        })()
+        // She stands 2 m before the end, or 2 m past it (where the walker comes back out after turning there)
+        for (const offset of [-2, 2]) {
+          const L = routeLength(route)
+          const her = walkerAt({ route, along: (along + offset + L) % L, dir: 1 })
+          // The walker is just at the end when she comes: whichever way it is going
+          for (const dir of [1, -1] as const) {
+            let flips = 0
+            let w: Walker = { route, along, dir }
+            for (let t = 0; t < 10; t += 1 / 30) {
+              const next = stepWalker(w, her, 1 / 30)
+              if (next.dir !== w.dir) flips++
+              w = next
+            }
+            expect(flips, `route ${route} end ${end.x},${end.z} offset ${offset} dir ${dir}`).toBeLessThanOrEqual(2)
+          }
+        }
+      }
+    }
+  })
+
+  it('turns round smoothly, not in one frame', () => {
+    let shown = 0
+    shown = turnToward(shown, Math.PI, 1 / 60)
+    expect(shown).toBeGreaterThan(0.05)
+    expect(shown).toBeLessThan(0.6)
+    for (let i = 0; i < 60; i++) shown = turnToward(shown, Math.PI, 1 / 60)
+    expect(Math.abs(Math.atan2(Math.sin(shown - Math.PI), Math.cos(shown - Math.PI)))).toBeLessThan(0.05)
   })
 })

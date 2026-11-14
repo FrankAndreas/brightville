@@ -1,8 +1,15 @@
+import * as THREE from 'three'
+import type RAPIER from '@dimforge/rapier3d-compat'
 import { describe, expect, it } from 'vitest'
 import { BUILDINGS } from '@/buildings/registry'
 import { DOOR_RADIUS, footprint } from './doors'
 import { EMPTY_LOTS, JETTY, LAKE, SCENERY_HOUSES, START, STREETS, inLake, onStreet, sceneryArea, solidAreas, streetDistance } from './map'
-import { NATURE_SEED, SOLID_KINDS, natureArea, placeNature } from './nature'
+import { NATURE_SEED, SOLID_KINDS, buildNature, natureArea, placeNature } from './nature'
+
+// Drawing only: colliders go nowhere
+const desc = new Proxy({}, { get: () => () => desc })
+const RAPIER_STUB = { ColliderDesc: { cylinder: () => desc, cuboid: () => desc } } as unknown as typeof RAPIER
+const WORLD_STUB = { createCollider: () => undefined } as unknown as RAPIER.World
 import { BLOCKS, TRAMPOLINES } from './props'
 import { reachableFrom } from './testing/reach'
 
@@ -72,5 +79,27 @@ describe('placeNature', () => {
 
   it('is the same every time', () => {
     expect(placeNature(NATURE_SEED, doors)).toEqual(items)
+  })
+
+  it('draws each garden fence along its edge, from corner to corner', () => {
+    const scene = new THREE.Scene()
+    buildNature(RAPIER_STUB, WORLD_STUB, scene, items)
+    const fences = items.filter(i => i.kind === 'fence')
+    let mesh: THREE.InstancedMesh | undefined
+    scene.traverse(o => { if ((o as THREE.InstancedMesh).isInstancedMesh && (o as THREE.InstancedMesh).count === fences.length && ((o as THREE.InstancedMesh).geometry as THREE.BoxGeometry).parameters?.height === 0.6) mesh = o as THREE.InstancedMesh })
+    expect(mesh).toBeDefined()
+    const lots = EMPTY_LOTS.map(l => footprint(l))
+    const m = new THREE.Matrix4()
+    fences.forEach((_, k) => {
+      mesh!.getMatrixAt(k, m)
+      // The box's long side runs from one end of the fence to the other
+      const size = (mesh!.geometry as THREE.BoxGeometry).parameters
+      const long = size.width > size.depth ? new THREE.Vector3(0.5, 0, 0) : new THREE.Vector3(0, 0, 0.5)
+      const a = long.clone().applyMatrix4(m)
+      const b = long.clone().negate().applyMatrix4(m)
+      const corner = (p: THREE.Vector3) => lots.some(f => [[f.minX, f.minZ], [f.maxX, f.minZ], [f.minX, f.maxZ], [f.maxX, f.maxZ]]
+        .some(([x, z]) => Math.hypot(p.x - x, p.z - z) < 0.05))
+      expect(corner(a) && corner(b), `fence ${k}: ${a.x.toFixed(1)},${a.z.toFixed(1)} – ${b.x.toFixed(1)},${b.z.toFixed(1)}`).toBe(true)
+    })
   })
 })
