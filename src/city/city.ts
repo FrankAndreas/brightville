@@ -3,7 +3,7 @@ import RAPIER from '@dimforge/rapier3d-compat'
 import type { IntentSource } from '@/input/intents'
 import { nearestDoor, type DoorDef } from './doors'
 import { createLoop } from './loop'
-import { GRAVITY, buildTown, cameraBlocker } from './world'
+import { GRAVITY, buildTown, cameraBlocker, disposeScene } from './world'
 import { TRAMPOLINES, buildProps } from './props'
 import { createCharacter, type CharacterFrame } from './character'
 import { createBlob } from './blob'
@@ -141,16 +141,7 @@ export async function createCity(opts: CityOptions): Promise<City> {
     dispose() {
       loop.stop()
       window.removeEventListener('resize', resize)
-      town.scene.traverse(object => {
-        const mesh = object as THREE.Mesh
-        mesh.geometry?.dispose()
-        for (const t of (object.userData.textures as THREE.Texture[] | undefined) ?? []) t.dispose()
-        const material = mesh.material as THREE.Material | THREE.Material[] | undefined
-        for (const m of Array.isArray(material) ? material : material ? [material] : []) {
-          (m as THREE.MeshBasicMaterial).map?.dispose()
-          m.dispose()
-        }
-      })
+      disposeScene(town.scene)
       renderer.dispose()
       world.free()
     },

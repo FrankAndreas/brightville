@@ -1,6 +1,10 @@
 import * as THREE from 'three'
 import type RAPIER from '@dimforge/rapier3d-compat'
 import { HOUSE_DEPTH, HOUSE_WIDTH, facingAngle, footprint, type DoorDef } from './doors'
+import { houseParts, wallHeight, type HouseSpec } from './houseKit'
+import { mergeParts, type PlacedPart } from './merge'
+import { CAMERA_RAY_GROUPS, UNSEEN_GROUPS } from './groups'
+import { NATURE_SEED, buildNature, placeNature } from './nature'
 import { EMPTY_LOTS, JETTY, LAKE, PLAZA, SCENERY_HOUSES, STREETS, TOWN_HALF, heightAt, sceneryArea } from './map'
 
 type Rapier = typeof RAPIER
@@ -23,8 +27,11 @@ const COLORS = {
   shore: 0xf3e2b3,
   wood: 0xa0703f,
   garden: 0x9fd58c,
-  houses: [0xffc8dd, 0xbde0fe, 0xfde4a8],
-  roofs: [0xff8fab, 0x8ecae6, 0xf4a261],
+  // The houses that are just houses: warm row-house colours, wall and roof
+  houses: [
+    [0xf4a259, 0x9c4a1a], [0xb39ddb, 0x5e3a8c], [0x7fc8b8, 0x2f7d6d], [0xf6c85f, 0xb5651d],
+    [0xef8a80, 0x8e3b46], [0x9fc97a, 0x4f7a2b], [0x8fb8e8, 0x3d5a99], [0xe8a0c8, 0x8a3f6f],
+  ] as [number, number][],
   leafOpen: 0x6b4a2b,
   leafClosed: 0x8a8a8a,
   doorOpen: 0xffd93d,
@@ -57,12 +64,6 @@ function box(w: number, h: number, d: number, color: number): THREE.Mesh {
   return mesh
 }
 
-/**
- * Collision groups (16 bits "member of", 16 bits "meets"): the invisible walls are members of group 2 only, so the
- * camera's ray (meeting group 1 only) looks through them, while she and the balls still bump into them
- */
-const UNSEEN_GROUPS = 0x0002ffff
-const CAMERA_RAY_GROUPS = 0xffff0001
 
 function staticBox(
   R: Rapier, world: RAPIER.World, x: number, y: number, z: number, w: number, h: number, d: number, unseen = false,
@@ -82,45 +83,48 @@ export function cameraBlocker(R: Rapier, world: RAPIER.World) {
     const length = Math.hypot(d.x, d.y, d.z)
     if (length < 1e-6) return null
     const ray = new R.Ray(from, { x: d.x / length, y: d.y / length, z: d.z / length })
+    // A camera-only box she stands under or right against (a tree's crown, an awning) is skipped: from there every
+    // ray would meet it, and the camera would end up above it, hiding her completely
+    const under = (c: RAPIER.Collider) => c.isSensor() && c.containsPoint({ x: from.x, y: c.translation().y, z: from.z })
     const hit = world.castRay(
       ray, length, true, R.QueryFilterFlags.EXCLUDE_DYNAMIC | R.QueryFilterFlags.EXCLUDE_KINEMATIC, CAMERA_RAY_GROUPS,
+      undefined, undefined, c => !under(c),
     )
     return hit ? hit.timeOfImpact : null
   }
 }
 
-/** A house of w × d (along x and z before turning) and h high, turned by `angle` about its middle. */
+/**
+ * A house from the kit (houseKit.ts), turned by `angle` about its middle: its boxes go into `parts`, to be merged with
+ * all the others; the returned group stands where the house does, for what is added to it alone (a door that changes
+ * colour). Solid walls for her, and a roof only the camera meets.
+ */
 function house(
-  R: Rapier, world: RAPIER.World, scene: THREE.Scene,
-  x: number, z: number, w: number, h: number, d: number, color: number, roofColor: number, angle = 0,
+  R: Rapier, world: RAPIER.World, scene: THREE.Scene, parts: PlacedPart[], x: number, z: number, spec: HouseSpec, angle = 0,
 ): THREE.Group {
   const group = new THREE.Group()
   group.position.set(x, 0, z)
   group.rotation.y = angle
-  const walls = box(w, h, d, color)
-  walls.position.y = h / 2
-  // A four-sided roof fitted to the walls with a small overhang
-  const cone = new THREE.Mesh(
-    new THREE.ConeGeometry(1, h * 0.6, 4),
-    new THREE.MeshStandardMaterial({ color: roofColor, roughness: 0.9, flatShading: true }),
-  )
-  cone.rotation.y = Math.PI / 4
-  cone.castShadow = true
-  const roof = new THREE.Group()
-  roof.add(cone)
-  roof.position.y = h + h * 0.3
-  roof.scale.set(w * 0.78, 1, d * 0.78)
-  group.add(walls, roof)
   scene.add(group)
+  group.updateMatrix()
+  const at = group.matrix.clone()
+  for (const part of houseParts(spec)) parts.push({ ...part, at })
+  const { w, d } = spec
+  const h = wallHeight(spec.floors)
   // Only quarter turns: a turned house swaps its width and depth
   const turned = Math.abs(Math.sin(angle)) > 0.5
   staticBox(R, world, x, h / 2, z, turned ? d : w, h, turned ? w : d)
-  // The roof, for the camera only: a sensor nothing bumps into or stands on, but the camera's ray meets it, so a roof
-  // never hides her. A box round the whole roof with its overhang, a little more than it needs
-  const roofHeight = h * 0.6
+  // For the camera only: a sensor nothing bumps into or stands on, but the camera's ray meets it, round the whole
+  // house with its roof, and 0.6 m out at the front for awnings and balconies (houseKit.test.ts keeps every part
+  // inside it), so none of them hides her. Sides and back reach out only for the roof's eaves
+  const top = h * 1.6
+  const out = { front: 0.6, rest: 0.25 }
+  const shift = (out.front - out.rest) / 2
   world.createCollider(
-    R.ColliderDesc.cuboid((turned ? d : w) / 2 + 0.4, roofHeight / 2, (turned ? w : d) / 2 + 0.4)
-      .setTranslation(x, h + roofHeight / 2, z)
+    R.ColliderDesc.cuboid(
+      (turned ? d / 2 + out.rest + shift : w / 2 + out.rest), top / 2, (turned ? w / 2 + out.rest : d / 2 + out.rest + shift),
+    )
+      .setTranslation(x + Math.sin(angle) * shift, top / 2, z + Math.cos(angle) * shift)
       .setSensor(true),
   )
   return group
@@ -162,14 +166,16 @@ function signTexture(icon: string | undefined, locked: boolean): THREE.Texture {
 }
 
 /** The building behind a door: a larger house with a sign and a door that glows when open. */
-function doorBuilding(R: Rapier, world: RAPIER.World, scene: THREE.Scene, door: DoorDef, index: number): DoorVisual {
+function doorBuilding(
+  R: Rapier, world: RAPIER.World, scene: THREE.Scene, parts: PlacedPart[], door: DoorDef, index: number,
+): DoorVisual {
   const depth = HOUSE_DEPTH
   const side = door.side ?? 'back'
   const area = footprint(door)
   const [wall, roofColor] = BUILDING_COLORS[index % BUILDING_COLORS.length]
   const group = house(
-    R, world, scene, (area.minX + area.maxX) / 2, (area.minZ + area.maxZ) / 2,
-    HOUSE_WIDTH, 5, depth, wall, roofColor, facingAngle(side),
+    R, world, scene, parts, (area.minX + area.maxX) / 2, (area.minZ + area.maxZ) / 2,
+    { w: HOUSE_WIDTH, d: depth, floors: 2, wall, roof: roofColor, seed: index + 101, door: true }, facingAngle(side),
   )
 
   const frame = box(2.2, 2.9, 0.2, COLORS.doorOpen)
@@ -394,13 +400,35 @@ export function buildTown(R: Rapier, world: RAPIER.World, doors: DoorDef[]): Tow
     scene.add(garden)
   }
 
+  // Every house's boxes, merged into a few meshes once all are placed
+  const parts: PlacedPart[] = []
   SCENERY_HOUSES.forEach((h, i) => {
     const f = sceneryArea(h)
+    const [wall, roof] = COLORS.houses[i % COLORS.houses.length]
     house(
-      R, world, scene, (f.minX + f.maxX) / 2, (f.minZ + f.maxZ) / 2, h.w, h.floors * 2.6 + 0.4, h.d,
-      COLORS.houses[i % COLORS.houses.length], COLORS.roofs[i % COLORS.roofs.length], facingAngle(h.spot.side ?? 'back'),
+      R, world, scene, parts, (f.minX + f.maxX) / 2, (f.minZ + f.maxZ) / 2,
+      { w: h.w, d: h.d, floors: h.floors, wall, roof, seed: i + 1, door: false }, facingAngle(h.spot.side ?? 'back'),
     )
   })
+  const doorVisuals = doors.map((door, i) => doorBuilding(R, world, scene, parts, door, i))
+  for (const mesh of mergeParts(parts)) scene.add(mesh)
+  buildNature(R, world, scene, placeNature(NATURE_SEED, doors))
 
-  return { scene, doorVisuals: doors.map((door, i) => doorBuilding(R, world, scene, door, i)), sun, followSun }
+  return { scene, doorVisuals, sun, followSun }
+}
+
+/** Frees everything the town drew: geometries, materials, their textures and the signs' spare textures */
+export function disposeScene(scene: THREE.Scene) {
+  scene.traverse(object => {
+    const mesh = object as THREE.Mesh
+    mesh.geometry?.dispose()
+    // Trees, lamps, flowers: their matrices and colours are buffers of the mesh's own
+    if ((object as THREE.InstancedMesh).isInstancedMesh) (object as THREE.InstancedMesh).dispose()
+    for (const t of (object.userData.textures as THREE.Texture[] | undefined) ?? []) t.dispose()
+    const material = mesh.material as THREE.Material | THREE.Material[] | undefined
+    for (const m of Array.isArray(material) ? material : material ? [material] : []) {
+      (m as THREE.MeshBasicMaterial).map?.dispose()
+      m.dispose()
+    }
+  })
 }

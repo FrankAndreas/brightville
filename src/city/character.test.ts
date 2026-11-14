@@ -7,6 +7,7 @@ import { BLOCKS, TRAMPOLINE, TRAMPOLINES, buildProps } from './props'
 import { GRAVITY, buildTown } from './world'
 import type { DoorDef } from './doors'
 import { BUILDINGS, toDoors } from '@/buildings/registry'
+import { NATURE_SEED, SOLID_KINDS, placeNature } from './nature'
 import { HILLS, JETTY, LAKE, TOWN_HALF, heightAt, inLake } from './map'
 
 // The real physics engine, without any drawing
@@ -175,7 +176,12 @@ describe('character', () => {
 
   it('walks over the highest hill and down without tumbling', () => {
     const hill = [...HILLS].sort((a, b) => b.height - a.height)[0]
-    const { run } = setup({ x: hill.x - hill.radius - 1, z: hill.z })
+    // Over the top, but between the trees: the first line across with no trunk within 1.5 m
+    const trunks = placeNature(NATURE_SEED, []).filter(i => SOLID_KINDS.has(i.kind))
+    const z = [0, 1, -1, 2, -2, 3, -3, 4, -4].map(dz => hill.z + dz).find(z =>
+      !trunks.some(t => Math.abs(t.z - z) < 1.5 && t.x > hill.x - hill.radius - 2 && t.x < hill.x + hill.radius + 2))!
+    expect(z).toBeDefined()
+    const { run } = setup({ x: hill.x - hill.radius - 1, z })
     settle(run)
     const frames = run(9, { ...still, moveX: 1 })
     expect(frames.at(-1)!.x).toBeGreaterThan(hill.x + hill.radius)
@@ -219,5 +225,6 @@ describe('character', () => {
       }
     }
     vi.unstubAllGlobals()
-  })
+    // 24 whole towns with every house: slow next to the rest of the suite
+  }, 30_000)
 })

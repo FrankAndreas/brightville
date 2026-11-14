@@ -7,7 +7,7 @@ import { createCharacter } from './character'
 import { HILLS, LAKE, TOWN_HALF, heightAt, inLake, solidAreas } from './map'
 import { createFollowCamera } from './followCamera'
 import { TRAMPOLINES } from './props'
-import { BUILDING_COLORS, GRAVITY, buildTown, cameraBlocker } from './world'
+import { BUILDING_COLORS, GRAVITY, buildTown, cameraBlocker, disposeScene } from './world'
 
 describe('the town', () => {
   beforeAll(() => RAPIER.init())
@@ -150,9 +150,14 @@ describe('the camera in the real town', () => {
     // Houses, roofs and doors: what could stand between the camera and her
     const walls: THREE.Object3D[] = []
     scene.traverse(o => {
-      const type = (o as THREE.Mesh).geometry?.type
-      if (type === 'BoxGeometry' || type === 'ConeGeometry') walls.push(o)
+      const mesh = o as THREE.Mesh
+      const type = mesh.geometry?.type
+      // Door frames and leaves are boxes; the houses are merged boxes, coloured by their corners. Trees (instanced)
+      // may cover her for a moment: the camera doesn't dodge them, so it doesn't jump at every tree
+      const merged = (mesh.material as THREE.MeshStandardMaterial | undefined)?.vertexColors === true
+      if (((type === 'BoxGeometry' && !(o as THREE.InstancedMesh).isInstancedMesh)) || merged) walls.push(o)
     })
+    expect(walls.length).toBeGreaterThan(20)
     const ray = new THREE.Raycaster()
     const hidden: string[] = []
     // Off the whole metres, where walls stand: a ray grazing a wall exactly is no cover
@@ -174,5 +179,54 @@ describe('the camera in the real town', () => {
       }
     }
     expect(hidden).toEqual([])
+  })
+})
+
+describe('freeing the town', () => {
+  beforeAll(() => RAPIER.init())
+
+  it('dispose frees every geometry, material and texture', () => {
+    const world = new RAPIER.World({ x: 0, y: -GRAVITY, z: 0 })
+    const doors = toDoors(BUILDINGS, { camera: true, touch: true, keyboard: true, films: true }, true, 10)
+    vi.stubGlobal('document', { createElement: () => ({ getContext: () => null }) })
+    const { scene } = buildTown(RAPIER, world, doors)
+    vi.unstubAllGlobals()
+    const geometries = new Set<THREE.BufferGeometry>()
+    const materials = new Set<THREE.Material>()
+    const textures = new Set<THREE.Texture>()
+    scene.traverse(o => {
+      const mesh = o as THREE.Mesh
+      if (mesh.geometry) geometries.add(mesh.geometry)
+      for (const m of [mesh.material].flat()) if (m) materials.add(m as THREE.Material)
+      for (const t of (o.userData.textures as THREE.Texture[] | undefined) ?? []) textures.add(t)
+    })
+    const freed = new Set<unknown>()
+    const spy = function (this: unknown) { freed.add(this) }
+    vi.spyOn(THREE.BufferGeometry.prototype, 'dispose').mockImplementation(spy)
+    vi.spyOn(THREE.Material.prototype, 'dispose').mockImplementation(spy)
+    vi.spyOn(THREE.Texture.prototype, 'dispose').mockImplementation(spy)
+    const instanced: THREE.InstancedMesh[] = []
+    scene.traverse(o => { if ((o as THREE.InstancedMesh).isInstancedMesh) instanced.push(o as THREE.InstancedMesh) })
+    expect(instanced.length).toBeGreaterThan(5)
+    // Their matrices and colours live in buffers of their own, freed only by the mesh's dispose
+    vi.spyOn(THREE.InstancedMesh.prototype, 'dispose').mockImplementation(spy)
+    disposeScene(scene)
+    expect(instanced.filter(m => !freed.has(m))).toHaveLength(0)
+    expect([...geometries].filter(g => !freed.has(g))).toHaveLength(0)
+    expect([...materials].filter(m => !freed.has(m))).toHaveLength(0)
+    expect(textures.size).toBe(doors.length * 2)
+    expect([...textures].filter(t => !freed.has(t))).toHaveLength(0)
+  })
+
+  it('draws the houses in a few merged pieces', () => {
+    const world = new RAPIER.World({ x: 0, y: -GRAVITY, z: 0 })
+    const doors = toDoors(BUILDINGS, { camera: true, touch: true, keyboard: true, films: true }, true, 10)
+    vi.stubGlobal('document', { createElement: () => ({ getContext: () => null }) })
+    const { scene } = buildTown(RAPIER, world, doors)
+    vi.unstubAllGlobals()
+    let meshes = 0
+    scene.traverse(o => { if ((o as THREE.Mesh).isMesh) meshes++ })
+    // Each door keeps its frame, leaf and ring; the houses are merged
+    expect(meshes).toBeLessThan(doors.length * 3 + 80)
   })
 })
