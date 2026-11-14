@@ -12,6 +12,7 @@ import { createFollowCamera } from './followCamera'
 import { createView, walkDirection } from './view'
 import { createSpeedWatch } from './quality'
 import { START, heightAt } from './map'
+import { createAnimals } from './animals'
 import { WALK_SPEED as STROLL, startWalkers, stepWalker, townsfolkDress, walkerAt } from './walkers'
 
 export interface CityOptions {
@@ -76,6 +77,8 @@ export async function createCity(opts: CityOptions): Promise<City> {
     town.scene.add(body.object)
     return { walker, body }
   })
+  const animals = createAnimals(town.scene, opts.doors)
+
   function strollTownsfolk(her: { x: number; z: number }, dt: number) {
     for (const t of townsfolk) {
       t.walker = stepWalker(t.walker, her, dt)
@@ -130,6 +133,7 @@ export async function createCity(opts: CityOptions): Promise<City> {
     props.update(dt)
     blob.update(f, dt)
     strollTownsfolk(f, dt)
+    animals.update(time, dt, f)
     for (const door of town.doorVisuals) door.update(time)
     view.follow(f, dt, first, turning.yaw, blocked)
     town.followSun(f.x, f.z)
