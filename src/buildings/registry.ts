@@ -28,91 +28,88 @@ const moebel = () => import('./moebel/Moebelhaus.vue')
 const flatterflug = () => import('./flatterflug/Flatterflug.vue')
 
 /**
- * Every building in the town: learning at the back, making things and moving on the left, playing on the right,
- * and the child's own house at the front, by the playground.
- * A door's x and z are the spot in front of it; its house stands behind that, facing the middle.
+ * Every building in the town, mixed along the streets of `src/city/map.ts` so every walk passes learning, playing and
+ * shops; her own house is by the plaza where she starts. A door's x and z are the spot in front of it, on the street's
+ * edge; its house stands behind that on `side`, facing the street.
  */
 export const BUILDINGS: BuildingDef[] = [
   {
-    id: 'school', spokenName: 'Schule', icon: '🔢', kind: 'earn', needs: [], door: { x: -25, z: -24 },
+    id: 'school', spokenName: 'Schule', icon: '🔢', kind: 'earn', needs: [], door: { x: 3.5, z: -13, side: 'right' },
     component: defineAsyncComponent(school), preload: school,
   },
   {
     // Writing wants a finger or a pen on the glass; a mouse teaches nothing about it
-    id: 'schreiben', spokenName: 'Schreiben', icon: '✏️', kind: 'earn', needs: ['touch'], door: { x: -15, z: -24 },
+    id: 'schreiben', spokenName: 'Schreiben', icon: '✏️', kind: 'earn', needs: ['touch'], door: { x: -24.5, z: 3.5, side: 'front' },
     component: defineAsyncComponent(schreiben), preload: schreiben,
   },
   {
-    id: 'yoga', spokenName: 'Yoga', icon: '🧘', kind: 'earn', needs: ['camera'], door: { x: -5, z: -24 },
+    id: 'yoga', spokenName: 'Yoga', icon: '🧘', kind: 'earn', needs: ['camera'], door: { x: -3.5, z: 40, side: 'left' },
     component: defineAsyncComponent(yoga), preload: yoga,
   },
   {
-    id: 'unterschiede', spokenName: 'Unterschiede', icon: '🔍', kind: 'earn', needs: [], door: { x: 5, z: -24 },
+    id: 'unterschiede', spokenName: 'Unterschiede', icon: '🔍', kind: 'earn', needs: [], door: { x: -15, z: 3.5, side: 'front' },
     component: defineAsyncComponent(unterschiede), preload: unterschiede,
   },
   {
-    id: 'bibliothek', spokenName: 'Bibliothek', icon: '📚', kind: 'earn', needs: [], door: { x: 15, z: -24 },
+    id: 'bibliothek', spokenName: 'Bibliothek', icon: '📚', kind: 'earn', needs: [], door: { x: -3.5, z: -24, side: 'left' },
     component: defineAsyncComponent(bibliothek), preload: bibliothek,
   },
   {
-    id: 'farblabor', spokenName: 'Farblabor', icon: '🧪', kind: 'earn', needs: [], door: { x: 25, z: -24 },
+    id: 'farblabor', spokenName: 'Farblabor', icon: '🧪', kind: 'earn', needs: [], door: { x: 15, z: -3.5 },
     component: defineAsyncComponent(farblabor), preload: farblabor,
   },
   {
-    id: 'ausmalen', spokenName: 'Ausmalen', icon: '🎨', kind: 'free', needs: [], door: { x: -23, z: -12, side: 'left' },
+    id: 'ausmalen', spokenName: 'Ausmalen', icon: '🎨', kind: 'free', needs: [], door: { x: -15, z: -3.5 },
     component: defineAsyncComponent(ausmalen), preload: ausmalen,
   },
   {
-    id: 'malen', spokenName: 'Malen', icon: '🖌️', kind: 'free', needs: [], door: { x: -23, z: -2, side: 'left' },
+    id: 'malen', spokenName: 'Malen', icon: '🖌️', kind: 'free', needs: [], door: { x: -16, z: 28.5 },
     component: defineAsyncComponent(malen), preload: malen,
   },
   {
     // Moving: the camera counts jumps and dance moves
-    id: 'huepfhalle', spokenName: 'Hüpfhalle', icon: '🦘', kind: 'earn', needs: ['camera'], door: { x: -23, z: 8, side: 'left' },
+    id: 'huepfhalle', spokenName: 'Hüpfhalle', icon: '🦘', kind: 'earn', needs: ['camera'], door: { x: -40, z: 3.5, side: 'front' },
     component: defineAsyncComponent(huepfhalle), preload: huepfhalle,
   },
   {
-    id: 'tanzsaal', spokenName: 'Tanzsaal', icon: '🪩', kind: 'earn', needs: ['camera'], door: { x: -23, z: 18, side: 'left' },
+    id: 'tanzsaal', spokenName: 'Tanzsaal', icon: '🪩', kind: 'earn', needs: ['camera'], door: { x: 40, z: -3.5 },
     component: defineAsyncComponent(tanzsaal), preload: tanzsaal,
   },
   {
-    id: 'arcade', spokenName: 'Spielhalle', icon: '🃏', kind: 'play', cost: 3, needs: [], door: { x: 23, z: -12, side: 'right' },
+    id: 'arcade', spokenName: 'Spielhalle', icon: '🃏', kind: 'play', cost: 3, needs: [], door: { x: -3.5, z: -13, side: 'left' },
     component: defineAsyncComponent(arcade), preload: arcade,
   },
   {
-    id: 'schlange', spokenName: 'Schlange', icon: '🐍', kind: 'play', cost: 3, needs: [], door: { x: 23, z: -2, side: 'right' },
+    id: 'schlange', spokenName: 'Schlange', icon: '🐍', kind: 'play', cost: 3, needs: [], door: { x: -40, z: -3.5 },
     component: defineAsyncComponent(schlange), preload: schlange,
   },
   {
-    id: 'bonbonjagd', spokenName: 'Bonbonjagd', icon: '🍬', kind: 'play', cost: 3, needs: [], door: { x: 23, z: 8, side: 'right' },
+    id: 'bonbonjagd', spokenName: 'Bonbonjagd', icon: '🍬', kind: 'play', cost: 3, needs: [], door: { x: 3.5, z: 40, side: 'right' },
     component: defineAsyncComponent(bonbonjagd), preload: bonbonjagd,
   },
   {
     // Shown, but closed, until the parents chose films
-    id: 'kino', spokenName: 'Kino', icon: '🎬', kind: 'play', cost: 3, needs: ['films'], door: { x: 23, z: 18, side: 'right' },
+    id: 'kino', spokenName: 'Kino', icon: '🎬', kind: 'play', cost: 3, needs: ['films'], door: { x: 3.5, z: -40, side: 'right' },
     component: defineAsyncComponent(kino), preload: kino,
   },
   {
     // The child's own: the logbook and the sticker book
-    id: 'haus', spokenName: 'Mein Haus', icon: '🏠', kind: 'free', needs: [], door: { x: -5, z: 24, side: 'front' },
+    id: 'haus', spokenName: 'Mein Haus', icon: '🏠', kind: 'free', needs: [], door: { x: -3.5, z: 13, side: 'left' },
     unlogged: true, component: defineAsyncComponent(haus), preload: haus,
   },
   {
-    // Add-ons for her character, after today's learning: at the front, next to the house with her wardrobe (the right
-    // side has no room for a fifth door, and the front right is between the Cinema and the playground)
-    id: 'laden', spokenName: 'Kleiderladen', icon: '👗', kind: 'shop', needs: [], door: { x: -21, z: 24, side: 'front' },
+    // Add-ons for her character, after today's learning: next to the house with her wardrobe
+    id: 'laden', spokenName: 'Kleiderladen', icon: '👗', kind: 'shop', needs: [], door: { x: -3.5, z: 24, side: 'left' },
     component: defineAsyncComponent(laden), preload: laden,
   },
   {
-    // Furniture for her room (stage 8). The front left has no room for a third house between the Kleiderladen and
-    // hers, so it stands at the front right, past the playground; the square grew by a metre for it (z 25)
-    id: 'moebel', spokenName: 'Möbelhaus', icon: '🛋️', kind: 'shop', needs: [], door: { x: 22, z: 25, side: 'front' },
+    // Furniture for her room (stage 8)
+    id: 'moebel', spokenName: 'Möbelhaus', icon: '🛋️', kind: 'shop', needs: [], door: { x: 51, z: -3.5 },
     component: defineAsyncComponent(moebel), preload: moebel,
   },
   {
-    // Her wobbly gets wings: flying through the clouds. A play building, but the right side is full: at the front,
-    // between the playground's staircase (turned to climb towards the front for it) and the Möbelhaus
-    id: 'flatterflug', spokenName: 'Flatterflug', icon: '🪽', kind: 'play', cost: 3, needs: [], door: { x: 12, z: 25, side: 'front' },
+    // Her wobbly gets wings: flying through the clouds
+    id: 'flatterflug', spokenName: 'Flatterflug', icon: '🪽', kind: 'play', cost: 3, needs: [], door: { x: 40, z: 3.5, side: 'front' },
     component: defineAsyncComponent(flatterflug), preload: flatterflug,
   },
 ]

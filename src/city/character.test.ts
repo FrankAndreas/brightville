@@ -137,15 +137,16 @@ describe('character', () => {
     const steps = BLOCKS.filter(b => b.kind === 'step').sort((a, b) => a.h - b.h)
     const top = BLOCKS.find(b => b.kind === 'platform')!
     const first = steps[0]
-    // Lined up along z (the staircase climbs towards the front edge), in front of the first step
-    const { run } = setup({ x: first.x, z: first.z - first.d })
+    // Lined up along z, in front of the first step; `dir` is the way the staircase climbs
+    const dir = Math.sign(top.z - first.z)
+    const { run } = setup({ x: first.x, z: first.z - dir * first.d })
     settle(run)
     let best = 0
     for (let i = 0; i < 40; i++) {
-      run(DT, { ...still, moveZ: 1, jump: true })
-      const f = run(0.45, { ...still, moveZ: 0.6 }).at(-1)!
+      run(DT, { ...still, moveZ: dir, jump: true })
+      const f = run(0.45, { ...still, moveZ: 0.6 * dir }).at(-1)!
       best = Math.max(best, f.y)
-      if (f.z > top.z - top.d / 2 + 0.5) break
+      if (dir * (f.z - top.z) > -top.d / 2 + 0.5) break
     }
     // Standing on the platform: its height plus half the body
     expect(best).toBeGreaterThan(top.h + 0.4)
