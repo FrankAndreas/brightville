@@ -16,7 +16,7 @@ The six stages of the roadmap in [the stage 1 design](superpowers/specs/2026-11-
 8. Her room in Mein Haus: a trophy shelf, a proper wardrobe, furniture on seven spots, the Möbelhaus (one purchase a day across both shops) (PRs #22–#24)
 9. The Flatterflug: her wobbly with wings, flying through the clouds (a play building)
 10. Schreiben with her own words and sentences (Spielzeugkiste's name writing, grown into short sentences), a level per letter that sets the help, and new letters paced
-11. A bigger town to walk and discover (part A: streets, hills, a lake with a jetty, the buildings mixed along the streets, a camera that keeps her in sight). Part B: detailed houses, trees, flowers, lamps and benches. Part C (townsfolk, animals, boats) follows, see [the plan](superpowers/plans/2026-11-14-brightville-bigger-town.md)
+11. A bigger town to walk and discover (part A: streets, hills, a lake with a jetty, the buildings mixed along the streets, a camera that keeps her in sight). Part B: detailed houses, trees, flowers, lamps and benches. Part C: townsfolk, ducks, boats, birds, a cat and a dog, see [the plan](superpowers/plans/2026-11-14-brightville-bigger-town.md)
 
 Each stage has its design in `docs/superpowers/specs/`; what the game does now is in the README.
 
