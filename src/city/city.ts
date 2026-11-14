@@ -117,6 +117,7 @@ export async function createCity(opts: CityOptions): Promise<City> {
       town.scene.traverse(object => {
         const mesh = object as THREE.Mesh
         mesh.geometry?.dispose()
+        for (const t of (object.userData.textures as THREE.Texture[] | undefined) ?? []) t.dispose()
         const material = mesh.material as THREE.Material | THREE.Material[] | undefined
         for (const m of Array.isArray(material) ? material : material ? [material] : []) {
           (m as THREE.MeshBasicMaterial).map?.dispose()
