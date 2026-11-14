@@ -5,7 +5,7 @@ const none = { turn: 0, turnAround: false, lookHome: false }
 const near = (a: number, b: number) => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b))) < 0.02
 
 describe('walkDirection', () => {
-  it('is the keys as they are when looking at the learning row', () => {
+  it('is the keys as they are when not turned', () => {
     expect(walkDirection(0, 1, 0)).toEqual({ x: 1, z: 0 })
     expect(walkDirection(0, 0, -1)).toEqual({ x: 0, z: -1 })
   })
@@ -25,7 +25,7 @@ describe('walkDirection', () => {
 })
 
 describe('createView', () => {
-  it('starts looking at the learning row', () => {
+  it('starts looking along -z', () => {
     expect(createView().yaw).toBe(0)
   })
 
@@ -47,7 +47,7 @@ describe('createView', () => {
     expect(near(view.yaw, Math.PI)).toBe(true)
   })
 
-  it('looks back at the learning row the short way', () => {
+  it('looks home the short way', () => {
     const view = createView()
     view.step({ ...none, turn: -1 }, 1)
     for (let i = 0; i < 4; i++) view.step({ ...none, turnAround: true }, 1)
@@ -63,5 +63,20 @@ describe('createView', () => {
     view.step({ ...none, turn: 1 }, 0.1)
     view.step(none, 1)
     expect(view.yaw).toBeCloseTo(before - TURN_SPEED * 0.1)
+  })
+
+  it('looks towards the plaza from anywhere in the town', () => {
+    const view = createView()
+    view.step({ ...none, lookHome: true }, 1 / 60, { x: 30, z: 0 })
+    for (let i = 0; i < 60; i++) view.step(none, 1 / 60, { x: 30, z: 0 })
+    expect(near(view.yaw, Math.atan2(30, 0))).toBe(true)
+  })
+
+  it('looks the first way on the plaza itself', () => {
+    const view = createView()
+    view.step({ ...none, turn: 1 }, 1)
+    view.step({ ...none, lookHome: true }, 1 / 60, { x: 0, z: 5 })
+    for (let i = 0; i < 60; i++) view.step(none, 1 / 60, { x: 0, z: 5 })
+    expect(near(view.yaw, 0)).toBe(true)
   })
 })

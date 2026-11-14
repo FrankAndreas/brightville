@@ -13,14 +13,17 @@ export interface Trampoline {
   height: number
 }
 
-/** The first trampoline, near the plaza */
-export const TRAMPOLINE: Trampoline = { x: 7, z: 8, radius: 2, top: 0.3, height: 4 }
+/** The first trampoline, in the garden behind Unterschiede, near the plaza */
+export const TRAMPOLINE: Trampoline = { x: -17, z: 16, radius: 2, top: 0.3, height: 4 }
 
-/** Every trampoline: the first one, a big one in the playground at the front, and a small one beside the first */
+/**
+ * Every trampoline: the first one, a big one alone in the park (it throws her 9 m: nothing to land on there), and a
+ * small one beside the first
+ */
 export const TRAMPOLINES: Trampoline[] = [
   TRAMPOLINE,
-  { x: -14, z: 18, radius: 2.6, top: 0.4, height: 7 },
-  { x: 8, z: 15, radius: 1.2, top: 0.25, height: 2.5 },
+  { x: -46, z: -24, radius: 2.6, top: 0.4, height: 7 },
+  { x: -23, z: 15, radius: 1.2, top: 0.25, height: 2.5 },
 ]
 
 /** Something solid to climb or hop over: centre, width (x), depth (z) and height, metres */
@@ -41,10 +44,10 @@ const STEP_COLORS = [0xff8fab, 0xffd93d, 0x95d5b2, 0x8ecae6]
  * and low hurdles to hop over.
  */
 export const BLOCKS: Block[] = [
-  // Climbing towards the front edge, between the paths to Mein Haus and the Flatterflug
-  ...STEP_COLORS.map((color, i): Block => ({ kind: 'step', x: 4, z: 17 + i * 2, w: 2.4, d: 2, h: 0.5 * (i + 1), color })),
-  { kind: 'platform', x: 4, z: 26, w: 4, d: 4, h: 2.5, color: 0xc8b6ff },
-  ...[13, 16, 19].map((z): Block => ({ kind: 'hurdle', x: 0, z, w: 3, d: 0.3, h: 0.45, color: 0xff9a3c })),
+  // In the back right quarter behind the Farblabor, climbing away from the plaza
+  ...STEP_COLORS.map((color, i): Block => ({ kind: 'step', x: 16, z: -13 - i * 2, w: 2.4, d: 2, h: 0.5 * (i + 1), color })),
+  { kind: 'platform', x: 16, z: -22, w: 4, d: 4, h: 2.5, color: 0xc8b6ff },
+  ...[-13, -16, -19].map((z): Block => ({ kind: 'hurdle', x: 24, z, w: 3, d: 0.3, h: 0.45, color: 0xff9a3c })),
 ]
 
 const BALLS: { x: number; z: number; radius: number; color: number }[] = [

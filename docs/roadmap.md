@@ -16,6 +16,7 @@ The six stages of the roadmap in [the stage 1 design](superpowers/specs/2026-11-
 8. Her room in Mein Haus: a trophy shelf, a proper wardrobe, furniture on seven spots, the Möbelhaus (one purchase a day across both shops) (PRs #22–#24)
 9. The Flatterflug: her wobbly with wings, flying through the clouds (a play building)
 10. Schreiben with her own words and sentences (Spielzeugkiste's name writing, grown into short sentences), a level per letter that sets the help, and new letters paced
+11. A bigger town to walk and discover (part A: streets, hills, a lake with a jetty, the buildings mixed along the streets, a camera that keeps her in sight). Parts B (detailed houses, trees and flowers) and C (townsfolk, animals, boats) follow, see [the plan](superpowers/plans/2026-11-14-brightville-bigger-town.md)
 
 Each stage has its design in `docs/superpowers/specs/`; what the game does now is in the README.
 
@@ -24,7 +25,7 @@ Each stage has its design in `docs/superpowers/specs/`; what the game does now i
 These were tested with automated tests and in a desktop browser, but not where they matter:
 
 - **Hüpfhalle and Tanzsaal with a real child and camera.** The rules are tested against made-up bodies. A separate camera is planned because the laptop's built-in one needs too much distance. If moves count too easily or not at all, the thresholds are in `src/core/moves/reps.ts` (Hüpfhalle) and `src/core/moves/dance.ts` (Tanzsaal).
-- **Everything on a real iPad:** turn buttons, swiping, drawing, Schreiben with the pen, the camera buildings.
+- **Everything on a real iPad:** turn buttons, swiping, drawing, Schreiben with the pen, the camera buildings, and the bigger town's speed (Chrome on a laptop's Intel graphics draws it at about 56 frames a second at double pixel density, dropping itself to 1.5).
 - **A Cinema film played to its end** (only tested with the player's messages).
 - **The DSM reverse proxy's upload limit** for paintings: if paintings keep showing ⏳ on the NAS, see the troubleshooting table in `docs/deploy-nas.md`.
 

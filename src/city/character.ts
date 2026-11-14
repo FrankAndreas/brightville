@@ -4,6 +4,7 @@ import { JUMP_SPEED, desiredVelocity } from './movement'
 import { TUMBLE_MS, shouldTumble } from './tumble'
 import { GRAVITY } from './world'
 import type { Trampoline } from './props'
+import { heightAt } from './map'
 
 type Rapier = typeof RAPIER
 
@@ -46,7 +47,7 @@ export function createCharacter(
 ): Character {
   const pads = Array.isArray(trampolines) ? trampolines : [trampolines]
   const body = world.createRigidBody(
-    R.RigidBodyDesc.kinematicPositionBased().setTranslation(start.x, HALF_HEIGHT + 0.05, start.z),
+    R.RigidBodyDesc.kinematicPositionBased().setTranslation(start.x, heightAt(start.x, start.z) + HALF_HEIGHT + 0.05, start.z),
   )
   const collider = world.createCollider(
     R.ColliderDesc.capsule(HALF_HEIGHT - CAPSULE_RADIUS, CAPSULE_RADIUS).setRestitution(0.4).setDensity(0.6),
@@ -116,7 +117,7 @@ export function createCharacter(
       const p = body.translation()
       // Fell out of the world somehow: back to the start, no drama
       if (p.y < -5) {
-        body.setTranslation({ x: start.x, y: HALF_HEIGHT + 0.5, z: start.z }, true)
+        body.setTranslation({ x: start.x, y: heightAt(start.x, start.z) + HALF_HEIGHT + 0.5, z: start.z }, true)
         v.x = v.y = v.z = 0
         return frame(null)
       }

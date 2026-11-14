@@ -1,4 +1,4 @@
-/** Which side of the square a door building stands on; its door faces the middle */
+/** Which side of its door a building stands on: 'back' is towards -z, so its door faces +z */
 export type Side = 'back' | 'left' | 'right' | 'front'
 
 /** Where a door is: the spot in front of it the child walks to, and the side its house stands on */
@@ -31,18 +31,18 @@ export interface Footprint {
   maxZ: number
 }
 
-/** The ground a door's house covers. */
-export function footprint(door: DoorSpot): Footprint {
-  const half = HOUSE_WIDTH / 2
+/** The ground a door's house covers; `width` and `depth` for a house of another size (scenery) */
+export function footprint(door: DoorSpot, width = HOUSE_WIDTH, depth = HOUSE_DEPTH): Footprint {
+  const half = width / 2
   switch (door.side ?? 'back') {
     case 'left':
-      return { minX: door.x - SETBACK - HOUSE_DEPTH, maxX: door.x - SETBACK, minZ: door.z - half, maxZ: door.z + half }
+      return { minX: door.x - SETBACK - depth, maxX: door.x - SETBACK, minZ: door.z - half, maxZ: door.z + half }
     case 'right':
-      return { minX: door.x + SETBACK, maxX: door.x + SETBACK + HOUSE_DEPTH, minZ: door.z - half, maxZ: door.z + half }
+      return { minX: door.x + SETBACK, maxX: door.x + SETBACK + depth, minZ: door.z - half, maxZ: door.z + half }
     case 'front':
-      return { minX: door.x - half, maxX: door.x + half, minZ: door.z + SETBACK, maxZ: door.z + SETBACK + HOUSE_DEPTH }
+      return { minX: door.x - half, maxX: door.x + half, minZ: door.z + SETBACK, maxZ: door.z + SETBACK + depth }
     default:
-      return { minX: door.x - half, maxX: door.x + half, minZ: door.z - SETBACK - HOUSE_DEPTH, maxZ: door.z - SETBACK }
+      return { minX: door.x - half, maxX: door.x + half, minZ: door.z - SETBACK - depth, maxZ: door.z - SETBACK }
   }
 }
 

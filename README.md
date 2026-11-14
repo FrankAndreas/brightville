@@ -3,7 +3,7 @@
 A small, friendly town for a kindergarten-age child: walk a wobbly character around, go into buildings, and earn Stars there by learning and moving.
 Everything the child sees is pictures and a German voice; no reading is needed.
 
-The town square (62 m across) has balls to push, three trampolines, a playground at the front (a staircase of blocks up to a platform, hurdles to hop over) and its buildings: learning at the back, making things and moving on the left, playing on the right, and the child's own house at the front.
+The town is 120 m across: a plaza in the middle where she starts, with balls to push, and four avenues and a ring road leading out to its buildings. Learning, making things, moving, playing and the two shops are mixed along the streets, so every walk passes a bit of everything; her own house is by the plaza. Between the streets lie houses that are just houses, a park with the big hill (and the big trampoline), smaller hills in the corners, a lake with a wooden jetty by the plaza, two more trampolines in a garden, a playground (a staircase of blocks up to a platform, hurdles to hop over), and four empty lots kept for buildings still to come. A hedge runs round it all. Each building's sign floats above its door, seen from every street. The whole map is data in `src/city/map.ts`, and `map.test.ts` checks it: every door reachable on foot, no slope steeper than 20°, the lake closed off, the buildings mixed.
 
 | Building | What happens inside | Stars |
 |---|---|---|
@@ -125,7 +125,7 @@ Schlange ends when the snake bites itself; Bonbonjagd when the five lives are go
 
 Her own wobbly, in her look and with what she wears (anything on its back makes room for a pair of feathered wings), flies through the sky. Each tap anywhere (or Space, ↑) makes it flap and rise a little; without flapping it sinks. Columns of clouds come from the right, each with a gap to fly through: 15 make a round, and the voice cheers at half. A cloud costs one of three hearts ("Hoppla!") and the wobbly blinks for a moment, flying on; the meadow below just bounces it up again, so falling never ends the round. Before the start she picks a speed (🐢 🐇 🐆: faster clouds, smaller gaps), remembered on the device. Upright, the wobbly flies further left, so the next gap is always seen two seconds ahead. The rules are in `src/core/flight.ts`, the flying wobbly in `src/city/flyer.ts`.
 
-It is a play building like Schlange (3 Stars a round, after today's learning). The right side of the square is full, so its door is at the front, between the playground and the Möbelhaus; the playground's staircase now climbs towards the front edge, between the paths to Mein Haus and the Flatterflug (no step or platform stands on a path to a door: a test keeps it so).
+It is a play building like Schlange (3 Stars a round, after today's learning).
 
 ## Kino
 
@@ -192,7 +192,7 @@ The tracking model (`public/mediapipe/pose_landmarker_lite.task`, from Google's 
 
 ## Mein Haus, the logbook and stickers
 
-The house at the front of the square is her room: a wall with a window, a floor, a table with the logbook and the sticker book, a trophy shelf, her wardrobe and seven spots for furniture.
+Mein Haus, by the plaza, is her room: a wall with a window, a floor, a table with the logbook and the sticker book, a trophy shelf, her wardrobe and seven spots for furniture.
 
 - **Tagebuch:** one page per day the child did something, newest first. It shows the icon of each building visited with the Stars earned (green) or spent (grey), a sun when the daily goal was reached, the stickers earned and the paintings made that day. The voice reads the date, and tapping an entry says it ("Schule, sieben Sterne."). It is built from what the server has recorded since stage 4; visits to Malen and Ausmalen are recorded from stage 6 on, and only those in which something was made: at least ten strokes or fills and a minute inside (`src/buildings/effort.ts`).
 - **Stickerheft:** a space for each of the 17 stickers, earned ones in colour, the rest as grey outlines. Tapping one says what it is for.
@@ -234,6 +234,6 @@ Both shops share their code (`src/buildings/shop/`) and, on the server, their ru
 | `backend/` | The server: FastAPI and SQLite. The family hub's login (`hub.py`, `auth.py`) or the no-hub picking (`local.py`), the rules that touch Stars (`game.py`), the people (`people.py`). Tests in `tests/` |
 | `shared/buildings.json` | What each building is (earns or costs, how much), read by the server; a test checks the town agrees |
 
-A building is a Vue component that emits `finished` with `{ stars }`. To add one, write the component and add an entry to `src/buildings/registry.ts` with its door position, picture, spoken name, whether it earns Stars, costs them or is free (`kind`, `cost`), which side of the square it stands on (`door.side`) and what it needs from the device (camera, touch, keyboard). The town shows a door as closed when the device can't serve it. A building also tells `src/buildings/leave.ts` how it is left (`onLeaveRequest(leave)`), so the on-screen leave button works in it.
+A building is a Vue component that emits `finished` with `{ stars }`. To add one, write the component and add an entry to `src/buildings/registry.ts` with its door position, picture, spoken name, whether it earns Stars, costs them or is free (`kind`, `cost`), where its door stands on a street of `src/city/map.ts` and on which side of the door its house is (`door.side`; `map.test.ts` checks the spot is free and reachable) and what it needs from the device (camera, touch, keyboard). The town shows a door as closed when the device can't serve it. A building also tells `src/buildings/leave.ts` how it is left (`onLeaveRequest(leave)`), so the on-screen leave button works in it.
 
 In development mode, pressing L in the Yoga Studio prints the tracked body to the browser console, which is how real poses can be turned into test data.

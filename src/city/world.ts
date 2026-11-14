@@ -1,13 +1,14 @@
 import * as THREE from 'three'
 import type RAPIER from '@dimforge/rapier3d-compat'
 import { HOUSE_DEPTH, HOUSE_WIDTH, facingAngle, footprint, type DoorDef } from './doors'
+import { EMPTY_LOTS, JETTY, LAKE, PLAZA, SCENERY_HOUSES, STREETS, TOWN_HALF, heightAt, sceneryArea } from './map'
 
 type Rapier = typeof RAPIER
 
-/** Half the side of the square town, metres (31 since stage 8: the Möbelhaus needed a metre at the front) */
-export const HALF_SIZE = 31
 export const GRAVITY = 10
-const WALL_HEIGHT = 1.2
+const HEDGE_HEIGHT = 1.2
+/** The ground is sampled every metre, for the picture and for the physics alike */
+const GROUND_STEP = 1
 // The real barrier is much taller than the wall you see, so no trampoline
 // bounce carries anyone out of the world
 const BARRIER_HEIGHT = 30
@@ -15,22 +16,32 @@ const BARRIER_HEIGHT = 30
 const COLORS = {
   sky: 0xbfe7ff,
   grass: 0xb8e6a3,
-  path: 0xf6e7c1,
-  wall: 0xfff4d6,
+  path: 0xe9dcc0,
+  plaza: 0xf6e7c1,
+  hedge: 0x5fa35a,
+  water: 0x5fb3e8,
+  shore: 0xf3e2b3,
+  wood: 0xa0703f,
+  garden: 0x9fd58c,
   houses: [0xffc8dd, 0xbde0fe, 0xfde4a8],
   roofs: [0xff8fab, 0x8ecae6, 0xf4a261],
-  // One wall and roof colour per door building, in the order of the doors
-  buildings: [
-    [0xd9c8ff, 0xa58bf0], [0xfde4a8, 0xf4a261], [0xbde0fe, 0x8ecae6], [0xc8f0d0, 0x6bcb77],
-    [0xf3dfc1, 0xc08a2e], [0xd6ecff, 0x5c7fa8],
-    [0xfff1b8, 0xffb703], [0xcdeeea, 0x26a69a], [0xffc8dd, 0xff8fab], [0xe5d4ff, 0x9b59b6], [0xffd6e8, 0xff69b4],
-    [0x3d3d5c, 0xd62828],
-  ],
   leafOpen: 0x6b4a2b,
   leafClosed: 0x8a8a8a,
   doorOpen: 0xffd93d,
   doorClosed: 0xb8b8b8,
 }
+
+/**
+ * One wall and roof colour per door building, in the order of the registry: each its own, warmer than the pastels
+ * before, and close to the colour it had so she still knows it
+ */
+export const BUILDING_COLORS: [wall: number, roof: number][] = [
+  [0xc9b2ff, 0x8a63e8], [0xffd98a, 0xf08a3c], [0xa9d4fa, 0x5f9fd6], [0xb5e8be, 0x4fb862],
+  [0xf0cfa0, 0xb0702a], [0xb9dcf7, 0x4a6f9e], [0xffe58a, 0xf2a100], [0xa8e3db, 0x1f9488],
+  [0xffb3cf, 0xf0668f], [0xd9bcff, 0x8a44b0], [0xffc0dc, 0xe8509c], [0x4a4a78, 0xc92a2a],
+  [0xb8c0ff, 0x5c6bd6], [0xffc48a, 0xd9622b], [0x9fe0f0, 0x3a9cb5], [0xc0f0a0, 0x7cbf3a],
+  [0xe8c3a0, 0x8c5a2b], [0xb3f0ff, 0x2fa8c9],
+]
 
 export interface DoorVisual {
   /** Pulses the glowing ring of an open door */
@@ -46,8 +57,36 @@ function box(w: number, h: number, d: number, color: number): THREE.Mesh {
   return mesh
 }
 
-function staticBox(R: Rapier, world: RAPIER.World, x: number, y: number, z: number, w: number, h: number, d: number) {
-  world.createCollider(R.ColliderDesc.cuboid(w / 2, h / 2, d / 2).setTranslation(x, y, z))
+/**
+ * Collision groups (16 bits "member of", 16 bits "meets"): the invisible walls are members of group 2 only, so the
+ * camera's ray (meeting group 1 only) looks through them, while she and the balls still bump into them
+ */
+const UNSEEN_GROUPS = 0x0002ffff
+const CAMERA_RAY_GROUPS = 0xffff0001
+
+function staticBox(
+  R: Rapier, world: RAPIER.World, x: number, y: number, z: number, w: number, h: number, d: number, unseen = false,
+) {
+  const desc = R.ColliderDesc.cuboid(w / 2, h / 2, d / 2).setTranslation(x, y, z)
+  if (unseen) desc.setCollisionGroups(UNSEEN_GROUPS)
+  world.createCollider(desc)
+}
+
+/**
+ * How far from `from` towards `to` the first house, hill or block is, or null when the way is clear: the camera
+ * moves in front of it. Invisible walls, balls and she herself don't count.
+ */
+export function cameraBlocker(R: Rapier, world: RAPIER.World) {
+  return (from: { x: number; y: number; z: number }, to: { x: number; y: number; z: number }): number | null => {
+    const d = { x: to.x - from.x, y: to.y - from.y, z: to.z - from.z }
+    const length = Math.hypot(d.x, d.y, d.z)
+    if (length < 1e-6) return null
+    const ray = new R.Ray(from, { x: d.x / length, y: d.y / length, z: d.z / length })
+    const hit = world.castRay(
+      ray, length, true, R.QueryFilterFlags.EXCLUDE_DYNAMIC | R.QueryFilterFlags.EXCLUDE_KINEMATIC, CAMERA_RAY_GROUPS,
+    )
+    return hit ? hit.timeOfImpact : null
+  }
 }
 
 /** A house of w × d (along x and z before turning) and h high, turned by `angle` about its middle. */
@@ -76,11 +115,19 @@ function house(
   // Only quarter turns: a turned house swaps its width and depth
   const turned = Math.abs(Math.sin(angle)) > 0.5
   staticBox(R, world, x, h / 2, z, turned ? d : w, h, turned ? w : d)
+  // The roof, for the camera only: a sensor nothing bumps into or stands on, but the camera's ray meets it, so a roof
+  // never hides her. A box round the whole roof with its overhang, a little more than it needs
+  const roofHeight = h * 0.6
+  world.createCollider(
+    R.ColliderDesc.cuboid((turned ? d : w) / 2 + 0.4, roofHeight / 2, (turned ? w : d) / 2 + 0.4)
+      .setTranslation(x, h + roofHeight / 2, z)
+      .setSensor(true),
+  )
   return group
 }
 
-// A round sign with the building's picture, readable without words
-function sign(icon: string): THREE.Mesh {
+// A round sign with the building's picture, readable without words; with a lock on its corner while locked
+function signTexture(icon: string | undefined, locked: boolean): THREE.Texture {
   const size = 256
   const canvas = document.createElement('canvas')
   canvas.width = canvas.height = size
@@ -93,17 +140,25 @@ function sign(icon: string): THREE.Mesh {
     g.lineWidth = 12
     g.strokeStyle = '#a58bf0'
     g.stroke()
-    g.font = `${size * 0.55}px sans-serif`
     g.textAlign = 'center'
     g.textBaseline = 'middle'
-    g.fillText(icon, size / 2, size / 2 + 8)
+    if (icon) {
+      g.font = `${size * 0.55}px sans-serif`
+      g.fillText(icon, size / 2, size / 2 + 8)
+    }
+    if (locked) {
+      // A badge on the lower right, so the picture stays readable
+      g.fillStyle = '#ffffff'
+      g.beginPath()
+      g.arc(size * 0.8, size * 0.8, size * 0.19, 0, Math.PI * 2)
+      g.fill()
+      g.font = `${size * 0.26}px sans-serif`
+      g.fillText('🔒', size * 0.8, size * 0.82)
+    }
   }
-  const texture = new THREE.CanvasTexture(canvas)
+  const texture = new THREE.CanvasTexture(canvas as HTMLCanvasElement)
   texture.colorSpace = THREE.SRGBColorSpace
-  return new THREE.Mesh(
-    new THREE.CircleGeometry(0.95, 40),
-    new THREE.MeshBasicMaterial({ map: texture, transparent: true }),
-  )
+  return texture
 }
 
 /** The building behind a door: a larger house with a sign and a door that glows when open. */
@@ -111,7 +166,7 @@ function doorBuilding(R: Rapier, world: RAPIER.World, scene: THREE.Scene, door: 
   const depth = HOUSE_DEPTH
   const side = door.side ?? 'back'
   const area = footprint(door)
-  const [wall, roofColor] = COLORS.buildings[index % COLORS.buildings.length]
+  const [wall, roofColor] = BUILDING_COLORS[index % BUILDING_COLORS.length]
   const group = house(
     R, world, scene, (area.minX + area.maxX) / 2, (area.minZ + area.maxZ) / 2,
     HOUSE_WIDTH, 5, depth, wall, roofColor, facingAngle(side),
@@ -123,29 +178,19 @@ function doorBuilding(R: Rapier, world: RAPIER.World, scene: THREE.Scene, door: 
   leaf.position.set(0, 1.25, depth / 2 + 0.07)
   group.add(frame, leaf)
 
-  // The camera always looks from behind, so a door on a side is seen from its edge:
-  // side houses hang their sign out from the wall, facing the camera, like a shop sign. It hangs on the
-  // camera side of the door, so the sign of the next house along is behind the camera, not in the picture
-  const board = new THREE.Group()
-  if (side === 'back' || side === 'front') {
-    // On the house, above the door: turned with it, so the front house shows its sign to a child who turned round
-    board.position.set(0, 3.95, depth / 2 + 0.06)
-    group.add(board)
-  } else {
-    const out = side === 'left' ? 1 : -1
-    const wallX = side === 'left' ? area.maxX : area.minX
-    const bracket = box(1.5, 0.12, 0.12, 0x6b4a2b)
-    bracket.position.set(wallX + out * 0.75, 4.15, door.z + 1.6)
-    scene.add(bracket)
-    board.position.set(wallX + out * 1.2, 3.25, door.z + 1.6)
-    scene.add(board)
-  }
-  if (door.icon) board.add(sign(door.icon))
-  const lock = sign('🔒')
-  // A badge on the corner of the sign, so the door itself stays readable
-  lock.scale.setScalar(0.6)
-  lock.position.set(0.85, -0.65, 0.06)
-  board.add(lock)
+  // The sign floats above the door and always faces the camera, so it is seen from every street and from afar
+  const plain = signTexture(door.icon, false)
+  const lockedTexture = signTexture(door.icon, true)
+  const signMaterial = new THREE.SpriteMaterial({ map: plain, transparent: true })
+  const sign = new THREE.Sprite(signMaterial)
+  sign.scale.set(1.9, 1.9, 1)
+  // Half a metre from the door spot towards the house, above the eaves
+  const toHouse = { x: (area.minX + area.maxX) / 2 - door.x, z: (area.minZ + area.maxZ) / 2 - door.z }
+  const length = Math.hypot(toHouse.x, toHouse.z) || 1
+  sign.position.set(door.x + (toHouse.x / length) * 0.5, 6.2, door.z + (toHouse.z / length) * 0.5)
+  // Both are freed with the town (city.ts), whichever is showing
+  sign.userData.textures = [plain, lockedTexture]
+  scene.add(sign)
 
   const ringMaterial = new THREE.MeshBasicMaterial({ color: COLORS.doorOpen, transparent: true })
   const ring = new THREE.Mesh(new THREE.RingGeometry(0.9, 1.25, 40), ringMaterial)
@@ -162,7 +207,7 @@ function doorBuilding(R: Rapier, world: RAPIER.World, scene: THREE.Scene, door: 
     paint(leaf, open ? COLORS.leafOpen : COLORS.leafClosed)
     ringMaterial.color.setHex(open ? COLORS.doorOpen : COLORS.doorClosed)
     ringMaterial.opacity = open ? 0.9 : 0.5
-    lock.visible = locked
+    signMaterial.map = locked ? lockedTexture : plain
     if (!open) ring.scale.set(1, 1, 1)
   }
   setState(door.open, door.locked ?? false)
@@ -180,65 +225,182 @@ function doorBuilding(R: Rapier, world: RAPIER.World, scene: THREE.Scene, door: 
 export interface Town {
   scene: THREE.Scene
   doorVisuals: DoorVisual[]
+  sun: THREE.DirectionalLight
+  /** Moves the sun with her: its shadows cover only the town around her, sharp enough on a tablet */
+  followSun(x: number, z: number): void
 }
 
-/** Builds the square: ground, walls, lights, scenery houses and one building per door. */
+/** The sun's offset from where it shines, and how far around her it casts shadows */
+const SUN_OFFSET = { x: 14, y: 26, z: 12 }
+const SHADOW_HALF = 22
+const SHADOW_MAP = 2048
+
+/** The ground: a heightfield for the physics and a matching mesh, both sampled from `heightAt` */
+function ground(R: Rapier, world: RAPIER.World, scene: THREE.Scene) {
+  const n = Math.round((TOWN_HALF * 2) / GROUND_STEP)
+  const size = TOWN_HALF * 2
+  const geometry = new THREE.PlaneGeometry(size, size, n, n)
+  // The plane lies in x/y and is turned to lie flat: its y becomes -z, its z the height
+  const position = geometry.attributes.position
+  for (let i = 0; i < position.count; i++) position.setZ(i, heightAt(position.getX(i), -position.getY(i)))
+  geometry.computeVertexNormals()
+  const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: COLORS.grass, roughness: 1 }))
+  mesh.rotation.x = -Math.PI / 2
+  mesh.receiveShadow = true
+  scene.add(mesh)
+
+  // Rapier's heightfield: (n + 1)² heights centred on 0, the one at i · (n + 1) + j at x step i and z step j
+  // (checked by world.test.ts on every hill)
+  const heights = new Float32Array((n + 1) * (n + 1))
+  for (let i = 0; i <= n; i++) {
+    for (let j = 0; j <= n; j++) heights[i * (n + 1) + j] = heightAt(-TOWN_HALF + i * GROUND_STEP, -TOWN_HALF + j * GROUND_STEP)
+  }
+  world.createCollider(R.ColliderDesc.heightfield(n, n, heights, { x: size, y: 1, z: size }))
+  // A floor under it all, so nothing that slips through falls forever
+  staticBox(R, world, 0, -0.5, 0, size, 1, size)
+}
+
+/** A flat strip from a to b, `width` wide, lying just above the grass */
+function strip(scene: THREE.Scene, a: { x: number; z: number }, b: { x: number; z: number }, width: number, color: number, y: number) {
+  const length = Math.hypot(b.x - a.x, b.z - a.z)
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(width, length), new THREE.MeshStandardMaterial({ color, roughness: 1 }))
+  mesh.rotation.x = -Math.PI / 2
+  mesh.rotation.z = -Math.atan2(b.x - a.x, -(b.z - a.z))
+  mesh.position.set((a.x + b.x) / 2, y, (a.z + b.z) / 2)
+  mesh.receiveShadow = true
+  scene.add(mesh)
+}
+
+function disc(scene: THREE.Scene, x: number, z: number, rx: number, rz: number, color: number, y: number, material?: THREE.Material) {
+  const mesh = new THREE.Mesh(new THREE.CircleGeometry(1, 64), material ?? new THREE.MeshStandardMaterial({ color, roughness: 1 }))
+  mesh.rotation.x = -Math.PI / 2
+  mesh.scale.set(rx, rz, 1)
+  mesh.position.set(x, y, z)
+  mesh.receiveShadow = true
+  scene.add(mesh)
+}
+
+function streets(scene: THREE.Scene) {
+  disc(scene, PLAZA.x, PLAZA.z, PLAZA.radius, PLAZA.radius, COLORS.plaza, 0.014)
+  for (const s of STREETS) {
+    for (let i = 1; i < s.points.length; i++) strip(scene, s.points[i - 1], s.points[i], s.width, COLORS.path, 0.012)
+    // Round corners where a street bends
+    for (const p of s.points.slice(1, -1)) disc(scene, p.x, p.z, s.width / 2, s.width / 2, COLORS.path, 0.012)
+  }
+}
+
+/**
+ * The lake: water you see and a shore around it, and an invisible wall just inside the shore that nothing gets over
+ * (as tall as the town's barrier), open only where the jetty goes in. The jetty is a deck with invisible walls along
+ * its sides and end.
+ */
+function lake(R: Rapier, world: RAPIER.World, scene: THREE.Scene) {
+  disc(scene, LAKE.x, LAKE.z, LAKE.rx + 1.2, LAKE.rz + 1.2, COLORS.shore, 0.008)
+  const water = new THREE.MeshStandardMaterial({ color: COLORS.water, roughness: 0.25, metalness: 0.1, transparent: true, opacity: 0.9 })
+  disc(scene, LAKE.x, LAKE.z, LAKE.rx, LAKE.rz, COLORS.water, 0.03, water)
+
+  const pieces = 72
+  for (let k = 0; k < pieces; k++) {
+    const a0 = (k / pieces) * Math.PI * 2
+    const a1 = ((k + 1) / pieces) * Math.PI * 2
+    const p0 = { x: LAKE.x + Math.cos(a0) * LAKE.rx, z: LAKE.z + Math.sin(a0) * LAKE.rz }
+    const p1 = { x: LAKE.x + Math.cos(a1) * LAKE.rx, z: LAKE.z + Math.sin(a1) * LAKE.rz }
+    const mx = (p0.x + p1.x) / 2
+    const mz = (p0.z + p1.z) / 2
+    // The jetty's way in
+    if (mx > JETTY.minX - 0.3 && mx < JETTY.maxX + 0.3 && mz > JETTY.minZ && mz < JETTY.maxZ) continue
+    const length = Math.hypot(p1.x - p0.x, p1.z - p0.z) + 0.1
+    world.createCollider(
+      R.ColliderDesc.cuboid(length / 2, BARRIER_HEIGHT / 2, 0.2)
+        .setCollisionGroups(UNSEEN_GROUPS)
+        .setTranslation(mx, BARRIER_HEIGHT / 2, mz)
+        .setRotation(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -Math.atan2(p1.z - p0.z, p1.x - p0.x))),
+    )
+  }
+
+  const deckHeight = 0.25
+  const deck = box(JETTY.maxX - JETTY.minX, deckHeight, JETTY.maxZ - JETTY.minZ, COLORS.wood)
+  deck.position.set((JETTY.minX + JETTY.maxX) / 2, deckHeight / 2, (JETTY.minZ + JETTY.maxZ) / 2)
+  scene.add(deck)
+  staticBox(R, world, deck.position.x, deckHeight / 2, deck.position.z, JETTY.maxX - JETTY.minX, deckHeight, JETTY.maxZ - JETTY.minZ)
+  // Walls along the part over the water, and across the end
+  const shore = LAKE.z - LAKE.rz * Math.sqrt(Math.max(0, 1 - (((JETTY.minX + JETTY.maxX) / 2 - LAKE.x) / LAKE.rx) ** 2))
+  const over = JETTY.maxZ - shore + 1
+  for (const x of [JETTY.minX - 0.2, JETTY.maxX + 0.2]) staticBox(R, world, x, BARRIER_HEIGHT / 2, JETTY.maxZ - over / 2, 0.4, BARRIER_HEIGHT, over, true)
+  staticBox(R, world, (JETTY.minX + JETTY.maxX) / 2, BARRIER_HEIGHT / 2, JETTY.maxZ + 0.2, JETTY.maxX - JETTY.minX + 0.8, BARRIER_HEIGHT, 0.4, true)
+}
+
+/** Low hedge you see, tall barrier you don't */
+function edge(R: Rapier, world: RAPIER.World, scene: THREE.Scene) {
+  const sides: [number, number, number, number][] = [
+    [0, -TOWN_HALF, TOWN_HALF * 2, 1], [0, TOWN_HALF, TOWN_HALF * 2, 1],
+    [-TOWN_HALF, 0, 1, TOWN_HALF * 2], [TOWN_HALF, 0, 1, TOWN_HALF * 2],
+  ]
+  for (const [x, z, w, d] of sides) {
+    const hedge = box(w, HEDGE_HEIGHT, d, COLORS.hedge)
+    hedge.position.set(x, HEDGE_HEIGHT / 2, z)
+    scene.add(hedge)
+    staticBox(R, world, x, BARRIER_HEIGHT / 2, z, w, BARRIER_HEIGHT, d, true)
+  }
+}
+
+/** Builds the town from the map: ground, streets, lake, hedge, lights, scenery houses and one building per door. */
 export function buildTown(R: Rapier, world: RAPIER.World, doors: DoorDef[]): Town {
   const scene = new THREE.Scene()
   scene.background = new THREE.Color(COLORS.sky)
+  // Far streets fade into the sky
+  scene.fog = new THREE.Fog(COLORS.sky, 55, 110)
 
   scene.add(new THREE.HemisphereLight(0xffffff, 0xb8e6a3, 1.6))
   const sun = new THREE.DirectionalLight(0xfff2d6, 2.2)
-  sun.position.set(14, 26, 12)
   sun.castShadow = true
-  sun.shadow.mapSize.set(2048, 2048)
+  sun.shadow.mapSize.set(SHADOW_MAP, SHADOW_MAP)
   sun.shadow.radius = 6
   const cam = sun.shadow.camera
-  cam.left = cam.bottom = -HALF_SIZE - 4
-  cam.right = cam.top = HALF_SIZE + 4
+  cam.left = cam.bottom = -SHADOW_HALF
+  cam.right = cam.top = SHADOW_HALF
   cam.near = 1
   cam.far = 80
-  scene.add(sun)
+  scene.add(sun, sun.target)
+  // In whole shadow texels along the sun's own axes (it looks at the town at a slant), so the shadows' edges don't
+  // shimmer as she walks
+  const texel = (SHADOW_HALF * 2) / SHADOW_MAP
+  const forward = new THREE.Vector3(-SUN_OFFSET.x, -SUN_OFFSET.y, -SUN_OFFSET.z).normalize()
+  const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize()
+  const up = new THREE.Vector3().crossVectors(right, forward)
+  const her = new THREE.Vector3()
+  function followSun(x: number, z: number) {
+    her.set(x, 0, z)
+    const r = Math.round(her.dot(right) / texel) * texel
+    const u = Math.round(her.dot(up) / texel) * texel
+    sun.target.position.copy(right).multiplyScalar(r).addScaledVector(up, u).addScaledVector(forward, her.dot(forward))
+    sun.position.copy(sun.target.position).add(new THREE.Vector3(SUN_OFFSET.x, SUN_OFFSET.y, SUN_OFFSET.z))
+    sun.target.updateMatrixWorld()
+  }
+  followSun(0, 0)
 
-  const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(HALF_SIZE * 2, HALF_SIZE * 2),
-    new THREE.MeshStandardMaterial({ color: COLORS.grass, roughness: 1 }),
-  )
-  ground.rotation.x = -Math.PI / 2
-  ground.receiveShadow = true
-  scene.add(ground)
-  staticBox(R, world, 0, -0.5, 0, HALF_SIZE * 2, 1, HALF_SIZE * 2)
+  ground(R, world, scene)
+  streets(scene)
+  lake(R, world, scene)
+  edge(R, world, scene)
 
-  // A round plaza in the middle and paths to the doors
-  const plaza = new THREE.Mesh(new THREE.CircleGeometry(6, 48), new THREE.MeshStandardMaterial({ color: COLORS.path, roughness: 1 }))
-  plaza.rotation.x = -Math.PI / 2
-  plaza.position.y = 0.01
-  plaza.receiveShadow = true
-  scene.add(plaza)
-  for (const door of doors) {
-    const length = Math.hypot(door.x, door.z)
-    const path = new THREE.Mesh(new THREE.PlaneGeometry(2.4, length), new THREE.MeshStandardMaterial({ color: COLORS.path, roughness: 1 }))
-    path.rotation.x = -Math.PI / 2
-    path.rotation.z = -Math.atan2(door.x, -door.z)
-    path.position.set(door.x / 2, 0.012, door.z / 2)
-    path.receiveShadow = true
-    scene.add(path)
+  // Gardens on the lots kept for buildings still to come
+  for (const lot of EMPTY_LOTS) {
+    const f = footprint(lot)
+    const garden = new THREE.Mesh(new THREE.PlaneGeometry(f.maxX - f.minX, f.maxZ - f.minZ), new THREE.MeshStandardMaterial({ color: COLORS.garden, roughness: 1 }))
+    garden.rotation.x = -Math.PI / 2
+    garden.position.set((f.minX + f.maxX) / 2, 0.01, (f.minZ + f.maxZ) / 2)
+    garden.receiveShadow = true
+    scene.add(garden)
   }
 
-  // Low wall you see, tall barrier you don't
-  const sides: [number, number, number, number][] = [
-    [0, -HALF_SIZE, HALF_SIZE * 2, 0.6], [0, HALF_SIZE, HALF_SIZE * 2, 0.6],
-    [-HALF_SIZE, 0, 0.6, HALF_SIZE * 2], [HALF_SIZE, 0, 0.6, HALF_SIZE * 2],
-  ]
-  for (const [x, z, w, d] of sides) {
-    const wall = box(w, WALL_HEIGHT, d, COLORS.wall)
-    wall.position.set(x, WALL_HEIGHT / 2, z)
-    scene.add(wall)
-    staticBox(R, world, x, BARRIER_HEIGHT / 2, z, w, BARRIER_HEIGHT, d)
-  }
+  SCENERY_HOUSES.forEach((h, i) => {
+    const f = sceneryArea(h)
+    house(
+      R, world, scene, (f.minX + f.maxX) / 2, (f.minZ + f.maxZ) / 2, h.w, h.floors * 2.6 + 0.4, h.d,
+      COLORS.houses[i % COLORS.houses.length], COLORS.roofs[i % COLORS.roofs.length], facingAngle(h.spot.side ?? 'back'),
+    )
+  })
 
-  // The near left corner, where no door building stands
-  house(R, world, scene, -25.5, 25.5, 5, 3.2, 5, COLORS.houses[2], COLORS.roofs[2])
-
-  return { scene, doorVisuals: doors.map((door, i) => doorBuilding(R, world, scene, door, i)) }
+  return { scene, doorVisuals: doors.map((door, i) => doorBuilding(R, world, scene, door, i)), sun, followSun }
 }
