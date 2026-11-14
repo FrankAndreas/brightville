@@ -4,7 +4,8 @@ import RAPIER from '@dimforge/rapier3d-compat'
 import * as THREE from 'three'
 import { createCharacter, type CharacterFrame } from './character'
 import { BLOCKS, TRAMPOLINE, TRAMPOLINES, buildProps } from './props'
-import { GRAVITY, HALF_SIZE, buildTown } from './world'
+import { GRAVITY, buildTown } from './world'
+import { HILLS, JETTY, LAKE, TOWN_HALF, heightAt, inLake } from './map'
 
 // The real physics engine, without any drawing
 const DT = 1 / 60
@@ -73,25 +74,26 @@ describe('character', () => {
     expect(events(run(DT, { ...still, jump: true }))).toEqual([])
   })
 
-  it.each([DT, 0.05])('stays inside the walls at %s s steps', dt => {
-    const { run } = setup()
+  it.each([DT, 0.05])('stops at the town\'s edge at %s s steps', dt => {
+    // Along the avenue to the right, where nothing stands in the way
+    const { run } = setup({ x: 0, z: 0 })
     settle(run)
-    const f = run(12, { ...still, moveX: 1 }, dt).at(-1)!
-    expect(f.x).toBeGreaterThan(HALF_SIZE - 2)
-    expect(f.x).toBeLessThan(HALF_SIZE)
+    const f = run(18, { ...still, moveX: 1 }, dt).at(-1)!
+    expect(f.x).toBeGreaterThan(TOWN_HALF - 2)
+    expect(f.x).toBeLessThan(TOWN_HALF)
   })
 
   it('reports the speed it really moves at, not the speed it wants', () => {
-    const { run } = setup()
+    const { run } = setup({ x: 0, z: 0 })
     settle(run)
-    const f = run(12, { ...still, moveX: 1 }).at(-1)!
+    const f = run(18, { ...still, moveX: 1 }).at(-1)!
     expect(f.speed).toBeLessThan(0.5)
   })
 
   it('never tumbles from jumping against a wall', () => {
-    const { run } = setup()
+    const { run } = setup({ x: 0, z: 0 })
     settle(run)
-    run(8, { ...still, moveX: 1 })
+    run(16, { ...still, moveX: 1 })
     const seen: unknown[] = []
     for (let i = 0; i < 12; i++) {
       seen.push(...events(run(DT, { moveX: 1, moveZ: 0, jump: true })), ...events(run(1.1 + i * 0.013, { ...still, moveX: 1 })))
@@ -116,7 +118,7 @@ describe('character', () => {
     const end = fall.at(-1)!
     expect(end.tumbling).toBe(false)
     expect(end.rotation).toBeNull()
-    expect(Math.abs(end.x)).toBeLessThan(HALF_SIZE)
+    expect(Math.abs(end.x)).toBeLessThan(TOWN_HALF)
     const later = run(1, { ...still, moveZ: 1 }).at(-1)!
     expect(later.z - end.z).toBeGreaterThan(2)
   })
@@ -167,5 +169,49 @@ describe('character', () => {
     const tumbling = frames.filter(f => f.tumbling)
     expect(tumbling.length).toBeGreaterThan(10)
     expect(events(tumbling)).toEqual(['tumble'])
+  })
+
+  it('walks over the highest hill and down without tumbling', () => {
+    const hill = [...HILLS].sort((a, b) => b.height - a.height)[0]
+    const { run } = setup({ x: hill.x - hill.radius - 1, z: hill.z })
+    settle(run)
+    const frames = run(9, { ...still, moveX: 1 })
+    expect(frames.at(-1)!.x).toBeGreaterThan(hill.x + hill.radius)
+    expect(Math.max(...frames.map(f => f.y))).toBeGreaterThan(hill.height)
+    expect(events(frames)).toEqual([])
+    expect(frames.filter(f => f.grounded).length / frames.length).toBeGreaterThanOrEqual(0.9)
+  })
+
+  it('stops at the lake', () => {
+    // From the ring road behind the lake, straight at its middle
+    const { run } = setup({ x: LAKE.x, z: LAKE.z + LAKE.rz + 5 })
+    settle(run)
+    const f = run(5, { ...still, moveZ: -1 }).at(-1)!
+    expect(inLake(f.x, f.z)).toBe(false)
+    expect(f.z).toBeGreaterThan(LAKE.z + LAKE.rz - 0.5)
+  })
+
+  it('walks to the end of the jetty, and no further', () => {
+    const { run } = setup({ x: (JETTY.minX + JETTY.maxX) / 2, z: JETTY.minZ - 1 })
+    settle(run)
+    const f = run(6, { ...still, moveZ: 1 }).at(-1)!
+    expect(f.z).toBeGreaterThan(JETTY.maxZ - 1.5)
+    expect(f.z).toBeLessThan(JETTY.maxZ)
+  })
+
+  it('a bounce on every trampoline lands her on walkable ground', () => {
+    for (const t of TRAMPOLINES) {
+      for (let k = 0; k < 8; k++) {
+        const a = (k * Math.PI) / 4
+        const { run } = setup({ x: t.x, z: t.z })
+        run(1)
+        run(2.5, { ...still, moveX: Math.cos(a), moveZ: Math.sin(a) })
+        const f = run(3).at(-1)!
+        const where = `trampoline ${t.x},${t.z} towards ${k * 45}°`
+        expect(inLake(f.x, f.z), where).toBe(false)
+        expect(Math.max(Math.abs(f.x), Math.abs(f.z)), where).toBeLessThan(TOWN_HALF)
+        expect(f.y, where).toBeLessThan(heightAt(f.x, f.z) + 1.5)
+      }
+    }
   })
 })
