@@ -2,6 +2,7 @@ import type { LogDay } from '@/core/diary'
 import type { Look } from '@/core/look'
 import type { Place } from '@/core/outfits'
 import type { Spot } from '@/core/furniture'
+import type { Letters } from '@/core/writing/levels'
 
 export type { LogDay, LogEntry } from '@/core/diary'
 
@@ -55,6 +56,21 @@ export interface Rules {
 
 /** For the parents' page; `owned`: the add-ons a player has (stage 7), `furniture`: her furniture (stage 8) */
 export type PlayerRow = Person & ServerState & { owned?: string[]; furniture?: string[] }
+
+/** Schreiben (backend/app/writing.py): her words and sentences, the letters she has met, new letters left today */
+export interface WritingState {
+  texts: string[]
+  letters: Letters
+  new_left_today: number
+}
+
+/** One counted write: clean or bumpy, at the level the letter was shown at */
+export interface WriteIn {
+  key: string
+  glyph: string
+  level: number
+  clean: boolean
+}
 
 /** Her room (backend/app/room.py): what stands on each spot, her furniture, and whether anything (in either shop) was
  * bought today */
@@ -144,6 +160,14 @@ export interface Api {
   setPlaced(placed: Partial<Record<Spot, string | null>>): Promise<RoomState>
   /** The Möbelhaus; rejects with the same codes as `buy` */
   buyFurniture(item: string, key: string): Promise<{ state: ServerState; room: RoomState }>
+  writing(): Promise<WritingState>
+  sendWrites(writes: WriteIn[]): Promise<WritingState>
+  /** She wrote a new letter three times. Rejects with 'no_new_today' or 'unknown'. */
+  introduced(glyph: string, key: string): Promise<WritingState>
+  /** Parents only */
+  playerWriting(personId: number): Promise<WritingState>
+  /** Parents only; the whole list. Rejects with 'empty', 'letters', 'too-long', 'exists' or 'too-many'. */
+  setPlayerTexts(personId: number, texts: string[]): Promise<WritingState>
 }
 
 type Fetch = (url: string, init: RequestInit) => Promise<Response>
@@ -211,5 +235,10 @@ export function httpApi(fetchFn: Fetch = (url, init) => fetch(url, init), onRene
     room: () => call('GET', '/api/room'),
     setPlaced: placed => call('PUT', '/api/room/placed', { placed }),
     buyFurniture: (item, key) => call('POST', '/api/moebel/buy', { item, key }),
+    writing: () => call('GET', '/api/writing'),
+    sendWrites: writes => call('POST', '/api/writing/writes', { writes }),
+    introduced: (glyph, key) => call('POST', '/api/writing/introduced', { glyph, key }),
+    playerWriting: personId => call('GET', `/api/players/${personId}/writing`),
+    setPlayerTexts: (personId, texts) => call('PUT', `/api/players/${personId}/writing/texts`, { texts }),
   }
 }
