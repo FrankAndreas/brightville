@@ -1,5 +1,5 @@
 import { judge, taskText, type Hit, type Mode, type RhythmTask } from '@/core/rhythm'
-import { SET_BONUS, STARS_PER_TASK } from '../school/flow'
+import { scoreSolved } from '../visit'
 
 const SAY_CHOOSE = 'Willst du tippen oder klatschen?'
 const SAY_SHOW = 'Schau und hör zu, so geht das.'
@@ -88,10 +88,7 @@ export function createRhythmFlow(tasks: RhythmTask[], example: boolean): RhythmF
 
   function solve(firstTry: boolean) {
     state.phase = 'cheering'
-    state.solved += 1
-    state.results.push({ ladder: 'rhythmus', firstTry })
-    state.stars += STARS_PER_TASK
-    if (state.solved === tasks.length) state.stars += SET_BONUS
+    scoreSolved(state, 'rhythmus', firstTry, tasks.length)
   }
 
   /** One more miss: again, or after three, shown once more and on */
