@@ -158,7 +158,8 @@ CREATE TABLE writing_keys (
 ALTER TABLE writing_keys ADD COLUMN day TEXT NOT NULL DEFAULT '';
 UPDATE writing_keys SET day = date('now', 'localtime');
 """,
-    # The School's Lehrplan 21 ladders (Zählen, Rechnen): her step, her latest first-try answers, the results counted
+    # The School's Lehrplan 21 ladders (Zählen, Rechnen): her step, her latest first-try answers, the results counted.
+    # A child who used the School before (sums up to 9) starts Rechnen at 2: decided here, once
     """
 CREATE TABLE school_ladders (
     person_id INTEGER NOT NULL,
@@ -173,6 +174,8 @@ CREATE TABLE school_keys (
     day TEXT NOT NULL,
     PRIMARY KEY (person_id, key)
 );
+INSERT INTO school_ladders (person_id, ladder, step, recent)
+    SELECT DISTINCT person_id, 'rechnen', 2, '[]' FROM events WHERE building = 'school';
 """,
 ]
 VERSION = len(MIGRATIONS)

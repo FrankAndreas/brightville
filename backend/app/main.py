@@ -10,7 +10,7 @@ from typing import Annotated, Optional
 
 from fastapi import Depends, FastAPI, Path, Query, Request, Response
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, StringConstraints
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from . import auth, films, game, hub, local, paintings, people, room, school, stickers, wardrobe, writing
@@ -119,7 +119,8 @@ class SchoolResultsIn(BaseModel):
 class StepIn(BaseModel):
     # Checked by school.set_step, to answer "unknown" / "bad_step" in words
     ladder: str = Field(max_length=20)
-    step: int
+    # Strict: true or 2.5 is no step
+    step: StrictInt
 
 
 class PlayIn(BaseModel):

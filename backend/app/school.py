@@ -17,6 +17,8 @@ FIRST_STEP = 1
 LAST_STEP = 6
 MISSES_ALLOWED = 1
 KEEP_KEYS_DAYS = 60
+# How many of her latest result keys are named back: more than a device keeps waiting
+SEEN_KEYS = 50
 
 
 class Result(TypedDict):
@@ -34,22 +36,13 @@ def apply(step: int, recent: list[bool], results: list[bool], size: int) -> tupl
     return step, kept
 
 
-def _start(db: sqlite3.Connection, person_id: int, ladder: str) -> int:
-    """Rechnen starts at 2 for a child who used the old School (sums up to 9); everything else at 1"""
-    if ladder != "rechnen":
-        return FIRST_STEP
-    used = db.execute(
-        "SELECT 1 FROM events WHERE person_id = ? AND building = 'school' LIMIT 1", (person_id,)
-    ).fetchone()
-    return 2 if used else FIRST_STEP
-
-
 def _ladder(db: sqlite3.Connection, person_id: int, ladder: str) -> tuple[int, list[bool]]:
     row = db.execute(
         "SELECT step, recent FROM school_ladders WHERE person_id = ? AND ladder = ?", (person_id, ladder)
     ).fetchone()
     if row is None:
-        return _start(db, person_id, ladder), []
+        # A child who used the School before the ladders has a Rechnen row from the migration (step 2)
+        return FIRST_STEP, []
     return row["step"], json.loads(row["recent"])
 
 
@@ -62,10 +55,18 @@ def _store(db: sqlite3.Connection, person_id: int, ladder: str, step: int, recen
 
 
 def state(db: sqlite3.Connection, person_id: int) -> dict:
-    out = {}
+    """Her ladders, and the keys of her latest results the server has: a device lets those go even when the answer to
+    sending them was lost"""
+    out: dict = {}
     for ladder in WINDOW:
         step, recent = _ladder(db, person_id, ladder)
         out[ladder] = {"step": step, "window": recent}
+    out["seen"] = [
+        r["key"]
+        for r in db.execute(
+            "SELECT key FROM school_keys WHERE person_id = ? ORDER BY rowid DESC LIMIT ?", (person_id, SEEN_KEYS)
+        )
+    ]
     return out
 
 
