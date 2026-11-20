@@ -1,5 +1,5 @@
 import { pieceName, type MusterExample, type MusterTask } from '@/core/patterns'
-import { SET_BONUS, STARS_PER_TASK } from '../school/flow'
+import { scoreSolved } from '../visit'
 
 type Row = Extract<MusterTask, { type: 'row' }>
 type Sort = Extract<MusterTask, { type: 'sort' }>
@@ -127,11 +127,7 @@ export function createMusterFlow(tasks: MusterTask[], example: MusterExample | n
 
   function solve(firstTry: boolean) {
     state.phase = 'cheering'
-    state.solved += 1
-    state.results.push({ ladder: 'muster', firstTry })
-    state.stars += STARS_PER_TASK
-    // The bonus is earned with the last right answer, so leaving during the cheer keeps it
-    if (state.solved === tasks.length) state.stars += SET_BONUS
+    scoreSolved(state, 'muster', firstTry, tasks.length)
   }
 
   const sortTask = (): Sort | null => (state.phase === 'asking' && state.task?.type === 'sort' ? state.task : null)
