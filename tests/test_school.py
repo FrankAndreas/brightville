@@ -10,7 +10,7 @@ from app import school
 def state(browser):
     """The two ladders, without the keys the server has seen"""
     answer = browser.get("/api/school").json()
-    return {name: answer[name] for name in ("zaehlen", "rechnen", "reimen", "muster")}
+    return {name: answer[name] for name in ("zaehlen", "rechnen", "reimen", "muster", "zeit")}
 
 
 def send(browser, key, zaehlen=(1, []), rechnen=(1, [])):
@@ -44,6 +44,7 @@ def test_a_new_child_starts_at_zaehlen_1_rechnen_1(mia):
         "rechnen": {"step": 1, "window": []},
         "reimen": {"step": 1, "window": []},
         "muster": {"step": 1, "window": []},
+        "zeit": {"step": 1, "window": []},
     }
 
 
@@ -199,3 +200,19 @@ def test_a_result_with_only_muster_leaves_the_others(mia):
 
 def test_a_parent_sets_muster(papa, mia):
     assert set_step(papa, "muster", 5).json()["muster"] == {"step": 5, "window": []}
+
+
+def test_ten_zeit_answers_with_two_misses_move_up(mia):
+    send_only(mia, "a", zeit=(1, [True, False, True, True, True]))
+    answer = send_only(mia, "b", zeit=(1, [True, True, False, True, True])).json()
+    assert answer["zeit"] == {"step": 2, "window": []}
+
+
+def test_a_result_with_only_zeit_leaves_the_others(mia):
+    assert send_only(mia, "a", zeit=(1, [True])).status_code == 200
+    assert state(mia)["muster"] == {"step": 1, "window": []}
+    assert state(mia)["zeit"] == {"step": 1, "window": [True]}
+
+
+def test_a_parent_sets_zeit(papa, mia):
+    assert set_step(papa, "zeit", 3).json()["zeit"] == {"step": 3, "window": []}
