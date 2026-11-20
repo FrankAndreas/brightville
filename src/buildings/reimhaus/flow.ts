@@ -83,7 +83,10 @@ export function createRhymeFlow(tasks: RhymeTask[], example: Example | null): Rh
     state,
 
     start() {
-      if (state.phase === 'example' && example) return [{ type: 'speak', text: example.text }]
+      if (state.phase === 'example' && example) {
+        const said: RhymeEffect = { type: 'speak', text: example.text }
+        return example.beats ? [said, { type: 'drum', syllables: example.words[0].syllables }] : [said]
+      }
       return state.phase === 'asking' && state.task ? ask(state.task) : []
     },
 

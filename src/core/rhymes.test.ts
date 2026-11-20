@@ -109,9 +109,9 @@ describe('the example', () => {
     expect(exampleFor(1, 0)?.text).toBe('Maus – Haus. Hör mal: Maus, Haus. Das klingt am Ende gleich. Das reimt sich!')
     expect(exampleFor(1, 0)?.words.map(w => w.id)).toEqual(['maus', 'haus'])
     expect(exampleFor(3, 0)?.text).toBe('Sonne – Sofa. Sonne, Sofa: die fangen gleich an!')
-    expect(exampleFor(4, 0)?.text).toBe('Ba – na – ne. Hör mal: Ba – na – ne. Drei Silben. Ich trommle mit: bum, bum, bum.')
+    expect(exampleFor(4, 0)?.text).toBe('Ba – na – ne. Hör mal: Ba – na – ne. Drei Silben. Ich trommle mit:')
     expect(exampleFor(5, 0)?.text).toBe(
-      'Scho – ko – la – de. Hör mal: Scho – ko – la – de. Vier Silben. Ich trommle mit: bum, bum, bum, bum.',
+      'Scho – ko – la – de. Hör mal: Scho – ko – la – de. Vier Silben. Ich trommle mit:',
     )
   })
 })

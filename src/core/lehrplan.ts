@@ -53,6 +53,7 @@ export const TAGS: Record<string, Tag> = {
   schlange: { codes: [], zugaenge: [] },
   bonbonjagd: { codes: [], zugaenge: [] },
   flatterflug: { codes: [], zugaenge: [] },
+  reimhaus: { codes: ['D.1.A.1'], zugaenge: [8, 2] },
   kino: { codes: [], zugaenge: [] },
   haus: { codes: [], zugaenge: [9] },
   laden: { codes: [], zugaenge: [9] },

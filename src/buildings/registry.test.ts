@@ -1,3 +1,5 @@
+import sharedBuildings from '../../shared/buildings.json'
+import { EMPTY_LOTS } from '@/city/map'
 import { describe, expect, it } from 'vitest'
 import { defineComponent } from 'vue'
 import { BUILDINGS, canServe, toDoors } from './registry'
@@ -108,6 +110,15 @@ describe('building registry', () => {
     const b = BUILDINGS.find(x => x.id === 'flatterflug')
     expect(b).toMatchObject({ spokenName: 'Flatterflug', icon: '🪽', kind: 'play', cost: 3, needs: [] })
     expect(b?.preload).toBeTypeOf('function')
+  })
+
+  it('lists the Reimhaus as an earning building that needs nothing, on the lot by the Tanzsaal', () => {
+    const b = BUILDINGS.find(x => x.id === 'reimhaus')
+    expect(b).toMatchObject({ spokenName: 'Reimhaus', icon: '👂', kind: 'earn', needs: [], door: { x: 35.5, z: -16, side: 'right' } })
+    expect(b?.preload).toBeTypeOf('function')
+    const shared = (sharedBuildings as { id: string; maxStars?: number; minSecondsPerStar?: number }[]).find(x => x.id === 'reimhaus')
+    expect(shared).toEqual({ id: 'reimhaus', kind: 'earn', maxStars: 10, minSecondsPerStar: 2 })
+    expect(EMPTY_LOTS).toHaveLength(3)
   })
 
   it('lists the house, free, needing nothing, and kept out of the logbook', () => {

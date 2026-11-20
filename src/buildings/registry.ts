@@ -26,6 +26,7 @@ const haus = () => import('./haus/Haus.vue')
 const laden = () => import('./laden/Laden.vue')
 const moebel = () => import('./moebel/Moebelhaus.vue')
 const flatterflug = () => import('./flatterflug/Flatterflug.vue')
+const reimhaus = () => import('./reimhaus/Reimhaus.vue')
 
 /**
  * Every building in the town, mixed along the streets of `src/city/map.ts` so every walk passes learning, playing and
@@ -111,6 +112,11 @@ export const BUILDINGS: BuildingDef[] = [
     // Her wobbly gets wings: flying through the clouds
     id: 'flatterflug', spokenName: 'Flatterflug', icon: '🪽', kind: 'play', cost: 3, needs: [], door: { x: 40, z: 3.5, side: 'front' },
     component: defineAsyncComponent(flatterflug), preload: flatterflug,
+  },
+  {
+    // Hearing words: rhymes, first sounds and syllables (Lehrplan 21 D.1.A.1), on the lot by the Tanzsaal
+    id: 'reimhaus', spokenName: 'Reimhaus', icon: '👂', kind: 'earn', needs: [], door: { x: 35.5, z: -16, side: 'right' },
+    component: defineAsyncComponent(reimhaus), preload: reimhaus,
   },
 ]
 

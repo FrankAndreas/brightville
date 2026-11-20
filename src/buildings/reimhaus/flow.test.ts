@@ -22,6 +22,14 @@ describe('the Reimhaus flow', () => {
     expect(asked).toContainEqual({ type: 'name', ids: ['maus', 'haus', 'fisch'] })
   })
 
+  it('drums the word after a syllable example', () => {
+    const flow = createRhymeFlow([syllableTask()], exampleFor(4, 0))
+    expect(flow.start()).toEqual([
+      { type: 'speak', text: 'Ba – na – ne. Hör mal: Ba – na – ne. Drei Silben. Ich trommle mit:' },
+      { type: 'drum', syllables: ['Ba', 'na', 'ne'] },
+    ])
+  })
+
   it('asks at once without an example', () => {
     const flow = createRhymeFlow([syllableTask()], null)
     expect(said(flow.start())).toEqual(['Wie viele Silben hat Auto? Trommle mit!'])

@@ -20,7 +20,8 @@ export type RhymeTask =
   | { type: 'rhyme' | 'sound'; word: Word; choices: Word[]; answer: string }
   | { type: 'syllables'; word: Word; answer: number }
 
-/** Shown before the first task while she is new to a step: said, with its pictures, nothing to tap */
+/** Shown before the first task while she is new to a step: said, with its pictures, nothing to tap; a syllable
+ * example then drums its word */
 export interface Example {
   kind: RhymeTask['type']
   words: Word[]
@@ -152,10 +153,9 @@ export function buildRhymeSession(step: number, random: () => number = Math.rand
 const syllableExample = (id: string, count: string): Example => {
   const word = byId(id)
   const said = word.syllables.join(' – ')
-  const bum = Array(word.syllables.length).fill('bum').join(', ')
   return {
     kind: 'syllables', words: [word], beats: word.syllables.length,
-    text: `${said}. Hör mal: ${said}. ${count} Silben. Ich trommle mit: ${bum}.`,
+    text: `${said}. Hör mal: ${said}. ${count} Silben. Ich trommle mit:`,
   }
 }
 
