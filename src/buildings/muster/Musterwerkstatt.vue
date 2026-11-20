@@ -4,7 +4,7 @@ import Confetti from '@/components/Confetti.vue'
 import { buildMusterSession, exampleFor, type MusterExample, type MusterTask, type SortThing } from '@/core/patterns'
 import { askedAgain } from '@/services/sayAgain'
 import { playBeat } from '@/services/sound'
-import { instruct, instruction, speak, stopSpeaking } from '@/services/tts'
+import { forgetInstruction, instruct, instruction, speak, stopSpeaking } from '@/services/tts'
 import { useSchoolStore } from '@/stores/school'
 import { onLeaveRequest } from '../leave'
 import type { BuildingResult } from '../types'
@@ -26,6 +26,8 @@ const AFTER_CHEER_MS = 500
 // After each lit line, before the next
 const BETWEEN_MS = 200
 const CONFETTI_MS = 3000
+// A thing from the wrong basket hops this long on its way back
+const HOP_MS = 600
 
 const school = useSchoolStore()
 // Her step as the visit starts: the answers are counted at it, even if it changes meanwhile
@@ -40,6 +42,8 @@ const view = reactive({ ...flow.state, wrong: [...flow.state.wrong], placed: { .
 const lit = ref<string | null>(null)
 /** The example's gap shows its answer */
 const filled = ref(false)
+/** The thing hopping back from the wrong basket */
+const hopping = ref<string | null>(null)
 
 const showing = computed<MusterTask | null>(() => (view.phase === 'example' && example ? example.task : view.task))
 const row = computed(() => (showing.value?.type === 'row' ? showing.value : null))
@@ -80,7 +84,11 @@ function run(effects: MusterEffect[]): Promise<boolean> {
   lit.value = null
   let chain: Promise<void> = Promise.resolve()
   for (const effect of effects) {
-    if (effect.type === 'chime') playBeat('chime')
+    if (effect.type === 'chime') {
+      playBeat('chime')
+      // Solved: 🔊 has nothing to ask until the next question
+      forgetInstruction()
+    }
     else if (effect.type === 'drop') playBeat('sparkle')
     else if (effect.type === 'confetti') later(leave, CONFETTI_MS)
     else if (effect.type === 'fill') chain = chain.then(() => { if (live()) filled.value = true })
@@ -119,7 +127,14 @@ function lift(id: string) {
   if (!closed) carryOn(flow.lift(id))
 }
 function drop(b: 0 | 1) {
-  if (!closed) carryOn(flow.drop(b))
+  if (closed) return
+  const id = flow.state.lifted
+  const effects = flow.drop(b)
+  if (id && effects.some(e => e.type === 'back')) {
+    hopping.value = id
+    later(() => { if (hopping.value === id) hopping.value = null }, HOP_MS)
+  }
+  carryOn(effects)
 }
 
 /** Takes back this building's answer to the leave button */
@@ -210,10 +225,11 @@ onBeforeUnmount(shutDown)
             </span>
           </button>
         </div>
-        <div class="loose">
+        <div v-if="view.phase !== 'example'" class="loose">
           <button
             v-for="t in loose" :key="t.id" class="thing" :data-test="`thing-${t.id}`" :data-big="t.big !== false"
-            :data-lifted="view.lifted === t.id" :data-lit="lit === `thing-${t.id}`" :aria-label="t.say"
+            :data-lifted="view.lifted === t.id" :data-lit="lit === `thing-${t.id}`" :data-back="hopping === t.id"
+            :aria-label="t.say"
             tabindex="-1" @pointerdown="lift(t.id)"
           >
             <PieceView v-if="t.piece" :piece="t.piece" />
@@ -322,9 +338,12 @@ button { border: 0; padding: 0; background: none; font: inherit; cursor: pointer
   place-items: center;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
-.thing[data-big='false'] { font-size: min(6vw, 5.4vh, 50px); }
-.thing.in { width: min(9vw, 8vh, 74px); font-size: min(6.4vw, 5.6vh, 54px); }
-.thing.in[data-big='false'] { font-size: min(3.8vw, 3.4vh, 32px); }
+/* Small is clearly small everywhere: a big one in a basket stays well above a small one outside */
+.thing[data-big='false'] { font-size: min(4.6vw, 4.1vh, 38px); }
+.thing.in { width: min(11vw, 10vh, 92px); font-size: min(8vw, 7vh, 66px); }
+.thing.in[data-big='false'] { font-size: min(4vw, 3.6vh, 34px); }
+.thing[data-back='true'] { animation: hop 0.6s ease; }
+@keyframes hop { 30% { transform: translateY(-26px); } 60% { transform: translateY(0); } 80% { transform: translateY(-8px); } }
 .thing :deep(.piece) { width: 82%; height: 82%; }
 .thing[data-lifted='true'] { transform: translateY(-14px) scale(1.12); box-shadow: 0 0 0 6px #ffd93d; background: #fffbe6; }
 .thing[data-lit='true'] { box-shadow: 0 0 0 6px #ffd93d; }

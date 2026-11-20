@@ -3,7 +3,7 @@ import { mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { exampleFor, type MusterTask, type Piece, type SortThing } from '@/core/patterns'
 import { playBeat } from '@/services/sound'
-import { instruction, speak } from '@/services/tts'
+import { forgetInstruction, instruction, speak } from '@/services/tts'
 import { useSchoolStore } from '@/stores/school'
 import { requestLeave } from '../leave'
 import Musterwerkstatt from './Musterwerkstatt.vue'
@@ -85,11 +85,38 @@ describe('Musterwerkstatt', () => {
     await tap(w, 'basket-1')
     await run(10)
     expect(w.find('[data-test="thing-🐮"]').attributes('data-lifted')).toBe('false')
-    expect(said()).toContain('Kuh gehört in den anderen Korb. Schau nochmal.')
+    expect(said()).toContain('Das gehört in den anderen Korb. Schau nochmal.')
     await tap(w, 'thing-🐮')
     await tap(w, 'basket-0')
     expect(w.find('[data-test="basket-0"]').text()).toContain('🐮')
     expect(w.find('[data-test="thing-🐮"]').exists()).toBe(false)
+    w.unmount()
+  })
+
+  it('hops a thing back from the wrong basket', async () => {
+    const w = await open([SORT, ROW])
+    await run(CHEER)
+    await tap(w, 'thing-🐮')
+    await tap(w, 'basket-1')
+    expect(w.find('[data-test="thing-🐮"]').attributes('data-back')).toBe('true')
+    await run(1000)
+    expect(w.find('[data-test="thing-🐮"]').attributes('data-back')).toBe('false')
+    w.unmount()
+  })
+
+  it('shows no things to tap during a sort example', async () => {
+    const w = mount(Musterwerkstatt, { props: { tasks: [SORT], example: exampleFor(4, 0) }, attachTo: document.body })
+    expect(w.find('[data-test="basket-0"]').exists()).toBe(true)
+    expect(w.findAll('[data-test^="thing-"]')).toHaveLength(0)
+    w.unmount()
+  })
+
+  it('lets go of the solved question, so 🔊 doesn\'t ask it again during the cheer', async () => {
+    const w = await open()
+    await run(CHEER)
+    vi.mocked(forgetInstruction).mockClear()
+    await tap(w, 'choice-1')
+    expect(forgetInstruction).toHaveBeenCalled()
     w.unmount()
   })
 

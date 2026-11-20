@@ -4,7 +4,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { exampleFor, WORDS, type RhymeTask } from '@/core/rhymes'
 import { playBeat } from '@/services/sound'
 import { askedAgain } from '@/services/sayAgain'
-import { instruction, speak } from '@/services/tts'
+import { forgetInstruction, instruction, speak } from '@/services/tts'
 import { useSchoolStore } from '@/stores/school'
 import { requestLeave } from '../leave'
 import Reimhaus from './Reimhaus.vue'
@@ -121,6 +121,15 @@ describe('Reimhaus', () => {
     const wrapper = await open([COUNT])
     for (let i = 0; i < 25; i++) await wrapper.find('[data-test="drum"]').trigger('pointerdown')
     expect(wrapper.findAll('[data-test="beat"]')).toHaveLength(10)
+    wrapper.unmount()
+  })
+
+  it('lets go of the solved question, so 🔊 doesn\'t ask it again during the cheer', async () => {
+    const wrapper = await open()
+    await run(CHEER)
+    vi.mocked(forgetInstruction).mockClear()
+    await pick(wrapper, 'haus').trigger('pointerdown')
+    expect(forgetInstruction).toHaveBeenCalled()
     wrapper.unmount()
   })
 

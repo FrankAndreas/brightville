@@ -107,6 +107,7 @@ describe('a Musterwerkstatt visit', () => {
           for (const t of [...s.things, ...s.examples]) expect(t.big).toBe(t.basket === 0)
         }
         if (s.by === 'colour') for (const t of [...s.things, ...s.examples]) expect(t.piece).toBeDefined()
+        if (s.by === 'size') expect(s.baskets).toEqual(['großen', 'kleinen'])
       }
     }
   })
@@ -128,7 +129,7 @@ describe('the voice\'s names', () => {
     expect(pieceName(p('rot', 'kreis'), 'colour')).toBe('rot')
     expect(pieceName(p('gruen', 'kreis'), 'colour')).toBe('grün')
     expect(pieceName(p('rot', 'kreis'), 'shape')).toBe('Kreis')
-    expect(pieceName(p('rot', 'kreis'), 'size')).toBe('gross')
+    expect(pieceName(p('rot', 'kreis'), 'size')).toBe('groß')
     expect(pieceName(p('rot', 'kreis', false), 'size')).toBe('klein')
     expect(pieceName(p('rot', 'kreis'), 'both')).toBe('roter Kreis')
     expect(pieceName(p('blau', 'dreieck'), 'both')).toBe('blaues Dreieck')
@@ -146,5 +147,11 @@ describe('the example', () => {
     expect(exampleFor(6, 0)).toBeNull()
     const row = exampleFor(1, 0)?.task as Row
     expect(row.pieces.map(x => pieceName(x, 'colour'))).toEqual(['rot', 'blau', 'rot', 'blau', 'rot'])
+    for (const step of [1, 2, 3, 5]) {
+      const r = exampleFor(step, 0)?.task as Row
+      expect(r.choices.every(Boolean), `step ${step}`).toBe(true)
+      expect(r.choices.filter(x => samePiece(x, r.pieces[r.gap]))).toHaveLength(1)
+    }
+    expect((exampleFor(4, 0)?.task as Sort).examples[0].the).toBe('Der Hund')
   })
 })

@@ -9,7 +9,7 @@ const SAY_CHEER = 'Super!'
 const SAY_DONE = 'Super gemacht!'
 const SAY_HOW = 'Tippe ein Ding an und dann seinen Korb.'
 /** Said at a gap inside a row, while the gap lights up */
-const SAY_GAP = 'hm'
+const SAY_GAP = 'hmm'
 
 export type MusterEffect =
   /**
@@ -75,7 +75,7 @@ function sayRow(r: Row, filled: boolean): MusterEffect[] {
 
 /** The row in words for the 🔊 button: "rot, blau, rot, blau … Was kommt jetzt?" */
 function rowText(r: Row): string {
-  const parts = r.pieces.flatMap((p, i) => (i !== r.gap ? [pieceName(p, r.feature)] : inner(r) ? ['…'] : []))
+  const parts = r.pieces.flatMap((p, i) => (i !== r.gap ? [pieceName(p, r.feature)] : inner(r) ? [SAY_GAP] : []))
   return inner(r) ? `${parts.join(', ')}. ${question(r)}` : `${parts.join(', ')} … ${question(r)}`
 }
 
@@ -100,7 +100,7 @@ function showExample(example: MusterExample): MusterEffect[] {
   if (task.type === 'sort') {
     const first = `Die ${task.baskets[0]} kommen in diesen Korb,`
     const second = `die ${task.baskets[1]} in den anderen.`
-    const third = `${task.examples[0].say} gehört hierhin!`
+    const third = `${task.examples[0].the ?? task.examples[0].say} gehört hierhin!`
     return [
       { type: 'speak', text: first, light: 'basket-0', ask: true, again: `${first} ${second} ${third}` },
       { type: 'speak', text: second, light: 'basket-1' },
@@ -179,7 +179,8 @@ export function createMusterFlow(tasks: MusterTask[], example: MusterExample | n
       if (thing.basket !== basket) {
         // It goes back to its place; she tries again
         state.missed = true
-        return [{ type: 'back' }, { type: 'speak', text: `${thing.say} gehört in den anderen Korb. Schau nochmal.` }]
+        // "Das": no article or plural to get wrong (der Kreis, die Kirschen)
+        return [{ type: 'back' }, { type: 'speak', text: 'Das gehört in den anderen Korb. Schau nochmal.' }]
       }
       state.placed = { ...state.placed, [thing.id]: basket }
       if (Object.keys(state.placed).length < task.things.length) return [{ type: 'drop' }]

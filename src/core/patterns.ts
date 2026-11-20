@@ -17,6 +17,8 @@ export interface SortThing {
   /** A drawn piece, for sorting by colour */
   piece?: Piece
   big?: boolean
+  /** With its article, to start a sentence ("Der Hund"), where there is one */
+  the?: string
   basket: 0 | 1
 }
 
@@ -42,11 +44,13 @@ const SHAPE_WORD: Record<Shape, string> = { kreis: 'Kreis', dreieck: 'Dreieck', 
 const MASCULINE: Record<Shape, boolean> = { kreis: true, dreieck: false, quadrat: false }
 
 /** Things to sort by kind, each with one obvious Standard German name */
-const KINDS: { name: string; things: [string, string][] }[] = [
-  { name: 'Tiere', things: [['Hund', '🐶'], ['Kuh', '🐮'], ['Schwein', '🐷'], ['Frosch', '🐸'], ['Hase', '🐰'], ['Fuchs', '🦊']] },
-  { name: 'Früchte', things: [['Apfel', '🍎'], ['Banane', '🍌'], ['Birne', '🍐'], ['Erdbeere', '🍓'], ['Kirschen', '🍒'], ['Trauben', '🍇']] },
-  { name: 'Fahrzeuge', things: [['Auto', '🚗'], ['Bus', '🚌'], ['Zug', '🚂'], ['Flugzeug', '✈️'], ['Traktor', '🚜'], ['Rakete', '🚀']] },
+const KINDS: { name: string; things: [string, string, string][] }[] = [
+  { name: 'Tiere', things: [['Hund', '🐶', 'Der'], ['Kuh', '🐮', 'Die'], ['Schwein', '🐷', 'Das'], ['Frosch', '🐸', 'Der'], ['Hase', '🐰', 'Der'], ['Fuchs', '🦊', 'Der']] },
+  { name: 'Früchte', things: [['Apfel', '🍎', 'Der'], ['Banane', '🍌', 'Die'], ['Birne', '🍐', 'Die'], ['Erdbeere', '🍓', 'Die'], ['Kirschen', '🍒', 'Die'], ['Trauben', '🍇', 'Die']] },
+  { name: 'Fahrzeuge', things: [['Auto', '🚗', 'Das'], ['Bus', '🚌', 'Der'], ['Zug', '🚂', 'Der'], ['Flugzeug', '✈️', 'Das'], ['Traktor', '🚜', 'Der'], ['Rakete', '🚀', 'Die']] },
 ]
+const kindThing = ([say, emoji, article]: [string, string, string], basket: 0 | 1): SortThing =>
+  ({ id: emoji, say, emoji, the: `${article} ${say}`, basket })
 /** One picture, big and small */
 const SIZE_THINGS: [string, string][] = [['Apfel', '🍎'], ['Hund', '🐶'], ['Auto', '🚗'], ['Blume', '🌸'], ['Ball', '⚽'], ['Fisch', '🐟']]
 
@@ -56,7 +60,8 @@ export const samePiece = (a: Piece, b: Piece) => a.colour === b.colour && a.shap
 export function pieceName(p: Piece, feature: Feature): string {
   if (feature === 'colour') return COLOUR_WORD[p.colour]
   if (feature === 'shape') return SHAPE_WORD[p.shape]
-  if (feature === 'size') return p.big ? 'gross' : 'klein'
+  // ß, not the Swiss ss: a German voice reads "gross" with a short o
+  if (feature === 'size') return p.big ? 'groß' : 'klein'
   return `${COLOUR_WORD[p.colour]}${MASCULINE[p.shape] ? 'er' : 'es'} ${SHAPE_WORD[p.shape]}`
 }
 
@@ -126,13 +131,13 @@ function sort(by: 'colour' | 'kind' | 'size', random: () => number): MusterTask 
   if (by === 'kind') {
     const [a, b] = shuffle(KINDS, random)
     const things = [a, b].flatMap((group, basket) =>
-      shuffle(group.things, random).slice(0, 3).map(([say, emoji]): SortThing => ({ id: emoji, say, emoji, basket: basket as 0 | 1 })))
+      shuffle(group.things, random).slice(0, 3).map(t => kindThing(t, basket as 0 | 1)))
     return split('kind', [a.name, b.name], things)
   }
   const [say, emoji] = pick(SIZE_THINGS, random)
   const things = [0, 1].flatMap(basket =>
     [0, 1, 2].map((k): SortThing => ({ id: `${emoji}-${basket}-${k}`, say, emoji, big: basket === 0, basket: basket as 0 | 1 })))
-  return split('size', ['grossen', 'kleinen'], things)
+  return split('size', ['großen', 'kleinen'], things)
 }
 
 /** Six things, three per basket in order: the first of each is the basket's example, the rest are hers to sort */
@@ -180,7 +185,7 @@ const fixedRow = (feature: Feature, vals: Piece[], order: number[], length: numb
   const pieces = Array.from({ length }, (_, i) => vals[order[i % order.length]])
   const right = pieces[gap]
   const wrong = feature === 'colour'
-    ? COLOURS.filter(c => !vals.some(v => v.colour === c)).slice(0, 2).map(c => ({ ...right, colour: c }))
+    ? COLOURS.filter(c => c !== right.colour).slice(0, 2).map(c => ({ ...right, colour: c }))
     : SHAPES.filter(s => s !== right.shape).map(s => ({ ...right, shape: s }))
   const choices = [wrong[0], right, wrong[1]]
   return { type: 'row', feature, pieces, gap, choices, answer: 1 }
@@ -199,8 +204,8 @@ export function exampleFor(step: number, windowLength: number): MusterExample | 
     return { kind: 'row', task: fixedRow('shape', shapes, [0, 1], 5, 4) }
   }
   if (step === 4) {
-    const animals = KINDS[0].things.slice(0, 3).map(([say, emoji]): SortThing => ({ id: emoji, say, emoji, basket: 0 }))
-    const fruit = KINDS[1].things.slice(0, 3).map(([say, emoji]): SortThing => ({ id: emoji, say, emoji, basket: 1 }))
+    const animals = KINDS[0].things.slice(0, 3).map(t => kindThing(t, 0))
+    const fruit = KINDS[1].things.slice(0, 3).map(t => kindThing(t, 1))
     return { kind: 'sort', task: split('kind', ['Tiere', 'Früchte'], [...animals, ...fruit]) }
   }
   return { kind: 'gap', task: fixedRow('colour', [colourPiece('rot'), colourPiece('blau')], [0, 1], 5, 1) }

@@ -29,8 +29,10 @@ describe('the Musterwerkstatt flow', () => {
 
   it('hums at a gap in the middle and asks what is missing', () => {
     const effects = createMusterFlow([GAP], null).start()
-    expect(said(effects)).toEqual(['rot', 'hm', 'rot', 'blau', 'rot', 'Was fehlt?'])
+    expect(said(effects)).toEqual(['rot', 'hmm', 'rot', 'blau', 'rot', 'Was fehlt?'])
     expect(lights(effects)[1]).toBe('gap')
+    // 🔊 says the same row, gap and all
+    expect(effects.at(-1)).toMatchObject({ again: 'rot, hmm, rot, blau, rot. Was fehlt?' })
   })
 
   it('cheers the right piece and says the whole row', () => {
@@ -81,7 +83,7 @@ describe('the Musterwerkstatt flow', () => {
     const flow = createMusterFlow([SORT, SORT], null)
     flow.start()
     flow.lift('🐮')
-    expect(flow.drop(1)).toEqual([{ type: 'back' }, { type: 'speak', text: 'Kuh gehört in den anderen Korb. Schau nochmal.' }])
+    expect(flow.drop(1)).toEqual([{ type: 'back' }, { type: 'speak', text: 'Das gehört in den anderen Korb. Schau nochmal.' }])
     expect(flow.state).toMatchObject({ lifted: null, placed: {}, missed: true })
     flow.lift('🐮')
     expect(flow.drop(0)).toEqual([{ type: 'drop' }])
@@ -116,7 +118,7 @@ describe('the Musterwerkstatt flow', () => {
 
   it('shows a sort example by lighting the baskets', () => {
     const effects = createMusterFlow([SORT], exampleFor(4, 0)).start()
-    expect(said(effects)).toEqual(['Die Tiere kommen in diesen Korb,', 'die Früchte in den anderen.', 'Hund gehört hierhin!'])
+    expect(said(effects)).toEqual(['Die Tiere kommen in diesen Korb,', 'die Früchte in den anderen.', 'Der Hund gehört hierhin!'])
     expect(lights(effects)).toEqual(['basket-0', 'basket-1', 'basket-0'])
   })
 
