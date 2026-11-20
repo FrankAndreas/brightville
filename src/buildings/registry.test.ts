@@ -118,7 +118,15 @@ describe('building registry', () => {
     expect(b?.preload).toBeTypeOf('function')
     const shared = (sharedBuildings as { id: string; maxStars?: number; minSecondsPerStar?: number }[]).find(x => x.id === 'reimhaus')
     expect(shared).toEqual({ id: 'reimhaus', kind: 'earn', maxStars: 10, minSecondsPerStar: 2 })
-    expect(EMPTY_LOTS).toHaveLength(3)
+  })
+
+  it('lists the Musterwerkstatt as an earning building that needs nothing, on the last free lot', () => {
+    const b = BUILDINGS.find(x => x.id === 'muster')
+    expect(b).toMatchObject({ spokenName: 'Musterwerkstatt', icon: '🧩', kind: 'earn', needs: [], door: { x: 3.5, z: 51, side: 'right' } })
+    expect(b?.preload).toBeTypeOf('function')
+    const shared = (sharedBuildings as { id: string }[]).find(x => x.id === 'muster')
+    expect(shared).toEqual({ id: 'muster', kind: 'earn', maxStars: 10, minSecondsPerStar: 2 })
+    expect(EMPTY_LOTS).toEqual([{ x: -3.5, z: -40, side: 'left' }, { x: -51, z: 3.5, side: 'front' }])
   })
 
   it('lists the house, free, needing nothing, and kept out of the logbook', () => {

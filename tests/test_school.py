@@ -10,7 +10,7 @@ from app import school
 def state(browser):
     """The two ladders, without the keys the server has seen"""
     answer = browser.get("/api/school").json()
-    return {"zaehlen": answer["zaehlen"], "rechnen": answer["rechnen"], "reimen": answer["reimen"]}
+    return {name: answer[name] for name in ("zaehlen", "rechnen", "reimen", "muster")}
 
 
 def send(browser, key, zaehlen=(1, []), rechnen=(1, [])):
@@ -43,6 +43,7 @@ def test_a_new_child_starts_at_zaehlen_1_rechnen_1(mia):
         "zaehlen": {"step": 1, "window": []},
         "rechnen": {"step": 1, "window": []},
         "reimen": {"step": 1, "window": []},
+        "muster": {"step": 1, "window": []},
     }
 
 
@@ -178,3 +179,23 @@ def test_an_old_result_without_reimen_still_counts(mia):
 
 def test_a_parent_sets_reimen(papa, mia):
     assert set_step(papa, "reimen", 4).json()["reimen"] == {"step": 4, "window": []}
+
+
+def test_a_new_child_starts_muster_at_1(mia):
+    assert mia.get("/api/school").json()["muster"] == {"step": 1, "window": []}
+
+
+def test_ten_muster_answers_with_two_misses_move_up(mia):
+    send_only(mia, "a", muster=(1, [True, False, True, True, True]))
+    answer = send_only(mia, "b", muster=(1, [True, True, False, True, True])).json()
+    assert answer["muster"] == {"step": 2, "window": []}
+
+
+def test_a_result_with_only_muster_leaves_the_others(mia):
+    assert send_only(mia, "a", muster=(1, [True])).status_code == 200
+    assert state(mia)["reimen"] == {"step": 1, "window": []}
+    assert state(mia)["muster"] == {"step": 1, "window": [True]}
+
+
+def test_a_parent_sets_muster(papa, mia):
+    assert set_step(papa, "muster", 5).json()["muster"] == {"step": 5, "window": []}

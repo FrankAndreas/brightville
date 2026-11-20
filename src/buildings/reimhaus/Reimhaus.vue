@@ -4,7 +4,7 @@ import Confetti from '@/components/Confetti.vue'
 import { buildRhymeSession, exampleFor, sayAsHeard, WORDS, type Example, type RhymeTask } from '@/core/rhymes'
 import { playBeat } from '@/services/sound'
 import { askedAgain } from '@/services/sayAgain'
-import { instruct, instruction, speak, stopSpeaking } from '@/services/tts'
+import { forgetInstruction, instruct, instruction, speak, stopSpeaking } from '@/services/tts'
 import { useSchoolStore } from '@/stores/school'
 import { onLeaveRequest } from '../leave'
 import type { BuildingResult } from '../types'
@@ -82,7 +82,11 @@ function run(effects: RhymeEffect[]): Promise<boolean> {
   const named = effects.find(e => e.type === 'name')
   const asking = flow.state.phase === 'asking'
   for (const effect of effects) {
-    if (effect.type === 'chime') playBeat('chime')
+    if (effect.type === 'chime') {
+      playBeat('chime')
+      // Solved: 🔊 has nothing to ask until the next question
+      forgetInstruction()
+    }
     else if (effect.type === 'beat') playBeat('drum')
     else if (effect.type === 'confetti') later(leave, CONFETTI_MS)
     else if (effect.type === 'speak') {

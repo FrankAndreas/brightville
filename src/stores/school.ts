@@ -11,6 +11,12 @@ const newKey = () =>
 /** One visit's first-try answers, for each solved task */
 export type VisitResults = { ladder: Ladder; firstTry: boolean }[]
 
+/** Every ladder from `from`, those missing or broken where a new child starts */
+function withEvery(from: Partial<Ladders>, ok: (x: unknown) => x is LadderState): Ladders {
+  const start = startLadders(false)
+  return Object.fromEntries(LADDERS.map(l => [l, ok(from[l]) ? from[l] : start[l]])) as Ladders
+}
+
 /** A visit's answers laid over the ladders, each only at the step it was asked at (as the server does) */
 function lay(ladders: Ladders, item: SchoolResultsIn): Ladders {
   const next = { ...ladders }
@@ -62,8 +68,8 @@ export const useSchoolStore = defineStore('school', () => {
         && typeof (x as LadderState).step === 'number' && Array.isArray((x as LadderState).window)
       const r = raw as Partial<Ladders> | null
       if (!r || !ok(r.zaehlen) || !ok(r.rechnen)) return null
-      // Steps kept before Reimen came: it starts at step 1
-      return { zaehlen: r.zaehlen, rechnen: r.rechnen, reimen: ok(r.reimen) ? r.reimen : startLadders(false).reimen }
+      // Steps kept before a ladder came: it starts where a new child does
+      return withEvery(r, ok)
     } catch {
       return null
     }
@@ -114,9 +120,8 @@ export const useSchoolStore = defineStore('school', () => {
     const waiting = readWaiting(key)
     const left = waiting.filter(x => !seen.has(x.key))
     if (left.length !== waiting.length) writeWaiting(key, left)
-    // A server from before Reimen (during an update) names no Reimen: step 1
-    const reimen = state.reimen ?? startLadders(false).reimen
-    show(left.reduce(lay, { zaehlen: state.zaehlen, rechnen: state.rechnen, reimen }))
+    // A server from before a ladder came (during an update) doesn't name it: where a new child starts
+    show(left.reduce(lay, withEvery(state, (x: unknown): x is LadderState => typeof x === 'object' && x !== null)))
   }
 
   const refused = (e: unknown) => e instanceof ApiError && e.status >= 400 && e.status < 500 && e.status !== 401 && e.status !== 403
