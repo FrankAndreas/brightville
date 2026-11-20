@@ -1,7 +1,7 @@
 import type { Ladder } from '@/core/ladders'
 import { cheerText, countable, numberWord, questionText, type Task, type Thing } from '@/core/numbers'
 
-import { SET_BONUS, STARS_PER_TASK } from '../visit'
+import { SET_BONUS, scoreSolved, STARS_PER_TASK } from '../visit'
 
 // The Stars are the same for every learning building (../visit.ts); kept here for the buildings that import them so
 export { SET_BONUS, STARS_PER_TASK }
@@ -75,11 +75,7 @@ export function createSchoolFlow(tasks: Task[], things: Thing[]): SchoolFlow {
       if (!task.choices.includes(choice) || state.wrong.includes(choice)) return []
       if (choice === task.answer) {
         state.phase = 'cheering'
-        state.solved += 1
-        state.results.push({ ladder: task.ladder, firstTry: state.wrong.length === 0 })
-        state.stars += STARS_PER_TASK
-        // The bonus is earned with the last right answer, so leaving during the cheer keeps it
-        if (state.solved === tasks.length) state.stars += SET_BONUS
+        scoreSolved(state, task.ladder, state.wrong.length === 0, tasks.length)
         return [{ type: 'chime' }, { type: 'speak', text: cheerText(task.answer) }]
       }
       // Never a buzzer: the wrong button fades and we count together
