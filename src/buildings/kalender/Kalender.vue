@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import Confetti from '@/components/Confetti.vue'
+import ProgressStars from '@/components/ProgressStars.vue'
 import {
   buildZeitSession, DAY_COLOURS, DAYS, exampleFor, weekdayOf, type Activity, type ClockTime, type ZeitExample,
   type ZeitTask,
 } from '@/core/kalender'
 import { askedAgain } from '@/services/sayAgain'
 import { playBeat } from '@/services/sound'
-import { forgetInstruction, instruct, instruction, speak, stopSpeaking } from '@/services/tts'
-import { useSchoolStore } from '@/stores/school'
-import { onLeaveRequest } from '../leave'
+import { forgetInstruction, instruct, instruction, speak } from '@/services/tts'
 import type { BuildingResult } from '../types'
+import { ladderVisit, useVisit } from '../visit'
 import ClockFace from './ClockFace.vue'
 import { createZeitFlow, type ZeitEffect } from './flow'
 import SunSky from './SunSky.vue'
@@ -36,13 +36,13 @@ const WIGGLE_MS = 600
 
 const today = props.today ?? new Date()
 const todayIndex = weekdayOf(today)
-const school = useSchoolStore()
-// Her step as the visit starts: the answers are counted at it, even if it changes meanwhile
-const step = school.ladders.zeit.step
-// And the child who plays: if the device changes hands meanwhile, they still count for her
-const player = school.who
+// Her step, her answers at it and the child who plays, as the visit starts
+const ladder = ladderVisit('zeit')
+const step = ladder.step
+const visit = useVisit(leave)
+const { later, pause } = visit
 const tasks = props.tasks ?? buildZeitSession(step, today)
-const example = props.example !== undefined ? props.example : exampleFor(step, school.ladders.zeit.window.length, today)
+const example = props.example !== undefined ? props.example : exampleFor(step, ladder.windowLength, today)
 const flow = createZeitFlow(tasks, example)
 const view = reactive({ ...flow.state, wrong: [...flow.state.wrong], placed: [...flow.state.placed] })
 /** What is lit while it is said: one or more keys, apart by spaces ('choice-day-4 strip-4') */
@@ -66,29 +66,16 @@ const slots = computed<(Activity | null)[]>(() => {
 })
 const loose = computed(() => order.value?.shown.filter(i => !placedIds.value.includes(i.id)) ?? [])
 
-let closed = false
-const timers = new Set<ReturnType<typeof setTimeout>>()
-function later(fn: () => void, ms: number) {
-  const id = setTimeout(() => {
-    timers.delete(id)
-    if (!closed) fn()
-  }, ms)
-  timers.add(id)
-}
-const pause = (ms: number) => new Promise<void>(resolve => later(resolve, ms))
-
 function sync() {
   Object.assign(view, flow.state, { wrong: [...flow.state.wrong], placed: [...flow.state.placed] })
 }
 
-/** Each run is numbered: what an older one still had to say is dropped when a newer one starts (she answered) */
-let current = 0
 
 /** Carries out what the flow asks for, one after the other. Resolves true when all of it was said. */
 function run(effects: ZeitEffect[]): Promise<boolean> {
   sync()
-  const mine = ++current
-  const live = () => !closed && mine === current
+  // Each run is numbered: what an older one still had to say is dropped when a newer one starts
+  const live = visit.newRun()
   // Whatever an older run had lit goes dark
   lit.value = null
   let chain: Promise<void> = Promise.resolve()
@@ -132,29 +119,22 @@ function carryOn(effects: ZeitEffect[]) {
 }
 
 function choose(id: string) {
-  if (!closed) carryOn(flow.choose(id))
+  if (!visit.isClosed()) carryOn(flow.choose(id))
 }
 function tap(id: string) {
-  if (!closed) carryOn(flow.tap(id))
+  if (!visit.isClosed()) carryOn(flow.tap(id))
 }
 
-/** Takes back this building's answer to the leave button */
-let stopLeaveRequests = () => {}
-
-function shutDown() {
-  if (closed) return
-  closed = true
-  for (const id of timers) clearTimeout(id)
-  timers.clear()
+/** What closing the visit must undo besides its timers and voice */
+function cleanUp() {
   window.removeEventListener('keydown', onKey)
-  stopLeaveRequests()
-  stopSpeaking()
 }
+visit.onShutDown(cleanUp)
 
 function leave() {
-  if (closed) return
-  shutDown()
-  school.record(flow.state.results, { zeit: step }, player)
+  if (visit.isClosed()) return
+  visit.shutDown()
+  ladder.record(flow.state.results)
   emit('finished', { stars: flow.state.stars })
 }
 
@@ -170,26 +150,20 @@ function onKey(e: KeyboardEvent) {
 
 // 🔊 while something is being said: it stops, so the whole instruction is heard
 watch(askedAgain, () => {
-  if (closed || flow.state.phase !== 'asking') return
-  current++
+  if (visit.isClosed() || flow.state.phase !== 'asking') return
+  visit.dropRuns()
   lit.value = null
 })
 
 onMounted(() => {
   window.addEventListener('keydown', onKey)
-  stopLeaveRequests = onLeaveRequest(leave)
   carryOn(flow.start())
 })
-onBeforeUnmount(shutDown)
 </script>
 
 <template>
   <div class="kalender" data-test="kalender" :data-phase="view.phase">
-    <div class="progress" aria-hidden="true">
-      <svg v-for="n in tasks.length" :key="n" viewBox="0 0 24 24" data-test="progress-star" :data-done="n <= view.solved">
-        <path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.2 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z" />
-      </svg>
-    </div>
+    <ProgressStars :total="tasks.length" :solved="view.solved" edge="#c6cbec" />
 
     <div class="board">
       <div v-if="inExample" class="badge" data-test="example" aria-hidden="true">👀</div>
@@ -256,10 +230,6 @@ onBeforeUnmount(shutDown)
 }
 button { border: 0; padding: 0; background: none; font: inherit; cursor: pointer; }
 
-.progress { display: flex; gap: 14px; }
-.progress svg { width: 46px; }
-.progress path { fill: rgb(255 255 255 / 70%); stroke: #c6cbec; stroke-width: 1.2; stroke-linejoin: round; }
-.progress svg[data-done='true'] path { fill: #ffd93d; stroke: #e0a800; }
 
 .board {
   position: relative;
