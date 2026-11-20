@@ -1,6 +1,6 @@
 import { againText, setupFor, taskText, type RaumExample, type RaumTask } from '@/core/raum'
 import { delta, describe, holds, nounPhrase, OBJECTS, THINGS, type Arrangement, type Place, type WorldObject } from '@/core/world'
-import { SET_BONUS, STARS_PER_TASK } from '../school/flow'
+import { scoreSolved } from '../visit'
 
 const SAY_CHEER = 'Super!'
 const SAY_FREE = 'Super gemacht! Jetzt darfst du frei spielen.'
@@ -76,11 +76,7 @@ export function createRaumFlow(
 
   function solve() {
     state.phase = 'cheering'
-    state.solved += 1
-    state.results.push({ ladder: 'raum', firstTry: !state.missed })
-    state.stars += STARS_PER_TASK
-    // The bonus is earned with the last right answer, so leaving during the cheer keeps it
-    if (state.solved === tasks.length) state.stars += SET_BONUS
+    scoreSolved(state, 'raum', !state.missed, tasks.length)
   }
 
   return {

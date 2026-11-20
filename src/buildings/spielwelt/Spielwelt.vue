@@ -4,18 +4,18 @@ export const PX_PER_UNIT = 7
 </script>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import Confetti from '@/components/Confetti.vue'
+import ProgressStars from '@/components/ProgressStars.vue'
 import { buildRaumSession, exampleFor, type RaumExample, type RaumTask } from '@/core/raum'
 import {
   CAR, OBJECTS, objectsWith, settle, startArrangement, THINGS, wrap, WORLD_WIDTH, type Arrangement, type Place,
 } from '@/core/world'
 import { askedAgain } from '@/services/sayAgain'
 import { playBeat } from '@/services/sound'
-import { forgetInstruction, instruct, instruction, speak, stopSpeaking } from '@/services/tts'
-import { useSchoolStore } from '@/stores/school'
-import { onLeaveRequest } from '../leave'
+import { forgetInstruction, instruct, instruction, speak } from '@/services/tts'
 import type { BuildingResult } from '../types'
+import { ladderVisit, useVisit } from '../visit'
 import { createRaumFlow, type RaumEffect } from './flow'
 import WorldScene from './WorldScene.vue'
 
@@ -44,12 +44,12 @@ const START_CAR_X = OBJECTS.find(o => o.id === CAR)?.x ?? 0
 /** Bump when objects move in world.ts: an arrangement saved for another layout starts afresh */
 const LAYOUT = 1
 
-const school = useSchoolStore()
-// Her step as the visit starts: the answers are counted at it, even if it changes meanwhile
-const step = school.ladders.raum.step
-// And the child who plays: if the device changes hands meanwhile, they still count for her
-const player = school.who
-const key = `brightville.spielwelt.${player ?? 'anyone'}`
+// Her step, her answers at it and the child who plays, as the visit starts
+const ladder = ladderVisit('raum')
+const step = ladder.step
+const visit = useVisit(leave)
+const { later } = visit
+const key = `brightville.spielwelt.${ladder.player ?? 'anyone'}`
 const store = () => props.storage ?? window.localStorage
 
 /** Her arrangement from last time, or the start one if there is none or it is broken */
@@ -97,7 +97,7 @@ const worldEl = ref<SVGSVGElement | null>(null)
 const stripEl = ref<HTMLElement | null>(null)
 
 const tasks = props.tasks ?? buildRaumSession(step)
-const example = props.example !== undefined ? props.example : exampleFor(step, school.ladders.raum.window.length)
+const example = props.example !== undefined ? props.example : exampleFor(step, ladder.windowLength)
 const flow = createRaumFlow(
   tasks, example, () => arrangement.value, () => wrap(viewX.value + viewW.value / 2), step, () => objects.value,
 )
@@ -134,22 +134,10 @@ const order = computed(() => {
 })
 const COPIES = [-WORLD_WIDTH, 0, WORLD_WIDTH]
 
-let closed = false
-const timers = new Set<ReturnType<typeof setTimeout>>()
-function later(fn: () => void, ms: number) {
-  const id = setTimeout(() => {
-    timers.delete(id)
-    if (!closed) fn()
-  }, ms)
-  timers.add(id)
-}
-
 function sync() {
   Object.assign(view, flow.state)
 }
 
-/** Each run is numbered: what an older one still had to say is dropped when a newer one starts */
-let current = 0
 
 function centreOn(x: number) {
   viewX.value = wrap(x - viewW.value / 2)
@@ -157,8 +145,8 @@ function centreOn(x: number) {
 
 function run(effects: RaumEffect[]): Promise<boolean> {
   sync()
-  const mine = ++current
-  const live = () => !closed && mine === current
+  // Each run is numbered: what an older one still had to say is dropped when a newer one starts
+  const live = visit.newRun()
   lit.value = null
   let chain: Promise<void> = Promise.resolve()
   for (const effect of effects) {
@@ -233,19 +221,19 @@ const begin = (e: PointerEvent) => ({ pointer: e.pointerId, x0: e.clientX, y0: e
 
 function onThing(id: string, e: PointerEvent) {
   e.stopPropagation()
-  if (closed || press || view.phase === 'example') return
+  if (visit.isClosed() || press || view.phase === 'example') return
   press = { ...begin(e), kind: 'thing', id }
   listen()
 }
 function onObject(id: string, e: PointerEvent) {
-  if (closed || id !== CAR || view.phase === 'example') return
+  if (visit.isClosed() || id !== CAR || view.phase === 'example') return
   e.stopPropagation()
   if (press) return
   press = { ...begin(e), kind: 'car' }
   listen()
 }
 function onWorld(e: PointerEvent) {
-  if (closed || press) return
+  if (visit.isClosed() || press) return
   press = { ...begin(e), kind: 'world' }
   listen()
 }
@@ -285,7 +273,7 @@ function onMove(e: PointerEvent) {
 
 /** While she carries a thing near a side, the world scrolls that way */
 function edgeScroll() {
-  if (!carried.value || closed) {
+  if (!carried.value || visit.isClosed()) {
     edgeLoop = false
     return
   }
@@ -304,7 +292,7 @@ function onUp(e: PointerEvent) {
   if (!p || e.pointerId !== p.pointer) return
   press = null
   unlisten()
-  if (closed) {
+  if (visit.isClosed()) {
     carried.value = null
     return
   }
@@ -337,7 +325,7 @@ function drive(dir: number) {
   if (driveLoop) return
   driveLoop = true
   const tick = () => {
-    if (driveDir === 0 || closed || !driving.value) {
+    if (driveDir === 0 || visit.isClosed() || !driving.value) {
       driveLoop = false
       return
     }
@@ -364,57 +352,45 @@ function stripTo(clientX: number) {
 /** A tap on the strip jumps there; dragging along it scrolls */
 function onStrip(e: PointerEvent) {
   stripTo(e.clientX)
-  if (closed || press) return
+  if (visit.isClosed() || press) return
   press = { ...begin(e), kind: 'strip' }
   listen()
 }
 
 // ---- Leaving ----
 
-let stopLeaveRequests = () => {}
-
-function shutDown() {
-  if (closed) return
-  closed = true
-  for (const id of timers) clearTimeout(id)
-  timers.clear()
+/** What closing the visit must undo besides its timers and voice */
+function cleanUp() {
   unlisten()
   window.removeEventListener('resize', measure)
-  stopLeaveRequests()
-  stopSpeaking()
   save()
 }
+visit.onShutDown(cleanUp)
 
 function leave() {
-  if (closed) return
-  shutDown()
-  school.record(flow.state.results, { raum: step }, player)
+  if (visit.isClosed()) return
+  visit.shutDown()
+  ladder.record(flow.state.results)
   emit('finished', { stars: flow.state.stars })
 }
 
 watch(askedAgain, () => {
-  if (closed || flow.state.phase !== 'asking') return
-  current++
+  if (visit.isClosed() || flow.state.phase !== 'asking') return
+  visit.dropRuns()
   lit.value = null
 })
 
 onMounted(() => {
   measure()
   window.addEventListener('resize', measure)
-  stopLeaveRequests = onLeaveRequest(leave)
   carryOn(flow.start())
 })
-onBeforeUnmount(shutDown)
 </script>
 
 <template>
   <div class="spielwelt" data-test="spielwelt" :data-phase="view.phase">
     <div class="top">
-      <div class="progress" aria-hidden="true">
-        <svg v-for="n in tasks.length" :key="n" viewBox="0 0 24 24" data-test="progress-star" :data-done="n <= view.solved">
-          <path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.2 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z" />
-        </svg>
-      </div>
+      <ProgressStars :total="tasks.length" :solved="view.solved" edge="#9cc7e8" :size="38" />
       <div ref="stripEl" class="strip" data-test="strip" aria-label="Die ganze Welt" @pointerdown="onStrip">
         <span v-for="o in objects" :key="o.id" class="dot" :style="{ left: `${(o.x / WORLD_WIDTH) * 100}%` }" />
         <span
@@ -474,10 +450,6 @@ onBeforeUnmount(shutDown)
 button { border: 0; padding: 0; background: none; font: inherit; cursor: pointer; }
 
 .top { display: flex; align-items: center; justify-content: center; gap: 24px; padding: 1.5vh 4vw 1vh 180px; }
-.progress { display: flex; gap: 10px; }
-.progress svg { width: 38px; }
-.progress path { fill: rgb(255 255 255 / 70%); stroke: #9cc7e8; stroke-width: 1.2; stroke-linejoin: round; }
-.progress svg[data-done='true'] path { fill: #ffd93d; stroke: #e0a800; }
 .strip {
   position: relative;
   flex: 1;
