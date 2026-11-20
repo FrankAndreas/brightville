@@ -1,6 +1,7 @@
 // The Spielwelt's tasks on the Raum ladder: finding a thing from where it is said to be, and carrying a thing to
 // where it should go, with the position words of each step (docs/superpowers/specs/2026-11-20-brightville-spielwelt-design.md).
 
+import { WINDOW } from './ladders'
 import {
   BACK_LANE, CAR, delta, FRONT_LANE, GROUND, holds, nounPhrase, OBJECTS, PAIRS, placeFor, prepPhrase, THINGS, wrap,
   WORLD_WIDTH, type Arrangement, type Clue, type Place, type Word, type WorldObject,
@@ -15,7 +16,6 @@ export type RaumTask =
 export interface RaumExample { thing: string; lines: { text: string; place: Place }[] }
 
 const LAST_STEP = 6
-const EXAMPLE_UNTIL = 10
 /** At steps 1–3 the thing to carry starts this close to the object (on its screen) */
 const NEAR = 60
 const KINDS: RaumTask['type'][] = ['find', 'place', 'place', 'find', 'place']
@@ -169,7 +169,7 @@ const show = (text: string, clue: Clue[]) => {
 
 /** The example before the first task: at steps 1–5 while her answers at the step are fewer than two visits' worth */
 export function exampleFor(step: number, windowLength: number): RaumExample | null {
-  if (step >= LAST_STEP || windowLength >= EXAMPLE_UNTIL) return null
+  if (step >= LAST_STEP || windowLength >= WINDOW.raum) return null
   const lines = [
     [show('Schau: Der Ball ist auf dem Tisch.', [{ word: 'auf', object: 'tisch' }]),
       show('Jetzt ist er unter dem Tisch.', [{ word: 'unter', object: 'tisch' }])],

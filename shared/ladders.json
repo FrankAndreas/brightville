@@ -1,0 +1,9 @@
+[
+  { "id": "zaehlen", "window": 6, "misses": 1 },
+  { "id": "rechnen", "window": 4, "misses": 1 },
+  { "id": "reimen", "window": 10, "misses": 2 },
+  { "id": "muster", "window": 10, "misses": 2 },
+  { "id": "zeit", "window": 10, "misses": 2 },
+  { "id": "raum", "window": 10, "misses": 2 },
+  { "id": "rhythmus", "window": 10, "misses": 2 }
+]

@@ -2,6 +2,7 @@
 // real day, the seasons and the full and half hours (Lehrplan 21 MA.3, Zugang 3). Everything is said aloud; the
 // ladder's steps are the design's table (docs/superpowers/specs/2026-11-20-brightville-kalender-design.md).
 
+import { WINDOW } from './ladders'
 import { numberWord } from './numbers'
 
 export const DAYS = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag']
@@ -48,7 +49,6 @@ export interface ExampleLine {
 export interface ZeitExample { task: ZeitTask; lines: ExampleLine[] }
 
 export const TASKS_PER_VISIT = 5
-const EXAMPLE_UNTIL = 10
 const LAST_STEP = 6
 
 /**
@@ -194,7 +194,7 @@ const byId = (id: string) => ACTIVITIES.find(a => a.id === id) as Activity
 
 /** The example before the first task: at steps 1–5 while her answers at the step are fewer than two visits' worth */
 export function exampleFor(step: number, windowLength: number, today: Date): ZeitExample | null {
-  if (step >= LAST_STEP || windowLength >= EXAMPLE_UNTIL) return null
+  if (step >= LAST_STEP || windowLength >= WINDOW.zeit) return null
   if (step === 1) {
     const items = ['aufstehen', 'fruehstuecken', 'mittagessen', 'schlafen'].map(byId)
     return {

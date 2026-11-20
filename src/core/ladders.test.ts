@@ -1,9 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { applyResults, LAST_STEP, share, startLadders, WINDOW } from './ladders'
+import shared from '../../shared/ladders.json'
+import { applyResults, LADDERS, LAST_STEP, MISSES_ALLOWED, share, startLadders, WINDOW } from './ladders'
 
 const at = (step: number, window: boolean[] = []) => ({ step, window })
 
 describe('ladders', () => {
+  it('takes its ladders and their rules from the file the server reads too', () => {
+    expect(LADDERS).toEqual(shared.map(l => l.id))
+    expect(WINDOW).toEqual(Object.fromEntries(shared.map(l => [l.id, l.window])))
+    expect(MISSES_ALLOWED).toEqual(Object.fromEntries(shared.map(l => [l.id, l.misses])))
+  })
+
   it('two visits with one miss move Zählen up and empty the window', () => {
     const once = applyResults(at(1), [true, true, false], 'zaehlen')
     expect(once).toEqual(at(1, [true, true, false]))

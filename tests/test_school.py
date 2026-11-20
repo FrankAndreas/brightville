@@ -1,7 +1,9 @@
 """The School's two Lehrplan 21 ladders on the server: Zählen and Rechnen, each moving up by itself after two visits'
 worth of answers with at most one missed on the first try."""
 
+import json
 import sqlite3
+from pathlib import Path
 
 from app import db as database
 from app import school
@@ -244,3 +246,11 @@ def test_ten_rhythmus_answers_with_two_misses_move_up(mia):
 
 def test_a_parent_sets_rhythmus(papa, mia):
     assert set_step(papa, "rhythmus", 3).json()["rhythmus"] == {"step": 3, "window": []}
+
+
+def test_the_ladder_rules_come_from_the_file_the_page_reads_too():
+    """One table for the server and the page (shared/ladders.json): they can't disagree in front of her"""
+    with open(Path(__file__).resolve().parents[1] / "shared" / "ladders.json", encoding="utf-8") as file:
+        shared = json.load(file)
+    assert school.WINDOW == {ladder["id"]: ladder["window"] for ladder in shared}
+    assert school.MISSES_ALLOWED == {ladder["id"]: ladder["misses"] for ladder in shared}
