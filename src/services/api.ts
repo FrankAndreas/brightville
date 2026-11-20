@@ -65,15 +65,12 @@ export interface WritingState {
   new_left_today: number
 }
 
-/** The School's ladders (backend/app/school.py), and one visit's first-try answers per ladder at the steps asked */
+/** The Lehrplan ladders (backend/app/school.py), and one visit's first-try answers per ladder at the steps asked */
 export type { Ladder, Ladders } from '@/core/ladders'
 /** Her ladders, and the keys of her latest results the server has (so a device can let them go) */
 export type SchoolState = Ladders & { seen: string[] }
-export interface SchoolResultsIn {
-  key: string
-  zaehlen: { step: number; results: boolean[] }
-  rechnen: { step: number; results: boolean[] }
-}
+/** The School sends Zählen and Rechnen, the Reimhaus only Reimen */
+export type SchoolResultsIn = { key: string } & Partial<Record<Ladder, { step: number; results: boolean[] }>>
 
 /** One counted write: clean or bumpy, at the level the letter was shown at */
 export interface WriteIn {

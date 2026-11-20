@@ -18,6 +18,7 @@ The six stages of the roadmap in [the stage 1 design](superpowers/specs/2026-11-
 10. Schreiben with her own words and sentences (Spielzeugkiste's name writing, grown into short sentences), a level per letter that sets the help, and new letters paced
 11. A bigger town to walk and discover (part A: streets, hills, a lake with a jetty, the buildings mixed along the streets, a camera that keeps her in sight). Part B: detailed houses, trees, flowers, lamps and benches. Part C: townsfolk, ducks, boats, birds, a cat and a dog, see [the plan](superpowers/plans/2026-11-14-brightville-bigger-town.md)
 12. Lehrplan 21 (#32, #33): the School climbs two ladders (Zählen, Rechnen) per child, and the parents see one overall number that opens into subjects, ladders and this week's practice, see [the design](superpowers/specs/2026-11-16-brightville-lehrplan-design.md). New buildings for the gaps are issues #34–#38
+13. Reimhaus (#34): rhymes, first sounds and syllables on a third ladder, Reimen, shown under Deutsch in the parents' overview, see [the design](superpowers/specs/2026-11-20-brightville-reimhaus-design.md)
 
 Each stage has its design in `docs/superpowers/specs/`; what the game does now is in the README.
 
@@ -81,6 +82,7 @@ These were tested with automated tests and in a desktop browser, but not where t
 - The cool-down's seconds per Star are guesses: about half of the fastest real visit (school 2, Schreiben 1.5, Yoga 1.5, Unterschiede 1, Bibliothek 2, Farblabor 1, Hüpfhalle 2, Tanzsaal 4). If a fast child's visits ever arrive late, lower them in `shared/buildings.json`.
 - A visit to Malen or Ausmalen counts with at least ten strokes or fills and a minute inside, the same for every child (not a parent setting): the bar only keeps walking in and out from counting. A five-year-old typically stays with one activity for about 10–15 minutes, far above it.
 - A visit to Malen or Ausmalen made while the server can't be reached isn't kept for later.
+- Reimhaus: the word list and its pictures (emoji), the first sounds worked out from the spelling (Sch its own; St, Sp, Ei, Au and vowels other than A not asked), and the lot at (35.5, −16) (the one by the Bibliothek is the cat's garden). The end-of-Kindergarten line moved from 27 % to 45 % because Reimen counts as a Kindergarten goal; every child's number shifted once.
 
 - Stage 7, saved Stars: the Stars at the update count half in the shop; any spending (the Arcade, a parent lowering the count) takes new Stars first, so the savings last longer at half value. A single leftover saved Star counts like a new one.
 - Stage 7: the Kleiderladen stands at the front left next to Mein Haus, not with the play buildings (no room there), and its closed door says "Erst lernen, dann einkaufen!".
@@ -97,7 +99,7 @@ Not planned as stages yet. Roughly by how much they would add for a five-year-ol
 
 1. ~~Dressing up the character~~: done in stage 7.
 2. ~~Decorating the house~~: done in stage 8.
-3. **Harder tasks as she grows:** age tiers, and difficulty that adapts (three right in a row step up, two misses step down). The hub knows no age or birthday: the child's age (or tier) becomes a per-child setting in Brightville's parent area, next to the daily goal, not a field in the hub (decided in the architecture review).
+3. **Harder tasks as she grows:** done for the School (Zählen, Rechnen) and the Reimhaus (Reimen) as Lehrplan 21 ladders that move up by themselves and that parents can set (#32, #34). Still open for the other buildings: age tiers, and difficulty that adapts (three right in a row step up, two misses step down). The hub knows no age or birthday: the child's age (or tier) becomes a per-child setting in Brightville's parent area, next to the daily goal, not a field in the hub (decided in the architecture review).
 4. **More learning buildings:** Language Café (first English words), World Tower (flags, animals of the world), Building Yard (physics blocks to stack and knock over), Code Workshop (for older children).
 5. **For parents:** a weekly report, playing hours (e.g. not after 19:30), the camera on or off per child.
 6. **Polish:** day and night in the town, background music; in the town, carrying things (Q), a map (M), a quest board.

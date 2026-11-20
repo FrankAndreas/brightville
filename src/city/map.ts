@@ -56,12 +56,14 @@ export const LAKE = { x: 16, z: 17, rx: 9.5, rz: 8 }
 /** A wooden jetty from the avenue to the right into the lake */
 export const JETTY: Footprint = { minX: 15, maxX: 17, minZ: 3, maxZ: 13 }
 
-/** Lots kept for buildings still to come (Language Café, World Tower, Building Yard, Code Workshop): a garden till then */
+/**
+ * Lots kept for buildings still to come: a garden till then. The cat sleeps in the first and the dog lives in the third
+ * (src/city/animals.ts); the Reimhaus took the fourth, at (35.5, −16).
+ */
 export const EMPTY_LOTS: DoorSpot[] = [
   { x: -3.5, z: -40, side: 'left' },
   { x: 3.5, z: 51, side: 'right' },
   { x: -51, z: 3.5, side: 'front' },
-  { x: 35.5, z: -16, side: 'right' },
 ]
 
 /** A house that is just a house: where its front meets the street (like a door spot), its size and its floors */

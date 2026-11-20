@@ -1,5 +1,5 @@
 // The Lehrplan 21 (Zyklus 1) behind the game, for the parents' page: what each building practises, how far the
-// three measured ladders are, and what was practised this week. Codes are the template's (v-fe.lehrplan.ch).
+// four measured ladders are, and what was practised this week. Codes are the template's (v-fe.lehrplan.ch).
 // The child never sees any of it.
 
 import type { LogDay } from './diary'
@@ -53,6 +53,7 @@ export const TAGS: Record<string, Tag> = {
   schlange: { codes: [], zugaenge: [] },
   bonbonjagd: { codes: [], zugaenge: [] },
   flatterflug: { codes: [], zugaenge: [] },
+  reimhaus: { codes: ['D.1.A.1'], zugaenge: [8, 2] },
   kino: { codes: [], zugaenge: [] },
   haus: { codes: [], zugaenge: [9] },
   laden: { codes: [], zugaenge: [9] },
@@ -77,15 +78,27 @@ export const STEP_TEXT: Record<Ladder, string[]> = {
     'Zehner bis 100 ohne Übertrag',
     'fertig (Ende 2. Klasse)',
   ],
+  reimen: [
+    'reimt sich? aus zwei Bildern',
+    'reimt sich? aus drei Bildern',
+    'Anlaute: was fängt gleich an',
+    'Silben klatschen bis 3',
+    'Silben bis 4 und Anlaute gemischt',
+    'fertig (Ende Kindergarten)',
+  ],
 }
 
-/** Where Kindergarten typically ends on each ladder: Zählen and Rechnen step 3 reached, writing starts in 1st grade */
-export const KG_TARGETS = { zaehlen: 0.4, rechnen: 0.4, letters: 0 }
+/**
+ * Where Kindergarten typically ends on each ladder: Zählen and Rechnen step 3 reached, Reimen done (hearing rhymes,
+ * first sounds and syllables is a Kindergarten goal), writing starts in 1st grade
+ */
+export const KG_TARGETS = { zaehlen: 0.4, rechnen: 0.4, reimen: 1, letters: 0 }
+const PARTS = Object.keys(KG_TARGETS).length
 const KNOWN = 4
 
 /** The end of Kindergarten on the overall bar, in percent */
 export function kgMark(): number {
-  return Math.round(((KG_TARGETS.zaehlen + KG_TARGETS.rechnen + KG_TARGETS.letters) / 3) * 100)
+  return Math.round((Object.values(KG_TARGETS).reduce((a, b) => a + b, 0) / PARTS) * 100)
 }
 
 /** The letters (not digits) she knows, as a share of all 29 */
@@ -93,9 +106,10 @@ export function lettersShare(letters: Letters): number {
   return LETTERS.filter(g => letters[g]?.level === KNOWN).length / LETTERS.length
 }
 
-/** One number: the three ladders' average share, in whole percent; 100 is the end of Zyklus 1 */
+/** One number: the four ladders' average share, in whole percent; 100 is the end of Zyklus 1 */
 export function overall(ladders: Ladders, letters: Letters): number {
-  return Math.round(((share(ladders.zaehlen.step) + share(ladders.rechnen.step) + lettersShare(letters)) / 3) * 100)
+  const shares = share(ladders.zaehlen.step) + share(ladders.rechnen.step) + share(ladders.reimen.step) + lettersShare(letters)
+  return Math.round((shares / PARTS) * 100)
 }
 
 /** Today and the six days before, as "YYYY-MM-DD", today first */

@@ -7,6 +7,7 @@
   { "id": "farblabor", "kind": "earn", "maxStars": 10, "minSecondsPerStar": 1 },
   { "id": "huepfhalle", "kind": "earn", "maxStars": 9, "minSecondsPerStar": 2 },
   { "id": "tanzsaal", "kind": "earn", "maxStars": 10, "minSecondsPerStar": 4 },
+  { "id": "reimhaus", "kind": "earn", "maxStars": 10, "minSecondsPerStar": 2 },
   { "id": "ausmalen", "kind": "free" },
   { "id": "malen", "kind": "free" },
   { "id": "haus", "kind": "free" },

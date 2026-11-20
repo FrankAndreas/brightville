@@ -1,10 +1,13 @@
 <script setup lang="ts">
+import { askedAgain } from '@/services/sayAgain'
 import { instruction, speak } from '@/services/tts'
 
 // Next to the leave button in every building: says the building's instruction of the moment again, for a child who
 // missed it (UX review, Nov 2026). Shown only while there is one.
 function again() {
-  if (instruction.value) void speak(instruction.value)
+  if (!instruction.value) return
+  askedAgain.value++
+  void speak(instruction.value)
 }
 </script>
 

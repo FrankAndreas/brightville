@@ -13,7 +13,11 @@ import type { Api } from '@/services/api'
 const props = defineProps<{ api: Api; personId: number }>()
 
 const FAILED = 'Konnte nicht speichern. Nochmal versuchen?'
-const LADDERS: { id: Ladder; name: string }[] = [{ id: 'zaehlen', name: 'Zählen' }, { id: 'rechnen', name: 'Rechnen' }]
+/** The subjects with ladders, each ladder with a step to set; the letters follow under Deutsch */
+const SUBJECTS: { name: string; test: string; ladders: { id: Ladder; name: string }[] }[] = [
+  { name: 'Mathematik', test: 'mathe', ladders: [{ id: 'zaehlen', name: 'Zählen' }, { id: 'rechnen', name: 'Rechnen' }] },
+  { name: 'Deutsch', test: 'deutsch', ladders: [{ id: 'reimen', name: 'Reimen' }] },
+]
 const STEPS = Array.from({ length: LAST_STEP }, (_, i) => i + 1)
 
 const status = ref<'idle' | 'loading' | 'ready' | 'error'>('idle')
@@ -89,22 +93,24 @@ const stepLabel = (step: number) => (step >= LAST_STEP ? 'fertig' : `Stufe ${ste
       </div>
       <p class="hint">100 % ist das Ende der 2. Klasse; die Linie zeigt, wo der Kindergarten ungefähr endet.</p>
 
-      <h4>Mathematik</h4>
-      <div v-for="l in LADDERS" :key="l.id" class="ladder" :data-test="`ladder-${l.id}`">
-        <span class="name">{{ l.name }}</span>
-        <span class="step">{{ stepLabel(ladders[l.id].step) }}</span>
-        <span class="what">„{{ STEP_TEXT[l.id][ladders[l.id].step - 1] }}“</span>
-        <select
-          :data-test="`step-${l.id}`" :value="ladders[l.id].step" :disabled="busy" :aria-label="`${l.name}: Stufe ändern`"
-          @change="setStep(l.id, $event)"
-        >
-          <option v-for="s in STEPS" :key="s" :value="s">{{ s >= LAST_STEP ? 'fertig' : `Stufe ${s}` }}</option>
-        </select>
-      </div>
+      <template v-for="part in SUBJECTS" :key="part.test">
+        <section :data-test="part.test">
+          <h4>{{ part.name }}</h4>
+          <div v-for="l in part.ladders" :key="l.id" class="ladder" :data-test="`ladder-${l.id}`">
+            <span class="name">{{ l.name }}</span>
+            <span class="step">{{ stepLabel(ladders[l.id].step) }}</span>
+            <span class="what">„{{ STEP_TEXT[l.id][ladders[l.id].step - 1] }}“</span>
+            <select
+              :data-test="`step-${l.id}`" :value="ladders[l.id].step" :disabled="busy" :aria-label="`${l.name}: Stufe ändern`"
+              @change="setStep(l.id, $event)"
+            >
+              <option v-for="s in STEPS" :key="s" :value="s">{{ s >= LAST_STEP ? 'fertig' : `Stufe ${s}` }}</option>
+            </select>
+          </div>
+          <p v-if="part.test === 'deutsch'" data-test="letters">Buchstaben: {{ known }} von {{ LETTERS.length }} gelernt</p>
+        </section>
+      </template>
       <p class="message" data-test="lehrplan-message" aria-live="polite">{{ message }}</p>
-
-      <h4>Deutsch</h4>
-      <p data-test="letters">Buchstaben: {{ known }} von {{ LETTERS.length }} gelernt</p>
 
       <h4>Diese Woche geübt</h4>
       <p class="sub">Nach Fach</p>

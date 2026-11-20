@@ -1,4 +1,4 @@
-import type { Ladder } from './ladders'
+import type { SchoolLadder } from './ladders'
 
 // Counting and first sums. Ported from Spielzeugkiste (src/logic/numbers.js),
 // without the rounds and the level up to 20 that the School doesn't have yet.
@@ -95,7 +95,7 @@ export interface Thing {
 
 interface TaskBase {
   /** The Lehrplan 21 ladder it belongs to */
-  ladder: Ladder
+  ladder: SchoolLadder
   /** Which Thing is shown: an index into the list of things */
   kind: number
   answer: number
@@ -115,10 +115,10 @@ export type Task =
   | (TaskBase & { type: 'bars'; amount: number })
 
 /** A visit asks this many tasks of each ladder, Zählen first */
-const PER_VISIT: Record<Ladder, number> = { zaehlen: 3, rechnen: 2 }
+const PER_VISIT: Record<SchoolLadder, number> = { zaehlen: 3, rechnen: 2 }
 const LAST_ASKED_STEP = 5
 /** The largest number each step asks for, steps 1–5 */
-const RANGES: Record<Ladder, number[]> = { zaehlen: [10, 20, 20, 100, 100], rechnen: [5, 10, 10, 20, 100] }
+const RANGES: Record<SchoolLadder, number[]> = { zaehlen: [10, 20, 20, 100, 100], rechnen: [5, 10, 10, 20, 100] }
 
 const int = (lo: number, hi: number, random: () => number) => lo + Math.floor(random() * (hi - lo + 1))
 const pick = <T>(list: T[], random: () => number): T => list[Math.floor(random() * list.length)]
@@ -130,7 +130,7 @@ type Maker = (random: () => number) => Draft
 const asked = (step: number) => Math.min(Math.max(Math.round(step), 1), LAST_ASKED_STEP)
 
 /** The largest number a ladder's step asks for (and offers as a choice) */
-export function stepRange(ladder: Ladder, step: number): number {
+export function stepRange(ladder: SchoolLadder, step: number): number {
   return RANGES[ladder][asked(step) - 1]
 }
 
@@ -191,7 +191,7 @@ const tensMinus: Maker = random => {
 }
 
 /** Per ladder and step: the visit's tasks of that ladder (shuffled after) */
-const STEPS: Record<Ladder, Maker[][]> = {
+const STEPS: Record<SchoolLadder, Maker[][]> = {
   zaehlen: [
     [count(1, 5), count(0, 10), dice],
     [count(0, 20), dice, next([1], 20)],
@@ -232,10 +232,10 @@ function choicesFor(task: Draft, max: number, random: () => number): number[] {
  * things to count; every task has three choices within its step's numbers.
  */
 export function buildLadderSession(
-  steps: Record<Ladder, number>, kindCount: number, random: () => number = Math.random,
+  steps: Record<SchoolLadder, number>, kindCount: number, random: () => number = Math.random,
 ): Task[] {
   const tasks: Task[] = []
-  for (const ladder of ['zaehlen', 'rechnen'] as Ladder[]) {
+  for (const ladder of ['zaehlen', 'rechnen'] as SchoolLadder[]) {
     const makers = shuffle(STEPS[ladder][asked(steps[ladder]) - 1], random).slice(0, PER_VISIT[ladder])
     for (const make of makers) {
       const draft = make(random)

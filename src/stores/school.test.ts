@@ -38,7 +38,7 @@ describe('school store', () => {
   })
 
   it('starts at step 1 before the server answers, then takes the server\'s steps', async () => {
-    api.school_ = { zaehlen: { step: 3, window: [] }, rechnen: { step: 2, window: [true] } }
+    api.school_ = { zaehlen: { step: 3, window: [] }, rechnen: { step: 2, window: [true] }, reimen: { step: 1, window: [] } }
     const school = useSchoolStore()
     school.init(api, 2, storage)
     expect(school.ladders.zaehlen.step).toBe(1)
@@ -155,6 +155,47 @@ describe('school store', () => {
     expect(api.calls.filter(c => c.startsWith('schoolResults'))).toEqual([])
     expect(school.ladders.rechnen.window).toEqual([])
     expect(JSON.parse(storage.getItem('brightville.school.2') ?? '[]')).toHaveLength(1)
+  })
+
+  it('sends a Reimhaus visit with only Reimen', async () => {
+    const school = await open()
+    school.record(Array(5).fill({ ladder: 'reimen', firstTry: true }), { reimen: 1 })
+    await flushPromises()
+    expect(api.school_.reimen.window).toHaveLength(5)
+    expect(school.ladders.reimen.window).toHaveLength(5)
+    expect(api.school_.zaehlen).toEqual({ step: 1, window: [] })
+  })
+
+  it('takes cached steps and waiting results from before Reimen', async () => {
+    storage.setItem('brightville.school.2.ladders', JSON.stringify({ zaehlen: { step: 3, window: [] }, rechnen: { step: 2, window: [] } }))
+    storage.setItem('brightville.school.2', JSON.stringify([
+      { key: 'old', zaehlen: { step: 1, results: [] }, rechnen: { step: 1, results: [true] } },
+    ]))
+    api.offline = true
+    const school = await open()
+    expect(school.ladders.zaehlen.step).toBe(3)
+    expect(school.ladders.reimen).toEqual({ step: 1, window: [] })
+    api.offline = false
+    await school.load()
+    expect(api.school_.rechnen.window).toEqual([true])
+  })
+
+  it('leaves out a waiting result with a broken ladder', async () => {
+    storage.setItem('brightville.school.2', JSON.stringify([
+      { key: 'broken', reimen: { step: 1, results: ['yes'] } },
+      { key: 'empty' },
+    ]))
+    await open()
+    expect(api.calls.filter(c => c.startsWith('schoolResults'))).toEqual([])
+  })
+
+  it('keeps Reimen at step 1 when a server from before Reimen answers', async () => {
+    const school = await open()
+    const old = { zaehlen: { step: 2, window: [] }, rechnen: { step: 1, window: [] }, seen: [] }
+    api.school = () => Promise.resolve(old as never)
+    await school.load()
+    expect(school.ladders.zaehlen.step).toBe(2)
+    expect(school.ladders.reimen).toEqual({ step: 1, window: [] })
   })
 
   it('starts from the steps last known on this device', async () => {
