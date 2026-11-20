@@ -1,5 +1,5 @@
 // The Lehrplan 21 (Zyklus 1) behind the game, for the parents' page: what each building practises, how far the
-// five measured ladders are, and what was practised this week. Codes are the template's (v-fe.lehrplan.ch).
+// six measured parts are, and what was practised this week. Codes are the template's (v-fe.lehrplan.ch).
 // The child never sees any of it.
 
 import type { LogDay } from './diary'
@@ -95,14 +95,23 @@ export const STEP_TEXT: Record<Ladder, string[]> = {
     'Lücken, Grösse, zwei Merkmale',
     'fertig (Ende 2. Klasse)',
   ],
+  zeit: [
+    'Tagesablauf ordnen',
+    'Morgen, Mittag, Abend, Nacht',
+    'Wochentage',
+    'gestern, morgen, Jahreszeiten',
+    'volle und halbe Stunden',
+    'fertig (Ende 2. Klasse)',
+  ],
 }
 
 /**
  * Where Kindergarten typically ends on each ladder: Zählen and Rechnen step 3 reached, Reimen done (hearing rhymes,
  * first sounds and syllables is a Kindergarten goal), Muster step 4 reached (rows yes; gaps and two features are 1st
- * grade), writing starts in 1st grade
+ * grade), Zeit step 5 reached (the day, the week, yesterday and tomorrow, the seasons; the clock is 1st grade), writing
+ * starts in 1st grade
  */
-export const KG_TARGETS: Record<Ladder | 'letters', number> = { zaehlen: 0.4, rechnen: 0.4, reimen: 1, muster: 0.6, letters: 0 }
+export const KG_TARGETS: Record<Ladder | 'letters', number> = { zaehlen: 0.4, rechnen: 0.4, reimen: 1, muster: 0.6, zeit: 0.8, letters: 0 }
 const PARTS = Object.keys(KG_TARGETS).length
 const KNOWN = 4
 

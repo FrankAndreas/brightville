@@ -20,7 +20,7 @@ describe('LehrplanOverview', () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date(2026, 10, 20, 10, 0))
     api = fakeApi()
-    api.school_ = { zaehlen: { step: 3, window: [] }, rechnen: { step: 2, window: [] }, reimen: { step: 1, window: [] }, muster: { step: 1, window: [] } }
+    api.school_ = { zaehlen: { step: 3, window: [] }, rechnen: { step: 2, window: [] }, reimen: { step: 1, window: [] }, muster: { step: 1, window: [] }, zeit: { step: 1, window: [] } }
     api.writing_.letters = { M: known, I: known, A: known }
     api.logbook_ = [
       { day: '2026-11-19', goal_reached: true, stickers: [], paintings: [], entries: [
@@ -43,10 +43,10 @@ describe('LehrplanOverview', () => {
 
   it('shows the overall number with the end of Kindergarten, the steps and the letters', async () => {
     const w = await open(api)
-    // (0.4 + 0.2 + 0 + 0 + 3/29) / 5
-    expect(w.find('[data-test="lehrplan-percent"]').text()).toBe('14 %')
-    expect(w.find('[data-test="lehrplan-bar"]').attributes('style')).toContain('width: 14%')
-    expect(w.find('[data-test="lehrplan-kg"]').attributes('style')).toContain('left: 48%')
+    // (0.4 + 0.2 + 0 + 0 + 0 + 3/29) / 6
+    expect(w.find('[data-test="lehrplan-percent"]').text()).toBe('12 %')
+    expect(w.find('[data-test="lehrplan-bar"]').attributes('style')).toContain('width: 12%')
+    expect(w.find('[data-test="lehrplan-kg"]').attributes('style')).toContain('left: 53%')
     expect(w.find('[data-test="ladder-zaehlen"]').text()).toContain('Stufe 3 von 5')
     expect(w.find('[data-test="ladder-zaehlen"]').text()).toContain('vor- und rückwärts bis 20')
     expect(w.find('[data-test="ladder-rechnen"]').text()).toContain('plus bis 10')
