@@ -42,3 +42,21 @@ updates:
     groups:
       actions-non-major:
         update-types: ["minor", "patch"]
+
+  # Docker
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    # Wait a few days after a release before proposing it
+    cooldown:
+      default-days: 3
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "chore(docker)"
+    groups:
+      docker-non-major:
+        update-types: ["minor", "patch"]
