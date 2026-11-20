@@ -27,6 +27,7 @@ describe('LehrplanOverview', () => {
         { building: 'yoga', kind: 'visit', stars: 3, at: '09:00' },
         { building: 'yoga', kind: 'visit', stars: 3, at: '10:00' },
         { building: 'malen', kind: 'free', stars: 0, at: '11:00' },
+        { building: 'school', kind: 'visit', stars: 6, at: '12:00' },
       ] },
     ]
   })
@@ -55,6 +56,8 @@ describe('LehrplanOverview', () => {
   it('shows the other subjects and this week by Zugang', async () => {
     const w = await open(api)
     const subjects = w.findAll('[data-test="subject"]').map(s => s.text())
+    expect(subjects).toContain('Mathematik: Schule ×1')
+    expect(subjects).toContain('Musik: –')
     expect(subjects).toContain('Bildnerisches Gestalten: Malen ×1')
     expect(subjects).toContain('Bewegung und Sport: Yoga ×2')
     const zugaenge = w.findAll('[data-test="zugang"]').map(z => z.text())

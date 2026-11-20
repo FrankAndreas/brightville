@@ -273,7 +273,7 @@ onBeforeUnmount(shutDown)
             <button
               v-for="p in group.things" :key="p.i" class="thing" data-test="thing" :data-counted="marked.has(p.i)"
               :data-gone="p.gone" tabindex="-1" @pointerdown="!p.gone && touch(p.i)"
-            >{{ thing.emoji }}</button>
+            ><span class="face">{{ thing.emoji }}</span></button>
             <div v-if="group.bars.length" class="tens">
               <button
                 v-for="p in group.bars" :key="p.i" class="bar" data-test="bar" :data-counted="marked.has(p.i)"
@@ -375,7 +375,10 @@ button { border: 0; padding: 0; background: none; font: inherit; cursor: pointer
   padding: 12px;
 }
 .plus { width: 70px; flex: none; }
-.thing[data-gone='true'], .bar[data-gone='true'], .one[data-gone='true'] { opacity: 0.3; position: relative; cursor: default; }
+/* Faded, but the red line stays strong: the fading is on the content, not on the button */
+.thing[data-gone='true'], .bar[data-gone='true'], .one[data-gone='true'] { position: relative; cursor: default; }
+.thing[data-gone='true'] .face { opacity: 0.3; }
+.bar[data-gone='true'] span, .one[data-gone='true'] { background: #bcd3f5; }
 .thing[data-gone='true']::after, .bar[data-gone='true']::after, .one[data-gone='true']::after {
   content: '';
   position: absolute;

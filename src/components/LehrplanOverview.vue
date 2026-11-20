@@ -69,7 +69,7 @@ const percent = computed(() => (ladders.value ? overall(ladders.value, letters.v
 const known = computed(() => Math.round(lettersShare(letters.value) * LETTERS.length))
 const nameOf = (id: string) => BUILDINGS.find(b => b.id === id)?.spokenName ?? id
 const visitText = (visits: Visits[]) => visits.map(v => `${nameOf(v.building)} ×${v.times}`).join(', ')
-const otherSubjects = computed(() => subjects(days.value, today.value).filter(s => s.code !== 'MA'))
+const weekSubjects = computed(() => subjects(days.value, today.value))
 const week = computed(() => practice(days.value, today.value))
 const stepLabel = (step: number) => (step >= LAST_STEP ? 'fertig' : `Stufe ${step} von ${LAST_STEP - 1}`)
 </script>
@@ -106,12 +106,14 @@ const stepLabel = (step: number) => (step >= LAST_STEP ? 'fertig' : `Stufe ${ste
       <h4>Deutsch</h4>
       <p data-test="letters">Buchstaben: {{ known }} von {{ LETTERS.length }} gelernt</p>
 
-      <h4>Diese Woche</h4>
+      <h4>Diese Woche geübt</h4>
+      <p class="sub">Nach Fach</p>
       <ul class="list">
-        <li v-for="s in otherSubjects" :key="s.code" data-test="subject">
+        <li v-for="s in weekSubjects" :key="s.code" data-test="subject">
           {{ s.name }}: {{ s.visits.length ? visitText(s.visits) : '–' }}
         </li>
       </ul>
+      <p class="sub">Nach entwicklungsorientiertem Zugang</p>
       <ul class="list">
         <li v-for="z in week" :key="z.zugang" data-test="zugang" :data-done="z.visits.length > 0">
           <template v-if="z.visits.length">✓ {{ z.name }} ({{ visitText(z.visits) }})</template>
@@ -136,6 +138,7 @@ h4 { margin: 14px 0 6px; }
 .ladder .name { font-weight: 600; min-width: 5em; }
 .ladder .what { flex: 1; color: #4a5562; min-width: 12em; }
 select { font: inherit; padding: 8px 10px; min-height: 44px; border-radius: 8px; border: 1px solid #c9ced4; background: #fff; }
+.sub { margin: 10px 0 2px; color: #4a5562; font-size: 0.95em; }
 .list { margin: 6px 0; padding-left: 20px; }
 .list li { margin: 4px 0; }
 li[data-done='false'] { color: #8a939d; }
