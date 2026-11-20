@@ -113,7 +113,7 @@ A wrong answer only fades its button and the objects are counted together; the t
 
 ## Kalender
 
-"Heute" is the real day: the device's date when the visit starts, so on a Thursday it says "Heute ist Donnerstag" and "Welche Jahreszeit ist jetzt?" has the real season as its answer. The days keep fixed colours, in the week strip (today's card with a sun) and on the answer cards, which the voice names as they light up. Clocks are not named (that would give the answer away); "halb vier" is 3:30. In the order of a day she taps the pictures one after the other; one tapped too early wiggles. Every question has exactly one answer: "Wann gehst du schlafen?" (Abend or Nacht) is not asked.
+"Heute" is the real day: the device's date when the visit starts, so on a Thursday it says "Heute ist Donnerstag" and "Welche Jahreszeit haben wir jetzt?" has the real season as its answer (the seasons change around the 21st, as in a Kindergarten calendar). The days keep fixed colours, in the week strip (today's card with a sun) and on the answer cards, which the voice names as they light up. Clocks are not named (that would give the answer away); "halb vier" is 3:30. In the order of a day each picture is named as it lights up (lunch and dinner carry a sun and a moon), and she taps them one after the other; one tapped too early wiggles. Every question has exactly one answer: "Wann gehst du schlafen?" (Abend or Nacht) is not asked.
 
 ## Musterwerkstatt
 
