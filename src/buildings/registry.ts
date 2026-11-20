@@ -29,6 +29,7 @@ const flatterflug = () => import('./flatterflug/Flatterflug.vue')
 const reimhaus = () => import('./reimhaus/Reimhaus.vue')
 const muster = () => import('./muster/Musterwerkstatt.vue')
 const kalender = () => import('./kalender/Kalender.vue')
+const spielwelt = () => import('./spielwelt/Spielwelt.vue')
 
 /**
  * Every building in the town, mixed along the streets of `src/city/map.ts` so every walk passes learning, playing and
@@ -129,6 +130,11 @@ export const BUILDINGS: BuildingDef[] = [
     // Finding her way in time (Lehrplan 21 MA.3, Zugang 3): what was a plain house next to the Bibliothek
     id: 'kalender', spokenName: 'Kalender', icon: '🗓️', kind: 'earn', needs: [], door: { x: 3.5, z: -24, side: 'right' },
     component: defineAsyncComponent(kalender), preload: kalender,
+  },
+  {
+    // A wide world for position words (Lehrplan 21 MA.2, Zugang 4): what was a plain house by the playground
+    id: 'spielwelt', spokenName: 'Spielwelt', icon: '🚗', kind: 'earn', needs: [], door: { x: -16, z: 35.5, side: 'front' },
+    component: defineAsyncComponent(spielwelt), preload: spielwelt,
   },
 ]
 

@@ -20,7 +20,7 @@ describe('LehrplanOverview', () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date(2026, 10, 20, 10, 0))
     api = fakeApi()
-    api.school_ = { zaehlen: { step: 3, window: [] }, rechnen: { step: 2, window: [] }, reimen: { step: 1, window: [] }, muster: { step: 1, window: [] }, zeit: { step: 1, window: [] } }
+    api.school_ = { zaehlen: { step: 3, window: [] }, rechnen: { step: 2, window: [] }, reimen: { step: 1, window: [] }, muster: { step: 1, window: [] }, zeit: { step: 1, window: [] }, raum: { step: 1, window: [] } }
     api.writing_.letters = { M: known, I: known, A: known }
     api.logbook_ = [
       { day: '2026-11-19', goal_reached: true, stickers: [], paintings: [], entries: [
@@ -43,10 +43,10 @@ describe('LehrplanOverview', () => {
 
   it('shows the overall number with the end of Kindergarten, the steps and the letters', async () => {
     const w = await open(api)
-    // (0.4 + 0.2 + 0 + 0 + 0 + 3/29) / 6
-    expect(w.find('[data-test="lehrplan-percent"]').text()).toBe('12 %')
-    expect(w.find('[data-test="lehrplan-bar"]').attributes('style')).toContain('width: 12%')
-    expect(w.find('[data-test="lehrplan-kg"]').attributes('style')).toContain('left: 53%')
+    // (0.4 + 0.2 + 0 + 0 + 0 + 0 + 3/29) / 7
+    expect(w.find('[data-test="lehrplan-percent"]').text()).toBe('10 %')
+    expect(w.find('[data-test="lehrplan-bar"]').attributes('style')).toContain('width: 10%')
+    expect(w.find('[data-test="lehrplan-kg"]').attributes('style')).toContain('left: 54%')
     expect(w.find('[data-test="ladder-zaehlen"]').text()).toContain('Stufe 3 von 5')
     expect(w.find('[data-test="ladder-zaehlen"]').text()).toContain('vor- und rückwärts bis 20')
     expect(w.find('[data-test="ladder-rechnen"]').text()).toContain('plus bis 10')
@@ -117,6 +117,17 @@ describe('LehrplanOverview', () => {
     await w.find('[data-test="step-zeit"]').setValue('2')
     await flushPromises()
     expect(api.calls).toContain('setPlayerStep 2 zeit 2')
+  })
+
+  it('shows Raum under Mathematik and sets its step', async () => {
+    api.school_.raum = { step: 2, window: [] }
+    const w = await open(api)
+    const row = w.find('[data-test="mathe"] [data-test="ladder-raum"]')
+    expect(row.text()).toContain('Stufe 2 von 5')
+    expect(row.text()).toContain('neben, vor, hinter')
+    await w.find('[data-test="step-raum"]').setValue('4')
+    await flushPromises()
+    expect(api.calls).toContain('setPlayerStep 2 raum 4')
   })
 
   it('shows "fertig" at the last step', async () => {

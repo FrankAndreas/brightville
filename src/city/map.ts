@@ -88,7 +88,7 @@ export const SCENERY_HOUSES: SceneryHouse[] = [
   scenery(-35.5, 16, 'left', 2),
   scenery(-35.5, 27, 'left', 1),
   scenery(-25.5, 28.5, 'back', 2),
-  scenery(-16, 35.5, 'front', 3),
+  // (−16, 35.5, front) is the Spielwelt now
   scenery(-27, 35.5, 'front', 2),
   scenery(16, 35.5, 'front', 2),
   scenery(27, 35.5, 'front', 1),
