@@ -15,7 +15,10 @@ const props = defineProps<{ api: Api; personId: number }>()
 const FAILED = 'Konnte nicht speichern. Nochmal versuchen?'
 /** The subjects with ladders, each ladder with a step to set; the letters follow under Deutsch */
 const SUBJECTS: { name: string; test: string; ladders: { id: Ladder; name: string }[] }[] = [
-  { name: 'Mathematik', test: 'mathe', ladders: [{ id: 'zaehlen', name: 'Zählen' }, { id: 'rechnen', name: 'Rechnen' }] },
+  {
+    name: 'Mathematik', test: 'mathe',
+    ladders: [{ id: 'zaehlen', name: 'Zählen' }, { id: 'rechnen', name: 'Rechnen' }, { id: 'muster', name: 'Muster' }],
+  },
   { name: 'Deutsch', test: 'deutsch', ladders: [{ id: 'reimen', name: 'Reimen' }] },
 ]
 const STEPS = Array.from({ length: LAST_STEP }, (_, i) => i + 1)

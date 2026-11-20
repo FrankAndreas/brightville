@@ -43,10 +43,10 @@ describe('LehrplanOverview', () => {
 
   it('shows the overall number with the end of Kindergarten, the steps and the letters', async () => {
     const w = await open(api)
-    // (0.4 + 0.2 + 0 + 3/29) / 4
-    expect(w.find('[data-test="lehrplan-percent"]').text()).toBe('18 %')
-    expect(w.find('[data-test="lehrplan-bar"]').attributes('style')).toContain('width: 18%')
-    expect(w.find('[data-test="lehrplan-kg"]').attributes('style')).toContain('left: 45%')
+    // (0.4 + 0.2 + 0 + 0 + 3/29) / 5
+    expect(w.find('[data-test="lehrplan-percent"]').text()).toBe('14 %')
+    expect(w.find('[data-test="lehrplan-bar"]').attributes('style')).toContain('width: 14%')
+    expect(w.find('[data-test="lehrplan-kg"]').attributes('style')).toContain('left: 48%')
     expect(w.find('[data-test="ladder-zaehlen"]').text()).toContain('Stufe 3 von 5')
     expect(w.find('[data-test="ladder-zaehlen"]').text()).toContain('vor- und rückwärts bis 20')
     expect(w.find('[data-test="ladder-rechnen"]').text()).toContain('plus bis 10')
@@ -94,6 +94,17 @@ describe('LehrplanOverview', () => {
     await flushPromises()
     expect(api.calls).toContain('setPlayerStep 2 reimen 5')
     expect(w.find('[data-test="ladder-reimen"]').text()).toContain('Stufe 5 von 5')
+  })
+
+  it('shows Muster under Mathematik and sets its step', async () => {
+    api.school_.muster = { step: 3, window: [] }
+    const w = await open(api)
+    const mathe = w.find('[data-test="mathe"]')
+    expect(mathe.find('[data-test="ladder-muster"]').text()).toContain('Stufe 3 von 5')
+    expect(mathe.find('[data-test="ladder-muster"]').text()).toContain('Reihen mit Formen und Grössen')
+    await w.find('[data-test="step-muster"]').setValue('5')
+    await flushPromises()
+    expect(api.calls).toContain('setPlayerStep 2 muster 5')
   })
 
   it('shows "fertig" at the last step', async () => {

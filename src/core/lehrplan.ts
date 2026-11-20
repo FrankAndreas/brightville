@@ -1,9 +1,9 @@
 // The Lehrplan 21 (Zyklus 1) behind the game, for the parents' page: what each building practises, how far the
-// four measured ladders are, and what was practised this week. Codes are the template's (v-fe.lehrplan.ch).
+// five measured ladders are, and what was practised this week. Codes are the template's (v-fe.lehrplan.ch).
 // The child never sees any of it.
 
 import type { LogDay } from './diary'
-import { share, type Ladder, type Ladders } from './ladders'
+import { LADDERS, share, type Ladder, type Ladders } from './ladders'
 import { LETTERS } from './writing/letters'
 import type { Letters } from './writing/levels'
 
@@ -99,9 +99,10 @@ export const STEP_TEXT: Record<Ladder, string[]> = {
 
 /**
  * Where Kindergarten typically ends on each ladder: Zählen and Rechnen step 3 reached, Reimen done (hearing rhymes,
- * first sounds and syllables is a Kindergarten goal), writing starts in 1st grade
+ * first sounds and syllables is a Kindergarten goal), Muster step 4 reached (rows yes; gaps and two features are 1st
+ * grade), writing starts in 1st grade
  */
-export const KG_TARGETS = { zaehlen: 0.4, rechnen: 0.4, reimen: 1, letters: 0 }
+export const KG_TARGETS: Record<Ladder | 'letters', number> = { zaehlen: 0.4, rechnen: 0.4, reimen: 1, muster: 0.6, letters: 0 }
 const PARTS = Object.keys(KG_TARGETS).length
 const KNOWN = 4
 
@@ -115,9 +116,9 @@ export function lettersShare(letters: Letters): number {
   return LETTERS.filter(g => letters[g]?.level === KNOWN).length / LETTERS.length
 }
 
-/** One number: the four ladders' average share, in whole percent; 100 is the end of Zyklus 1 */
+/** One number: the ladders' and the letters' average share, in whole percent; 100 is the end of Zyklus 1 */
 export function overall(ladders: Ladders, letters: Letters): number {
-  const shares = share(ladders.zaehlen.step) + share(ladders.rechnen.step) + share(ladders.reimen.step) + lettersShare(letters)
+  const shares = LADDERS.reduce((sum, l) => sum + share(ladders[l].step), 0) + lettersShare(letters)
   return Math.round((shares / PARTS) * 100)
 }
 
