@@ -1,5 +1,5 @@
 import type { ClockTime, ZeitExample, ZeitTask } from '@/core/kalender'
-import { SET_BONUS, STARS_PER_TASK } from '../school/flow'
+import { scoreSolved } from '../visit'
 
 type Pick = Extract<ZeitTask, { type: 'pick' }>
 type Order = Extract<ZeitTask, { type: 'order' }>
@@ -96,11 +96,7 @@ export function createZeitFlow(tasks: ZeitTask[], example: ZeitExample | null): 
 
   function solve(firstTry: boolean) {
     state.phase = 'cheering'
-    state.solved += 1
-    state.results.push({ ladder: 'zeit', firstTry })
-    state.stars += STARS_PER_TASK
-    // The bonus is earned with the last right answer, so leaving during the cheer keeps it
-    if (state.solved === tasks.length) state.stars += SET_BONUS
+    scoreSolved(state, 'zeit', firstTry, tasks.length)
   }
 
   return {
