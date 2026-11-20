@@ -20,6 +20,7 @@ The six stages of the roadmap in [the stage 1 design](superpowers/specs/2026-11-
 12. Lehrplan 21 (#32, #33): the School climbs two ladders (Zählen, Rechnen) per child, and the parents see one overall number that opens into subjects, ladders and this week's practice, see [the design](superpowers/specs/2026-11-16-brightville-lehrplan-design.md). New buildings for the gaps are issues #34–#38
 13. Reimhaus (#34): rhymes, first sounds and syllables on a third ladder, Reimen, shown under Deutsch in the parents' overview, see [the design](superpowers/specs/2026-11-20-brightville-reimhaus-design.md)
 14. Musterwerkstatt (#35): rows to continue and things to sort on a fourth ladder, Muster, shown under Mathematik, see [the design](superpowers/specs/2026-11-20-brightville-musterwerkstatt-design.md)
+15. Kalender (#36): the order of a day, morning to night, the week, yesterday and tomorrow from the real day, the seasons and the clock on a fifth ladder, Zeit, see [the design](superpowers/specs/2026-11-20-brightville-kalender-design.md). It took the plain house at (3.5, −24)
 
 Each stage has its design in `docs/superpowers/specs/`; what the game does now is in the README.
 
@@ -85,6 +86,7 @@ These were tested with automated tests and in a desktop browser, but not where t
 - A visit to Malen or Ausmalen made while the server can't be reached isn't kept for later.
 - Reimhaus: the word list and its pictures (emoji), the first sounds worked out from the spelling (Sch its own; St, Sp, Ei, Au and vowels other than A not asked), and the lot at (35.5, −16) (the one by the Bibliothek is the cat's garden). The end-of-Kindergarten line moved from 27 % to 45 % because Reimen counts as a Kindergarten goal; every child's number shifted once.
 - Musterwerkstatt: rows where two things change have colour and shape change together, each wrong choice right in one of them; size rows offer two choices (there are only two sizes); a size sort uses one picture big and small; a gap inside a row is hummed ("hm"); the end-of-Kindergarten line moved to 48 % (Muster step 4 counts as Kindergarten). The building took the last free lot at (3.5, 51): #36 Kalender and #38 Rhythm need a new place in the town.
+- Kalender: the order of a day uses six things with one place in a day (aufstehen, anziehen, frühstücken, Mittagessen, Abendessen, schlafen; no Zähne putzen, spielen or baden); questions with two fair answers are left out; step 4 asks two day and three season questions; clock distractors are the other half and the hour ±1; the end-of-Kindergarten line moved to 53 % (Zeit steps 1–4 count as Kindergarten, the clock as 1st grade).
 
 - Stage 7, saved Stars: the Stars at the update count half in the shop; any spending (the Arcade, a parent lowering the count) takes new Stars first, so the savings last longer at half value. A single leftover saved Star counts like a new one.
 - Stage 7: the Kleiderladen stands at the front left next to Mein Haus, not with the play buildings (no room there), and its closed door says "Erst lernen, dann einkaufen!".
@@ -101,7 +103,7 @@ Not planned as stages yet. Roughly by how much they would add for a five-year-ol
 
 1. ~~Dressing up the character~~: done in stage 7.
 2. ~~Decorating the house~~: done in stage 8.
-3. **Harder tasks as she grows:** done for the School (Zählen, Rechnen), the Reimhaus (Reimen) and the Musterwerkstatt (Muster) as Lehrplan 21 ladders that move up by themselves and that parents can set (#32, #34). Still open for the other buildings: age tiers, and difficulty that adapts (three right in a row step up, two misses step down). The hub knows no age or birthday: the child's age (or tier) becomes a per-child setting in Brightville's parent area, next to the daily goal, not a field in the hub (decided in the architecture review).
+3. **Harder tasks as she grows:** done for the School (Zählen, Rechnen), the Reimhaus (Reimen), the Musterwerkstatt (Muster) and the Kalender (Zeit) as Lehrplan 21 ladders that move up by themselves and that parents can set (#32, #34). Still open for the other buildings: age tiers, and difficulty that adapts (three right in a row step up, two misses step down). The hub knows no age or birthday: the child's age (or tier) becomes a per-child setting in Brightville's parent area, next to the daily goal, not a field in the hub (decided in the architecture review).
 4. **More learning buildings:** Language Café (first English words), World Tower (flags, animals of the world), Building Yard (physics blocks to stack and knock over), Code Workshop (for older children).
 5. **For parents:** a weekly report, playing hours (e.g. not after 19:30), the camera on or off per child.
 6. **Polish:** day and night in the town, background music; in the town, carrying things (Q), a map (M), a quest board.
