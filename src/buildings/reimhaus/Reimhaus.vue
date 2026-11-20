@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import Confetti from '@/components/Confetti.vue'
+import ProgressStars from '@/components/ProgressStars.vue'
 import { buildRhymeSession, exampleFor, sayAsHeard, WORDS, type Example, type RhymeTask } from '@/core/rhymes'
 import { playBeat } from '@/services/sound'
 import { askedAgain } from '@/services/sayAgain'
-import { forgetInstruction, instruct, instruction, speak, stopSpeaking } from '@/services/tts'
-import { useSchoolStore } from '@/stores/school'
-import { onLeaveRequest } from '../leave'
+import { forgetInstruction, instruct, instruction, speak } from '@/services/tts'
 import type { BuildingResult } from '../types'
+import { ladderVisit, useVisit } from '../visit'
 import { createRhymeFlow, type RhymeEffect } from './flow'
 
 // The Reimhaus: hearing words. Rhymes, first sounds and syllables on the Reimen ladder (Lehrplan 21 D.1.A.1); all of
@@ -31,13 +31,12 @@ const DRUM_OFF_MS = 230
 const MAX_DOTS = 10
 const CONFETTI_MS = 3000
 
-const school = useSchoolStore()
-// Her step as the visit starts: the answers are counted at it, even if it changes meanwhile
-const step = school.ladders.reimen.step
-// And the child who plays: if the device changes hands meanwhile, they still count for her
-const player = school.who
-const tasks = props.tasks ?? buildRhymeSession(step)
-const example = props.example !== undefined ? props.example : exampleFor(step, school.ladders.reimen.window.length)
+// Her step, her answers at it and the child who plays, as the visit starts
+const ladder = ladderVisit('reimen')
+const visit = useVisit(leave)
+const { later, pause } = visit
+const tasks = props.tasks ?? buildRhymeSession(ladder.step)
+const example = props.example !== undefined ? props.example : exampleFor(ladder.step, ladder.windowLength)
 const flow = createRhymeFlow(tasks, example)
 const view = reactive({ ...flow.state, wrong: [...flow.state.wrong] })
 /** The picture being named, by word id */
@@ -48,23 +47,10 @@ const drumLit = ref(false)
 const task = computed(() => view.task)
 const sayOf = (id: string) => WORDS.find(w => w.id === id)?.say ?? id
 
-let closed = false
-const timers = new Set<ReturnType<typeof setTimeout>>()
-function later(fn: () => void, ms: number) {
-  const id = setTimeout(() => {
-    timers.delete(id)
-    if (!closed) fn()
-  }, ms)
-  timers.add(id)
-}
-const pause = (ms: number) => new Promise<void>(resolve => later(resolve, ms))
-
 function sync() {
   Object.assign(view, flow.state, { wrong: [...flow.state.wrong] })
 }
 
-/** Each run is numbered: what an older one still had to say is dropped when a newer one starts (she answered) */
-let current = 0
 /** The question being asked, for the 🔊 text after a wrong picture */
 let question = ''
 const sayAgainText = (text: string, ids: string[]) => `${text} ${sayOf(ids[0])}. ${ids.slice(1).map(sayOf).join(', ')}.`
@@ -72,8 +58,8 @@ const sayAgainText = (text: string, ids: string[]) => `${text} ${sayOf(ids[0])}.
 /** Carries out what the flow asks for, one after the other. Resolves when all of it has been said, or was dropped. */
 function run(effects: RhymeEffect[]): Promise<boolean> {
   sync()
-  const mine = ++current
-  const live = () => !closed && mine === current
+  // Each run is numbered: what an older one still had to say is dropped when a newer one starts (she answered)
+  const live = visit.newRun()
   // Whatever an older run had lit goes dark: only what this one names lights up
   lit.value = null
   drumLit.value = false
@@ -145,41 +131,28 @@ function carryOn(effects: RhymeEffect[]) {
 }
 
 function pick(id: string) {
-  if (!closed) carryOn(flow.pick(id))
+  if (!visit.isClosed()) carryOn(flow.pick(id))
 }
 function tap() {
-  if (closed) return
+  if (visit.isClosed()) return
   // A beat doesn't stop what is being said
   const effects = flow.tap()
   if (effects.length) playBeat('drum')
   sync()
 }
 function clear() {
-  if (closed) return
+  if (visit.isClosed()) return
   flow.clear()
   sync()
 }
 function done() {
-  if (!closed) carryOn(flow.done())
-}
-
-/** Takes back this building's answer to the leave button */
-let stopLeaveRequests = () => {}
-
-function shutDown() {
-  if (closed) return
-  closed = true
-  for (const id of timers) clearTimeout(id)
-  timers.clear()
-  window.removeEventListener('keydown', onKey)
-  stopLeaveRequests()
-  stopSpeaking()
+  if (!visit.isClosed()) carryOn(flow.done())
 }
 
 function leave() {
-  if (closed) return
-  shutDown()
-  school.record(flow.state.results, { reimen: step }, player)
+  if (visit.isClosed()) return
+  visit.shutDown()
+  ladder.record(flow.state.results)
   emit('finished', { stars: flow.state.stars })
 }
 
@@ -198,27 +171,22 @@ function onKey(e: KeyboardEvent) {
 
 // 🔊 while the pictures are being named: the naming stops, so the whole instruction is heard
 watch(askedAgain, () => {
-  if (closed || flow.state.phase !== 'asking') return
-  current++
+  if (visit.isClosed() || flow.state.phase !== 'asking') return
+  visit.dropRuns()
   lit.value = null
   drumLit.value = false
 })
 
 onMounted(() => {
   window.addEventListener('keydown', onKey)
-  stopLeaveRequests = onLeaveRequest(leave)
+  visit.onShutDown(() => window.removeEventListener('keydown', onKey))
   carryOn(flow.start())
 })
-onBeforeUnmount(shutDown)
 </script>
 
 <template>
   <div class="reimhaus" data-test="reimhaus" :data-phase="view.phase">
-    <div class="progress" aria-hidden="true">
-      <svg v-for="n in tasks.length" :key="n" viewBox="0 0 24 24" data-test="progress-star" :data-done="n <= view.solved">
-        <path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.2 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z" />
-      </svg>
-    </div>
+    <ProgressStars :total="tasks.length" :solved="view.solved" edge="#ecd2b4" />
 
     <div class="board">
       <template v-if="view.phase === 'example' && example">
@@ -279,10 +247,6 @@ onBeforeUnmount(shutDown)
 }
 button { border: 0; padding: 0; background: none; font: inherit; cursor: pointer; }
 
-.progress { display: flex; gap: 14px; }
-.progress svg { width: 46px; }
-.progress path { fill: rgb(255 255 255 / 70%); stroke: #ecd2b4; stroke-width: 1.2; stroke-linejoin: round; transition: fill 0.3s ease; }
-.progress svg[data-done='true'] path { fill: #ffd93d; stroke: #e0a800; }
 
 .board {
   flex: 1;
