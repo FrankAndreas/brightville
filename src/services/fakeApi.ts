@@ -3,11 +3,12 @@ import buildings from '../../shared/buildings.json'
 import { DEFAULT_LOOK } from '@/core/look'
 import { furnitureDef, furnitureShelfOpen, type Spot } from '@/core/furniture'
 import { outfitDef, pay, shelfOpen, type Place } from '@/core/outfits'
+import { applyResults, LAST_STEP, startLadders, type Ladder, type Ladders } from '@/core/ladders'
 import { GLYPHS } from '@/core/writing/letters'
 import { applyWrite, checkText, normalizeText, type Letters } from '@/core/writing/levels'
 import {
   ApiError, type Api, type Film, type LogDay, type Me, type Person, type PlayerRow, type ServerState, type StickerRow,
-  type RoomState, type WardrobeState, type WritingState,
+  type RoomState, type SchoolState, type WardrobeState, type WritingState,
 } from './api'
 
 export interface FakePainting { id: string; updated: number; image: string; thumb: string }
@@ -34,6 +35,7 @@ export interface FakeApi extends Api {
   room_: RoomState
   /** Schreiben, as the server keeps it: `introducedOn` is the day each letter was met */
   writing_: { texts: string[]; letters: Letters; introducedOn: Record<string, string> }
+  school_: Ladders
   /** The server's calendar turns a page */
   newDay(day: string): void
 }
@@ -74,6 +76,7 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
     wardrobe_: { look: { ...DEFAULT_LOOK }, worn: {}, owned: [], bought_today: false },
     room_: { placed: {}, owned: [], bought_today: false },
     writing_: { texts: [], letters: {}, introducedOn: {} },
+    school_: startLadders(false),
     newDay(day) {
       Object.assign(state, { day, visits: 0, play_seconds: 0 })
       api.wardrobe_.bought_today = false
@@ -238,6 +241,24 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
       return writingCopy()
     }),
     playerWriting: id => run(`playerWriting ${id}`, () => writingCopy()),
+    school: () => run('school', () => schoolCopy()),
+    // The server's rules (backend/app/school.py record)
+    schoolResults: r => run(`schoolResults ${r.key}`, () => {
+      if (schoolKeys.has(r.key)) return schoolCopy()
+      schoolKeys.add(r.key)
+      for (const ladder of ['zaehlen', 'rechnen'] as Ladder[]) {
+        const now = api.school_[ladder]
+        if (r[ladder].results.length && r[ladder].step === now.step) api.school_[ladder] = applyResults(now, r[ladder].results, ladder)
+      }
+      return schoolCopy()
+    }),
+    playerSchool: id => run(`playerSchool ${id}`, () => schoolCopy()),
+    setPlayerStep: (id, ladder, step) => run(`setPlayerStep ${id} ${ladder} ${step}`, () => {
+      if (ladder !== 'zaehlen' && ladder !== 'rechnen') throw new ApiError(422, 'unknown')
+      if (step < 1 || step > LAST_STEP) throw new ApiError(422, 'bad_step')
+      api.school_[ladder] = { step, window: [] }
+      return schoolCopy()
+    }),
     setPlayerTexts: (id, texts) => run(`setPlayerTexts ${id} ${JSON.stringify(texts)}`, () => {
       const kept: string[] = []
       for (const t of texts) {
@@ -264,6 +285,8 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
     return { placed, owned: api.room_.owned.map(o => ({ ...o })), bought_today: api.wardrobe_.bought_today }
   }
   const writingKeys = new Set<string>()
+  const schoolKeys = new Set<string>()
+  const schoolCopy = (): SchoolState => ({ ...JSON.parse(JSON.stringify(api.school_)), seen: [...schoolKeys].reverse() })
   // As backend/app/writing.py new_left_today
   const newLeft = (day = state.day) => {
     // The day's pace comes from the letters met before it

@@ -1,9 +1,15 @@
+<script lang="ts">
+/** How long a quick look's dots stay before they are covered */
+export const FLASH_MS = 1500
+</script>
+
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import Confetti from '@/components/Confetti.vue'
-import { buildSession, dicePips, looseLayout, numberWord, seededRandom, type Task, type Thing } from '@/core/numbers'
+import { buildLadderSession, countable, dicePips, looseLayout, numberWord, seededRandom, type Task, type Thing } from '@/core/numbers'
 import { playBeat } from '@/services/sound'
 import { instruct, speak, stopSpeaking } from '@/services/tts'
+import { useSchoolStore } from '@/stores/school'
 import { onLeaveRequest } from '../leave'
 import type { BuildingResult } from '../types'
 import { createSchoolFlow, type SchoolEffect } from './flow'
@@ -23,7 +29,12 @@ const RECOUNT_STEP_MS = 700
 const CONFETTI_MS = 3000
 
 const things = props.things ?? THINGS
-const tasks = props.tasks ?? buildSession(things.length)
+const school = useSchoolStore()
+// Her steps as the visit starts: the answers are counted at these steps, even if they change meanwhile
+const steps = { zaehlen: school.ladders.zaehlen.step, rechnen: school.ladders.rechnen.step }
+// And the child who plays them: if the device changes hands meanwhile, they still count for her
+const player = school.who
+const tasks = props.tasks ?? buildLadderSession(steps, things.length)
 const flow = createSchoolFlow(tasks, things)
 const view = reactive({ ...flow.state, wrong: [...flow.state.wrong] })
 /** Objects that are lit: pointed at by the child, or counted along */
@@ -61,24 +72,27 @@ function run(effects: SchoolEffect[]) {
   return spoken
 }
 
-/** Counts every object aloud, lighting one after the other, then lets the child answer again. */
-function recount(amount: number, after: Promise<void>) {
+/** Counts every object aloud (tens bars first, ten at a time), lighting one after the other, then lets the child answer again. */
+function recount(_amount: number, after: Promise<void>) {
   marked.value = new Set()
+  const order = countOrder.value
+  let total = 0
   const step = (n: number) => {
-    if (n > amount) {
+    if (n >= order.length) {
       run(flow.recountDone())
       return
     }
-    marked.value = new Set([...marked.value, n - 1])
-    void speak(numberWord(n))
+    total += order[n].worth
+    marked.value = new Set([...marked.value, order[n].i])
+    void speak(numberWord(total))
     later(() => step(n + 1), RECOUNT_STEP_MS)
   }
-  void after.then(() => later(() => step(1), RECOUNT_STEP_MS))
+  void after.then(() => later(() => step(0), RECOUNT_STEP_MS))
 }
 
-function touch(i: number) {
+function touch(i: number, worth = 1) {
   if (closed || marked.value.has(i)) return
-  const effects = flow.touch()
+  const effects = flow.touch(worth)
   if (effects.length === 0) return
   marked.value = new Set([...marked.value, i])
   run(effects)
@@ -128,6 +142,7 @@ function shutDown() {
 function leave() {
   if (closed) return
   shutDown()
+  school.record(flow.state.results, steps, player)
   emit('finished', { stars: flow.state.stars })
 }
 
@@ -151,12 +166,63 @@ const spots = computed(() => {
   return looseLayout(t.amount, seededRandom(view.index * 31 + t.amount))
 })
 const pips = computed(() => (task.value?.type === 'dice' ? dicePips(task.value.dice[0]) : []))
-const groups = computed(() => {
+
+/** One thing to point at: its index (what lights up), what it counts for, and whether it has gone away */
+interface Piece { i: number; worth: number; gone: boolean }
+/** A group of things, or of tens bars and ones; a sum has two, a take-away one */
+interface Group { things: Piece[]; bars: Piece[]; ones: Piece[] }
+
+/** Things one by one, the last `gone` crossed out */
+function thingGroup(from: number, n: number, gone = 0): Group {
+  const things = Array.from({ length: n }, (_, k) => ({ i: from + k, worth: 1, gone: k >= n - gone }))
+  return { things, bars: [], ones: [] }
+}
+/** An amount as tens bars and ones; `gone` tens and ones of them crossed out (taking away never carries) */
+function blockGroup(from: number, n: number, gone = 0): Group {
+  const tens = Math.floor(n / 10), ones = n % 10
+  const goneTens = Math.floor(gone / 10), goneOnes = gone % 10
+  const bars = Array.from({ length: tens }, (_, k) => ({ i: from + k, worth: 10, gone: k >= tens - goneTens }))
+  const single = Array.from({ length: ones }, (_, k) => ({ i: from + tens + k, worth: 1, gone: k >= ones - goneOnes }))
+  return { things: [], bars, ones: single }
+}
+/** Above this many things a group draws them smaller, so twenty fit the board on an iPad */
+const MANY = 10
+const size = (g: Group) => g.things.length + g.bars.length + g.ones.length
+
+const groups = computed<Group[]>(() => {
   const t = task.value
-  if (t?.type !== 'plus') return []
-  const range = (from: number, n: number) => Array.from({ length: n }, (_, i) => from + i)
-  return [range(0, t.a), range(t.a, t.b)]
+  if (!t) return []
+  const make = 'bars' in t && t.bars ? blockGroup : thingGroup
+  if (t.type === 'plus') {
+    const first = make(0, t.a)
+    return [first, make(size(first), t.b)]
+  }
+  if (t.type === 'minus') return [make(0, t.a, t.b)]
+  if (t.type === 'bars') return [blockGroup(0, t.amount)]
+  return []
 })
+
+/** The order of counting along: tens bars first, then the ones and things; what has gone away isn't counted */
+const countOrder = computed<{ i: number; worth: number }[]>(() => {
+  const t = task.value
+  if (!t) return []
+  if (groups.value.length === 0) return Array.from({ length: countable(t) }, (_, i) => ({ i, worth: 1 }))
+  const all = groups.value.flatMap(g => [...g.bars]).concat(groups.value.flatMap(g => [...g.ones, ...g.things]))
+  return all.filter(p => !p.gone).map(({ i, worth }) => ({ i, worth }))
+})
+
+// A quick look: the dots show for a moment, then a cover hides them until she has answered (or counts along)
+const flashOpen = ref(false)
+const flashSpots = computed(() => {
+  const t = task.value
+  return t?.type === 'flash' ? looseLayout(t.amount, seededRandom(view.index * 17 + t.amount)) : []
+})
+const flashShown = computed(() => flashOpen.value || view.phase !== 'asking')
+watch(() => view.index, () => {
+  if (task.value?.type !== 'flash') return
+  flashOpen.value = true
+  later(() => { flashOpen.value = false }, FLASH_MS)
+}, { immediate: true })
 
 onMounted(() => {
   window.addEventListener('keydown', onKey)
@@ -189,14 +255,47 @@ onBeforeUnmount(shutDown)
         />
       </div>
 
-      <div v-else-if="task?.type === 'plus'" class="sum">
+      <template v-else-if="task?.type === 'flash'">
+        <template v-if="flashShown">
+          <button
+            v-for="(spot, i) in flashSpots" :key="i" class="dot" data-test="flash-dot" :data-counted="marked.has(i)"
+            :style="{ left: `${spot.x * 100}%`, top: `${spot.y * 100}%` }" tabindex="-1" @pointerdown="touch(i)"
+          />
+        </template>
+        <div v-else class="cover" data-test="flash-cover" aria-hidden="true">👀</div>
+      </template>
+
+      <div v-else-if="task?.type === 'next'" class="row">
+        <span v-for="(n, i) in task.shown" :key="i" class="said" data-test="said">
+          {{ n }}
+          <span v-if="n > 20" class="mini" aria-hidden="true">
+            <span v-for="k in Math.floor(n / 10)" :key="`t${k}`" class="mini-bar" data-test="mini-bar" />
+            <span v-for="k in n % 10" :key="`o${k}`" class="mini-one" data-test="mini-one" />
+          </span>
+        </span>
+        <span class="said ask" aria-hidden="true">?</span>
+      </div>
+
+      <div v-else-if="groups.length" class="sum">
         <template v-for="(group, g) in groups" :key="g">
           <svg v-if="g === 1" class="plus" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 6 V34 M6 20 H34" /></svg>
-          <div class="group" data-test="group">
+          <div class="group" data-test="group" :data-many="group.things.length > MANY">
             <button
-              v-for="i in group" :key="i" class="thing" data-test="thing" :data-counted="marked.has(i)"
-              tabindex="-1" @pointerdown="touch(i)"
-            >{{ thing.emoji }}</button>
+              v-for="p in group.things" :key="p.i" class="thing" data-test="thing" :data-counted="marked.has(p.i)"
+              :data-gone="p.gone" tabindex="-1" @pointerdown="!p.gone && touch(p.i)"
+            ><span class="face">{{ thing.emoji }}</span></button>
+            <div v-if="group.bars.length" class="tens">
+              <button
+                v-for="p in group.bars" :key="p.i" class="bar" data-test="bar" :data-counted="marked.has(p.i)"
+                :data-gone="p.gone" tabindex="-1" @pointerdown="!p.gone && touch(p.i, 10)"
+              ><span v-for="k in 10" :key="k" /></button>
+            </div>
+            <div v-if="group.ones.length" class="ones">
+              <button
+                v-for="p in group.ones" :key="p.i" class="one" data-test="one" :data-counted="marked.has(p.i)"
+                :data-gone="p.gone" tabindex="-1" @pointerdown="!p.gone && touch(p.i)"
+              />
+            </div>
           </div>
         </template>
       </div>
@@ -252,6 +351,8 @@ button { border: 0; padding: 0; background: none; font: inherit; cursor: pointer
   border-radius: 50%;
   transition: transform 0.15s ease, background 0.15s ease;
 }
+.group[data-many='true'] { gap: 4px; }
+.group[data-many='true'] .thing { font-size: clamp(24px, 5vh, 46px); }
 .thing.loose { position: absolute; transform: translate(-50%, -50%); }
 .thing[data-counted='true'] { background: #ffe89a; box-shadow: 0 0 0 6px #ffd93d; }
 .thing.loose[data-counted='true'] { transform: translate(-50%, -50%) scale(1.12); }
@@ -286,6 +387,66 @@ button { border: 0; padding: 0; background: none; font: inherit; cursor: pointer
   padding: 12px;
 }
 .plus { width: 70px; flex: none; }
+/* Faded, but the red line stays strong: the fading is on the content, not on the button */
+.thing[data-gone='true'], .bar[data-gone='true'], .one[data-gone='true'] { position: relative; cursor: default; }
+.thing[data-gone='true'] .face { opacity: 0.3; }
+.bar[data-gone='true'] span, .one[data-gone='true'] { background-color: #bcd3f5; }
+.thing[data-gone='true']::after, .bar[data-gone='true']::after, .one[data-gone='true']::after {
+  content: '';
+  position: absolute;
+  inset: 45% -8%;
+  border-radius: 4px;
+  background: #d33;
+  transform: rotate(-35deg);
+}
+
+.tens { display: flex; gap: 8px; align-items: flex-end; }
+.bar {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 8px;
+  background: #cfe3ff;
+}
+.bar span { width: clamp(16px, 3vh, 26px); height: clamp(9px, 2.2vh, 18px); border-radius: 3px; background: #3d7be0; }
+.ones { display: flex; flex-wrap: wrap; gap: 2px; max-width: 60%; }
+/* The block is small, the place to tap around it is not */
+.one {
+  width: clamp(16px, 3vh, 26px);
+  height: clamp(16px, 3vh, 26px);
+  padding: 8px;
+  box-sizing: content-box;
+  background: #3d7be0;
+  background-clip: content-box;
+  border-radius: 12px;
+}
+.bar[data-counted='true'], .one[data-counted='true'] { box-shadow: 0 0 0 5px #ffd93d; }
+
+.dot {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: clamp(40px, 9vh, 80px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #3b3b58;
+}
+.dot[data-counted='true'] { background: #ff9a3c; box-shadow: 0 0 0 6px #ffd93d; }
+.cover { font-size: clamp(60px, 16vh, 140px); }
+
+.row { display: flex; gap: 3vw; align-items: center; }
+.said {
+  font-size: clamp(48px, 12vh, 110px);
+  font-weight: 800;
+  color: #2b4c7e;
+  min-width: 1.4em;
+  text-align: center;
+}
+.said { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.mini { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-end; gap: 3px; max-width: 2.2em; }
+.mini-bar { width: 6px; height: 40px; border-radius: 2px; background: #3d7be0; }
+.mini-one { width: 6px; height: 6px; border-radius: 2px; background: #3d7be0; }
+.said.ask { color: #e0a800; border-bottom: 8px dashed #ffd93d; }
 .plus path { stroke: #6b4a00; stroke-width: 7; stroke-linecap: round; }
 
 .choices { display: flex; gap: 4vw; }

@@ -17,6 +17,7 @@ The six stages of the roadmap in [the stage 1 design](superpowers/specs/2026-11-
 9. The Flatterflug: her wobbly with wings, flying through the clouds (a play building)
 10. Schreiben with her own words and sentences (Spielzeugkiste's name writing, grown into short sentences), a level per letter that sets the help, and new letters paced
 11. A bigger town to walk and discover (part A: streets, hills, a lake with a jetty, the buildings mixed along the streets, a camera that keeps her in sight). Part B: detailed houses, trees, flowers, lamps and benches. Part C: townsfolk, ducks, boats, birds, a cat and a dog, see [the plan](superpowers/plans/2026-11-14-brightville-bigger-town.md)
+12. Lehrplan 21 (#32, #33): the School climbs two ladders (Zählen, Rechnen) per child, and the parents see one overall number that opens into subjects, ladders and this week's practice, see [the design](superpowers/specs/2026-11-16-brightville-lehrplan-design.md). New buildings for the gaps are issues #34–#38
 
 Each stage has its design in `docs/superpowers/specs/`; what the game does now is in the README.
 

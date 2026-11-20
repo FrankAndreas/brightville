@@ -10,10 +10,10 @@ from typing import Annotated, Optional
 
 from fastapi import Depends, FastAPI, Path, Query, Request, Response
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, StringConstraints
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from . import auth, films, game, hub, local, paintings, people, room, stickers, wardrobe, writing
+from . import auth, films, game, hub, local, paintings, people, room, school, stickers, wardrobe, writing
 from . import db as database
 from .auth import error, get_db
 from .buildings import Building, all_buildings
@@ -102,6 +102,25 @@ class FreeVisitIn(BaseModel):
 
 class SeenIn(BaseModel):
     ids: list[str] = Field(max_length=100)
+
+
+class LadderResultIn(BaseModel):
+    step: int = Field(ge=1, le=6)
+    # First try right or not, per answered task; a visit has five tasks
+    results: list[bool] = Field(max_length=10)
+
+
+class SchoolResultsIn(BaseModel):
+    key: str = Field(min_length=1, max_length=64)
+    zaehlen: LadderResultIn
+    rechnen: LadderResultIn
+
+
+class StepIn(BaseModel):
+    # Checked by school.set_step, to answer "unknown" / "bad_step" in words
+    ladder: str = Field(max_length=20)
+    # Strict: true or 2.5 is no step
+    step: StrictInt
 
 
 class PlayIn(BaseModel):
@@ -489,6 +508,52 @@ def writing_introduced(
     except game.Refused as refused:
         raise error(404 if refused.code == "unknown" else 409, refused.code) from None
     return writing.state(db, person.id)
+
+
+@app.get("/api/school")
+def school_state(person: Person = Depends(auth.current_person), db: sqlite3.Connection = Depends(get_db)) -> dict:
+    return school.state(db, person.id)
+
+
+@app.post("/api/school/results")
+def school_results(
+    body: SchoolResultsIn, person: Person = Depends(auth.current_person), db: sqlite3.Connection = Depends(get_db)
+) -> dict:
+    school.record(
+        db,
+        person.id,
+        body.key,
+        {"zaehlen": body.zaehlen.model_dump(), "rechnen": body.rechnen.model_dump()},  # type: ignore[dict-item]
+    )
+    return school.state(db, person.id)
+
+
+@app.get("/api/players/{person_id}/school")
+def player_school(
+    person_id: int, request: Request, _: Person = Depends(auth.parent), db: sqlite3.Connection = Depends(get_db)
+) -> dict:
+    auth.refresh_people(request, db)
+    if not people.is_active(db, person_id):
+        raise error(404, "unknown_person")
+    return school.state(db, person_id)
+
+
+@app.put("/api/players/{person_id}/school")
+def player_school_step(
+    person_id: int,
+    body: StepIn,
+    request: Request,
+    _: Person = Depends(auth.parent),
+    db: sqlite3.Connection = Depends(get_db),
+) -> dict:
+    auth.refresh_people(request, db)
+    if not people.is_active(db, person_id):
+        raise error(404, "unknown_person")
+    try:
+        school.set_step(db, person_id, body.ladder, body.step)
+    except game.Refused as refused:
+        raise error(422, refused.code) from None
+    return school.state(db, person_id)
 
 
 @app.get("/api/players/{person_id}/writing")

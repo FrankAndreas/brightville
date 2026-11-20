@@ -7,6 +7,7 @@ import { furnitureDef } from '@/core/furniture'
 import { outfitDef } from '@/core/outfits'
 import type { Api, PlayerRow, Rules, StickerRow } from '@/services/api'
 import FilmList from './FilmList.vue'
+import LehrplanOverview from './LehrplanOverview.vue'
 import WritingSettings from './WritingSettings.vue'
 
 // The parents' page: plain German, for grown-ups who read. One card per person who may play,
@@ -153,6 +154,7 @@ onMounted(load)
             <p v-if="diaries[row.id].stickers.length" data-test="diary-stickers">{{ stickerLine(diaries[row.id].stickers) }}</p>
           </template>
         </details>
+        <LehrplanOverview v-if="row.role !== 'PARENT'" :api="api" :person-id="row.id" />
         <WritingSettings v-if="row.role !== 'PARENT'" :api="api" :person-id="row.id" />
       </article>
 

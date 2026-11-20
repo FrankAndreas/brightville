@@ -1,9 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount, type VueWrapper } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
+import { useSchoolStore } from '@/stores/school'
 import { playBeat } from '@/services/sound'
 import { speak } from '@/services/tts'
 import { requestLeave } from '../leave'
-import School from './School.vue'
+import School, { FLASH_MS } from './School.vue'
+import type { Task } from '@/core/numbers'
 import { TEST_TASKS, TEST_THINGS } from './testTasks'
 
 vi.mock('@/services/sound', () => ({ playBeat: vi.fn(), unlockAudio: vi.fn() }))
@@ -33,6 +36,7 @@ const CHEER = 1000
 
 describe('School', () => {
   beforeEach(() => {
+    setActivePinia(createPinia())
     vi.useFakeTimers()
     vi.mocked(speak).mockClear()
     vi.mocked(playBeat).mockClear()
@@ -281,5 +285,116 @@ describe('School', () => {
     await run(100)
     w.unmount()
     expect(vi.getTimerCount()).toBe(0)
+  })
+
+  describe('the ladders\' tasks', () => {
+    const openWith = async (tasks: Task[]) => {
+      const w = mount(School, { props: { tasks, things: TEST_THINGS }, attachTo: document.body })
+      await run(10)
+      return w
+    }
+
+    it('shows a quick look\'s dots, then hides them', async () => {
+      const w = await openWith([{ type: 'flash', ladder: 'zaehlen', kind: 0, amount: 4, answer: 4, choices: [3, 4, 5] }])
+      expect(w.findAll('[data-test="flash-dot"]')).toHaveLength(4)
+      await run(FLASH_MS + 10)
+      expect(w.findAll('[data-test="flash-dot"]')).toHaveLength(0)
+      expect(w.find('[data-test="flash-cover"]').exists()).toBe(true)
+    })
+
+    it('shows the dots again when counting along after a wrong answer', async () => {
+      const w = await openWith([{ type: 'flash', ladder: 'zaehlen', kind: 0, amount: 4, answer: 4, choices: [3, 4, 5] }])
+      await run(FLASH_MS + 10)
+      await choice(w, 3).trigger('pointerdown')
+      await run(10)
+      expect(w.findAll('[data-test="flash-dot"]')).toHaveLength(4)
+    })
+
+    it('shows tens bars and ones', async () => {
+      const w = await openWith([{ type: 'bars', ladder: 'zaehlen', kind: 0, amount: 34, answer: 34, choices: [33, 34, 35] }])
+      expect(w.findAll('[data-test="bar"]')).toHaveLength(3)
+      expect(w.findAll('[data-test="one"]')).toHaveLength(4)
+      await w.findAll('[data-test="bar"]')[0].trigger('pointerdown')
+      expect(said()).toContain('zehn')
+    })
+
+    it('crosses out what goes away', async () => {
+      const w = await openWith([{ type: 'minus', ladder: 'rechnen', kind: 0, a: 5, b: 2, answer: 3, choices: [2, 3, 4] }])
+      expect(w.findAll('[data-test="thing"]')).toHaveLength(5)
+      expect(w.findAll('[data-test="thing"][data-gone="true"]')).toHaveLength(2)
+    })
+
+    it('shows tens sums as bars', async () => {
+      const w = await openWith([{ type: 'plus', ladder: 'rechnen', kind: 0, a: 32, b: 15, bars: true, answer: 47, choices: [46, 47, 48] }])
+      expect(w.findAll('[data-test="bar"]')).toHaveLength(4)
+      expect(w.findAll('[data-test="one"]')).toHaveLength(7)
+    })
+
+    it('shows the numbers said when counting on', async () => {
+      const w = await openWith([{ type: 'next', ladder: 'zaehlen', kind: 0, from: 2, by: 1, shown: [2, 3, 4], answer: 5, choices: [4, 5, 6] }])
+      expect(said()).toEqual(['Zähl weiter: zwei, drei, vier … und dann?'])
+      expect(w.findAll('[data-test="said"]').map(n => n.text())).toEqual(['2', '3', '4'])
+    })
+
+    it('draws a big group smaller, so twenty things fit the board', async () => {
+      const w = await openWith([{ type: 'plus', ladder: 'rechnen', kind: 0, a: 12, b: 7, answer: 19, choices: [18, 19, 20] }])
+      const groups = w.findAll('[data-test="group"]')
+      expect(groups[0].attributes('data-many')).toBe('true')
+      expect(groups[1].attributes('data-many')).toBe('false')
+    })
+
+    it('shows numbers above 20 with tens bars and ones when counting on', async () => {
+      const w = await openWith([{ type: 'next', ladder: 'zaehlen', kind: 0, from: 45, by: 5, shown: [45, 50, 55], answer: 60, choices: [55, 60, 65] }])
+      const said = w.findAll('[data-test="said"]')
+      expect(said.map(n => n.findAll('[data-test="mini-bar"]').length)).toEqual([4, 5, 5])
+      expect(said.map(n => n.findAll('[data-test="mini-one"]').length)).toEqual([5, 0, 5])
+    })
+
+    it('lays out twenty things to count', async () => {
+      const w = await openWith([{ type: 'count', ladder: 'zaehlen', kind: 0, amount: 20, answer: 20, choices: [19, 20, 18] }])
+      expect(w.findAll('[data-test="thing"]')).toHaveLength(20)
+    })
+
+    it('answers a big number with the arrow keys and Enter', async () => {
+      const w = await openWith([{ type: 'bars', ladder: 'zaehlen', kind: 0, amount: 45, answer: 45, choices: [44, 45, 46] }])
+      press('ArrowRight')
+      press('ArrowRight')
+      press('Enter')
+      await run(10)
+      expect(w.find('[data-test="progress-star"][data-done="true"]').exists()).toBe(true)
+    })
+  })
+
+  describe('at her steps', () => {
+    it('asks the visit\'s Zählen tasks at her step', () => {
+      const school = useSchoolStore()
+      school.ladders = { zaehlen: { step: 3, window: [] }, rechnen: { step: 4, window: [] } }
+      const kinds = new Set<string>()
+      for (let i = 0; i < 30; i++) {
+        const w = mount(School, { props: { things: TEST_THINGS } })
+        const tasks = (w.vm as unknown as { tasks: Task[] }).tasks
+        for (const t of tasks) {
+          kinds.add(t.type)
+          expect(t.answer).toBeLessThanOrEqual(20)
+        }
+        w.unmount()
+      }
+      expect(kinds.has('next') || kinds.has('flash')).toBe(true)
+      expect(kinds.has('count')).toBe(false)
+    })
+
+    it('records the answered tasks when she leaves', async () => {
+      const school = useSchoolStore()
+      const w = await open()
+      await choice(w, 3).trigger('pointerdown')
+      await run(CHEER)
+      await choice(w, 5).trigger('pointerdown')
+      await run(10)
+      requestLeave()
+      await run(10)
+      // Two right Zählen answers (the second after a wrong one is still to come: not solved, not counted)
+      expect(school.ladders.zaehlen.window).toEqual([true])
+      expect(w.emitted('finished')).toBeTruthy()
+    })
   })
 })

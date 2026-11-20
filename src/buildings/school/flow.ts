@@ -1,3 +1,4 @@
+import type { Ladder } from '@/core/ladders'
 import { cheerText, countable, numberWord, questionText, type Task, type Thing } from '@/core/numbers'
 
 export const STARS_PER_TASK = 1
@@ -5,6 +6,9 @@ export const STARS_PER_TASK = 1
 export const SET_BONUS = 5
 
 const SAY_RECOUNT = 'Hmm, zähl nochmal mit mir'
+const SAY_LISTEN = 'Hör nochmal gut zu'
+/** Above this, counting along goes by tens first */
+const COUNT_BY_TENS_ABOVE = 20
 const SAY_DONE = 'Super gemacht!'
 
 export interface SchoolState {
@@ -19,6 +23,8 @@ export interface SchoolState {
   /** Tasks done */
   solved: number
   stars: number
+  /** Each solved task's ladder, and whether it was right on the first try: what moves her up */
+  results: { ladder: Ladder; firstTry: boolean }[]
   phase: 'asking' | 'cheering' | 'recounting' | 'done'
 }
 
@@ -27,16 +33,16 @@ export type SchoolEffect =
   /** `ask`: an instruction, kept for the 🔊 button */
   | { type: 'speak'; text: string; ask?: boolean }
   | { type: 'chime' }
-  /** Count this many objects aloud, one by one, then call recountDone() */
-  | { type: 'recount'; amount: number }
+  /** Count this many objects aloud, one by one (`tens`: ten at a time first), then call recountDone() */
+  | { type: 'recount'; amount: number; tens?: boolean }
   | { type: 'confetti' }
 
 export interface SchoolFlow {
   readonly state: SchoolState
   /** Asks the first question */
   start(): SchoolEffect[]
-  /** The child points at one more object */
-  touch(): SchoolEffect[]
+  /** The child points at one more object (`by`: a tens bar counts ten) */
+  touch(by?: number): SchoolEffect[]
   answer(choice: number): SchoolEffect[]
   /** The count-along is over: the child may answer again */
   recountDone(): SchoolEffect[]
@@ -47,7 +53,7 @@ export interface SchoolFlow {
 /** One visit to the School: a row of tasks, each ending only when it is right. */
 export function createSchoolFlow(tasks: Task[], things: Thing[]): SchoolFlow {
   const state: SchoolState = {
-    index: 0, task: tasks[0] ?? null, wrong: [], counted: 0, solved: 0, stars: 0,
+    index: 0, task: tasks[0] ?? null, wrong: [], counted: 0, solved: 0, stars: 0, results: [],
     phase: tasks.length > 0 ? 'asking' : 'done',
   }
   const ask = (task: Task): SchoolEffect[] => [{ type: 'speak', text: questionText(task, things[task.kind % things.length]), ask: true }]
@@ -56,9 +62,9 @@ export function createSchoolFlow(tasks: Task[], things: Thing[]): SchoolFlow {
     state,
     start: () => (state.phase === 'asking' && state.task ? ask(state.task) : []),
 
-    touch() {
+    touch(by = 1) {
       if (state.phase !== 'asking' || !state.task || state.counted >= countable(state.task)) return []
-      state.counted += 1
+      state.counted = Math.min(state.counted + by, countable(state.task))
       return [{ type: 'speak', text: numberWord(state.counted) }]
     },
 
@@ -69,6 +75,7 @@ export function createSchoolFlow(tasks: Task[], things: Thing[]): SchoolFlow {
       if (choice === task.answer) {
         state.phase = 'cheering'
         state.solved += 1
+        state.results.push({ ladder: task.ladder, firstTry: state.wrong.length === 0 })
         state.stars += STARS_PER_TASK
         // The bonus is earned with the last right answer, so leaving during the cheer keeps it
         if (state.solved === tasks.length) state.stars += SET_BONUS
@@ -76,9 +83,15 @@ export function createSchoolFlow(tasks: Task[], things: Thing[]): SchoolFlow {
       }
       // Never a buzzer: the wrong button fades and we count together
       state.wrong.push(choice)
+      // Counting on has nothing to point at: the numbers are said again
+      if (task.type === 'next') return [{ type: 'speak', text: SAY_LISTEN }, ...ask(task)]
       state.phase = 'recounting'
       state.counted = 0
-      return [{ type: 'speak', text: SAY_RECOUNT }, { type: 'recount', amount: countable(task) }]
+      const amount = countable(task)
+      return [
+        { type: 'speak', text: SAY_RECOUNT },
+        amount > COUNT_BY_TENS_ABOVE ? { type: 'recount', amount, tens: true } : { type: 'recount', amount },
+      ]
     },
 
     recountDone() {
