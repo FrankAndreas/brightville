@@ -1,5 +1,5 @@
 // The Lehrplan 21 (Zyklus 1) behind the game, for the parents' page: what each building practises, how far the
-// seven measured parts are, and what was practised this week. Codes are the template's (v-fe.lehrplan.ch).
+// eight measured parts are, and what was practised this week. Codes are the template's (v-fe.lehrplan.ch).
 // The child never sees any of it.
 
 import type { LogDay } from './diary'
@@ -57,6 +57,7 @@ export const TAGS: Record<string, Tag> = {
   muster: { codes: ['MA.1.B', 'MA.3'], zugaenge: [5, 2] },
   kalender: { codes: ['MA.3'], zugaenge: [3, 8] },
   spielwelt: { codes: ['MA.2'], zugaenge: [4, 2] },
+  trommelhaus: { codes: ['MU'], zugaenge: [1, 2] },
   kino: { codes: [], zugaenge: [] },
   haus: { codes: [], zugaenge: [9] },
   laden: { codes: [], zugaenge: [9] },
@@ -113,16 +114,25 @@ export const STEP_TEXT: Record<Ladder, string[]> = {
     'zwei Angaben zusammen',
     'fertig (Ende 2. Klasse)',
   ],
+  rhythmus: [
+    'Takt halten',
+    'schnell und langsam',
+    'laut und leise',
+    'Rhythmen nachklatschen',
+    'längere Rhythmen',
+    'fertig (Ende 2. Klasse)',
+  ],
 }
 
 /**
  * Where Kindergarten typically ends on each ladder: Zählen and Rechnen step 3 reached, Reimen done (hearing rhymes,
  * first sounds and syllables is a Kindergarten goal), Muster step 4 reached (rows yes; gaps and two features are 1st
  * grade), Zeit step 5 reached (the day, the week, yesterday and tomorrow, the seasons; the clock is 1st grade), Raum step 4
- * reached (auf to zwischen; links and rechts are 1st grade), writing
+ * reached (auf to zwischen; links and rechts are 1st grade), Rhythmus step 4 reached (copying rhythms is 1st grade),
+ * writing
  * starts in 1st grade
  */
-export const KG_TARGETS: Record<Ladder | 'letters', number> = { zaehlen: 0.4, rechnen: 0.4, reimen: 1, muster: 0.6, zeit: 0.8, raum: 0.6, letters: 0 }
+export const KG_TARGETS: Record<Ladder | 'letters', number> = { zaehlen: 0.4, rechnen: 0.4, reimen: 1, muster: 0.6, zeit: 0.8, raum: 0.6, rhythmus: 0.6, letters: 0 }
 const PARTS = Object.keys(KG_TARGETS).length
 const KNOWN = 4
 
