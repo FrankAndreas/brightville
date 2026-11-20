@@ -11,7 +11,13 @@ export const DAY_COLOURS = ['#e53935', '#fb8c00', '#fdd835', '#43a047', '#1e88e5
 export type TimeOfDay = 'morgen' | 'mittag' | 'abend' | 'nacht'
 export type Season = 'fruehling' | 'sommer' | 'herbst' | 'winter'
 export interface ClockTime { hour: number; half: boolean }
-export interface Activity { id: string; say: string; emoji: string }
+export interface Activity {
+  id: string
+  say: string
+  emoji: string
+  /** A small sign of the time of day on the picture (☀️ midday, 🌙 evening) */
+  badge?: string
+}
 
 export type Choice = { id: string; say: string } & (
   | { kind: 'sun'; time: TimeOfDay }
@@ -22,8 +28,14 @@ export type Choice = { id: string; say: string } & (
 export type ZeitTask =
   /** `items` in the right order, `shown` shuffled */
   | { type: 'order'; items: Activity[]; shown: Activity[] }
-  /** `answer`: the right choice's id */
-  | { type: 'pick'; topic: 'time' | 'day' | 'season' | 'clock'; question: string; choices: Choice[]; answer: string }
+  /**
+   * `answer`: the right choice's id. Day questions: `focus` is the day the question names (lit in the week strip),
+   * `aboutToday` whether it asks about today (only then the strip shows today's sun)
+   */
+  | {
+    type: 'pick'; topic: 'time' | 'day' | 'season' | 'clock'; question: string; choices: Choice[]; answer: string
+    focus?: number; aboutToday?: boolean
+  }
 
 export interface ExampleLine {
   text: string
@@ -39,14 +51,16 @@ export const TASKS_PER_VISIT = 5
 const EXAMPLE_UNTIL = 10
 const LAST_STEP = 6
 
-/** Things every child does every day, in their order (none that could come at another time) */
+/**
+ * Things every child does every day, in one order only (not anziehen: many have breakfast first; not Zähne putzen,
+ * spielen or baden: they come at several times). The pictures carry their time: an alarm clock, a sun, a moon.
+ */
 const ACTIVITIES: Activity[] = [
-  { id: 'aufstehen', say: 'aufstehen', emoji: '🛏️' },
-  { id: 'anziehen', say: 'anziehen', emoji: '👕' },
+  { id: 'aufstehen', say: 'aufstehen', emoji: '⏰' },
   { id: 'fruehstuecken', say: 'frühstücken', emoji: '🥣' },
-  { id: 'mittagessen', say: 'Mittagessen', emoji: '🍝' },
-  { id: 'abendessen', say: 'Abendessen', emoji: '🍲' },
-  { id: 'schlafen', say: 'schlafen', emoji: '🌙' },
+  { id: 'mittagessen', say: 'zu Mittag essen', emoji: '🍝', badge: '☀️' },
+  { id: 'abendessen', say: 'zu Abend essen', emoji: '🍲', badge: '🌙' },
+  { id: 'schlafen', say: 'schlafen', emoji: '🛏️' },
 ]
 
 const TIME_WORD: Record<TimeOfDay, string> = { morgen: 'Morgen', mittag: 'Mittag', abend: 'Abend', nacht: 'Nacht' }
@@ -70,11 +84,12 @@ const SEASON_QUESTIONS: [string, Season][] = [
 /** Monday 0 … Sunday 6 */
 export const weekdayOf = (date: Date) => (date.getDay() + 6) % 7
 
+/** As in the Kindergarten's calendar: spring from 21 March, summer from 21 June, autumn from 23 September, winter from 21 December */
 export function seasonOf(date: Date): Season {
-  const m = date.getMonth()
-  if (m >= 2 && m <= 4) return 'fruehling'
-  if (m >= 5 && m <= 7) return 'sommer'
-  if (m >= 8 && m <= 10) return 'herbst'
+  const at = (date.getMonth() + 1) * 100 + date.getDate()
+  if (at >= 321 && at < 621) return 'fruehling'
+  if (at >= 621 && at < 923) return 'sommer'
+  if (at >= 923 && at < 1221) return 'herbst'
   return 'winter'
 }
 
@@ -117,28 +132,29 @@ const time: Maker = random => {
   return { type: 'pick', topic: 'time', question, choices: TIMES.map(sunChoice), answer }
 }
 
-/** Three day cards: the right one and two others */
-function dayPick(question: string, answer: number, random: () => number): ZeitTask {
+/** Three day cards: the right one and two others; `focus` the day the question names */
+function dayPick(question: string, answer: number, focus: number, aboutToday: boolean, random: () => number): ZeitTask {
   const others = shuffle([0, 1, 2, 3, 4, 5, 6].filter(d => d !== answer), random).slice(0, 2)
-  return { type: 'pick', topic: 'day', question, choices: shuffle([answer, ...others], random).map(dayChoice), answer: `day-${answer}` }
+  const choices = shuffle([answer, ...others], random).map(dayChoice)
+  return { type: 'pick', topic: 'day', question, choices, answer: `day-${answer}`, focus, aboutToday }
 }
 
 const week: Maker = random => {
   const day = Math.floor(random() * 7)
   return random() < 0.5
-    ? dayPick(`Was kommt nach ${DAYS[day]}?`, (day + 1) % 7, random)
-    : dayPick(`Was kommt vor ${DAYS[day]}?`, (day + 6) % 7, random)
+    ? dayPick(`Was kommt nach ${DAYS[day]}?`, (day + 1) % 7, day, false, random)
+    : dayPick(`Was kommt vor ${DAYS[day]}?`, (day + 6) % 7, day, false, random)
 }
 
 const yesterdayOrTomorrow: Maker = (random, today) => {
   const d = weekdayOf(today)
   return random() < 0.5
-    ? dayPick(`Heute ist ${DAYS[d]}. Was war gestern?`, (d + 6) % 7, random)
-    : dayPick(`Heute ist ${DAYS[d]}. Was ist morgen?`, (d + 1) % 7, random)
+    ? dayPick(`Heute ist ${DAYS[d]}. Was war gestern?`, (d + 6) % 7, d, true, random)
+    : dayPick(`Heute ist ${DAYS[d]}. Was ist morgen?`, (d + 1) % 7, d, true, random)
 }
 
 const season: Maker = (random, today) => {
-  const questions: [string, Season][] = [...SEASON_QUESTIONS, ['Welche Jahreszeit ist jetzt?', seasonOf(today)]]
+  const questions: [string, Season][] = [...SEASON_QUESTIONS, ['Welche Jahreszeit haben wir jetzt?', seasonOf(today)]]
   const [question, answer] = pick(questions, random)
   return { type: 'pick', topic: 'season', question, choices: SEASONS.map(seasonChoice), answer }
 }
@@ -148,7 +164,7 @@ const clock: Maker = random => {
   const flipped: ClockTime = { ...right, half: !right.half }
   const next: ClockTime = { ...right, hour: random() < 0.5 ? (right.hour % 12) + 1 : ((right.hour + 10) % 12) + 1 }
   const choices = shuffle([right, flipped, next], random).map(clockChoice)
-  return { type: 'pick', topic: 'clock', question: `Wo ist es ${clockName(right)}?`, choices, answer: clockChoice(right).id }
+  return { type: 'pick', topic: 'clock', question: `Welche Uhr zeigt ${clockName(right)}?`, choices, answer: clockChoice(right).id }
 }
 
 const STEPS: Maker[][] = [
@@ -202,8 +218,10 @@ export function exampleFor(step: number, windowLength: number, today: Date): Zei
       ],
     }
   }
-  const strip: ZeitTask = { type: 'pick', topic: 'day', question: '', choices: [], answer: '' }
-  if (step === 3) return { task: strip, lines: DAYS.map((text, i) => ({ text, light: `strip-${i}` })) }
+  const strip: ZeitTask = { type: 'pick', topic: 'day', question: '', choices: [], answer: '', aboutToday: step === 4 }
+  if (step === 3) {
+    return { task: strip, lines: [{ text: 'Die Woche hat sieben Tage:' }, ...DAYS.map((text, i) => ({ text, light: `strip-${i}` }))] }
+  }
   if (step === 4) {
     const d = weekdayOf(today)
     return {

@@ -21,9 +21,10 @@ const act = (id: string): Activity => ({ id, say: id, emoji: id })
 const ITEMS = ['aufstehen', 'fruehstuecken', 'mittagessen', 'schlafen'].map(act)
 const ORDER: ZeitTask = { type: 'order', items: ITEMS, shown: [ITEMS[2], ITEMS[0], ITEMS[3], ITEMS[1]] }
 const day = (d: number, say: string): Choice => ({ id: `day-${d}`, say, kind: 'day', day: d })
-const DAY: ZeitTask = { type: 'pick', topic: 'day', question: 'Heute ist Donnerstag. Was war gestern?', choices: [day(4, 'Freitag'), day(2, 'Mittwoch'), day(6, 'Sonntag')], answer: 'day-2' }
+const DAY: ZeitTask = { type: 'pick', topic: 'day', question: 'Heute ist Donnerstag. Was war gestern?', choices: [day(4, 'Freitag'), day(2, 'Mittwoch'), day(6, 'Sonntag')], answer: 'day-2', focus: 3, aboutToday: true }
+const WEEK: ZeitTask = { ...DAY, question: 'Was kommt nach Montag?', answer: 'day-1', choices: [day(4, 'Freitag'), day(1, 'Dienstag'), day(6, 'Sonntag')], focus: 0, aboutToday: false }
 const clock = (hour: number, half: boolean): Choice => ({ id: `clock-${hour}-${half ? 30 : 0}`, say: '', kind: 'clock', clock: { hour, half } })
-const CLOCK: ZeitTask = { type: 'pick', topic: 'clock', question: 'Wo ist es drei Uhr?', choices: [clock(3, true), clock(3, false), clock(4, false)], answer: 'clock-3-0' }
+const CLOCK: ZeitTask = { type: 'pick', topic: 'clock', question: 'Welche Uhr zeigt drei Uhr?', choices: [clock(3, true), clock(3, false), clock(4, false)], answer: 'clock-3-0' }
 const THURSDAY = new Date(2026, 10, 19)
 const run = (ms: number) => vi.advanceTimersByTimeAsync(ms)
 const said = () => vi.mocked(speak).mock.calls.map(x => x[0])
@@ -76,6 +77,25 @@ describe('Kalender', () => {
     vi.mocked(forgetInstruction).mockClear()
     await tap(w, 'choice-day-2')
     expect(forgetInstruction).toHaveBeenCalled()
+    w.unmount()
+  })
+
+  it('shows no sun on the week when the question isn\'t about today, and lights a named card\'s day', async () => {
+    let finish: () => void = () => {}
+    vi.mocked(speak).mockImplementation(text => (text === 'Freitag' ? new Promise<void>(r => { finish = r }) : Promise.resolve()))
+    const w = await open([WEEK])
+    expect(w.find('[data-test="strip-3"]').attributes('data-today')).toBe('false')
+    await run(500)
+    expect(w.find('[data-test="strip-4"]').attributes('data-lit')).toBe('true')
+    expect(w.find('[data-test="choice-day-4"]').attributes('data-lit')).toBe('true')
+    finish()
+    vi.mocked(speak).mockImplementation(() => Promise.resolve())
+    w.unmount()
+  })
+
+  it('shows the example\'s pictures as not to be tapped', () => {
+    const w = mount(Kalender, { props: { tasks: [ORDER], example: exampleFor(1, 0, THURSDAY), today: THURSDAY }, attachTo: document.body })
+    expect(w.find('.loose').attributes('data-shown-only')).toBe('true')
     w.unmount()
   })
 

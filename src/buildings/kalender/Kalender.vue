@@ -45,8 +45,9 @@ const tasks = props.tasks ?? buildZeitSession(step, today)
 const example = props.example !== undefined ? props.example : exampleFor(step, school.ladders.zeit.window.length, today)
 const flow = createZeitFlow(tasks, example)
 const view = reactive({ ...flow.state, wrong: [...flow.state.wrong], placed: [...flow.state.placed] })
-/** What is lit while it is said */
+/** What is lit while it is said: one or more keys, apart by spaces ('choice-day-4 strip-4') */
 const lit = ref<string | null>(null)
+const isLit = (key: string) => lit.value?.split(' ').includes(key) ?? false
 /** The picture wiggling after a tap too early */
 const wiggling = ref<string | null>(null)
 /** The example's pictures already in their places, and its clock */
@@ -196,23 +197,24 @@ onBeforeUnmount(shutDown)
       <template v-if="order">
         <div class="slots">
           <div v-for="(s, n) in slots" :key="n" class="slot" :data-test="`slot-${n}`" :data-filled="!!s">
-            <span v-if="s" :data-lit="lit === `item-${s.id}`">{{ s.emoji }}</span>
+            <span v-if="s" :data-lit="isLit(`item-${s.id}`)">{{ s.emoji }}<span v-if="s.badge" class="badge-small">{{ s.badge }}</span></span>
           </div>
         </div>
-        <div class="loose">
+        <div class="loose" :data-shown-only="inExample">
           <button
             v-for="i in loose" :key="i.id" class="item" :data-test="`item-${i.id}`" :data-wiggle="wiggling === i.id"
-            :data-lit="lit === `item-${i.id}`" :aria-label="i.say" tabindex="-1" @pointerdown="tap(i.id)"
-          >{{ i.emoji }}</button>
+            :data-lit="isLit(`item-${i.id}`)" :aria-label="i.say" tabindex="-1" @pointerdown="tap(i.id)"
+          >{{ i.emoji }}<span v-if="i.badge" class="badge-small">{{ i.badge }}</span></button>
         </div>
       </template>
 
       <template v-else-if="pickTask">
         <div v-if="pickTask.topic === 'day'" class="strip" aria-hidden="true">
           <span
-            v-for="(d, i) in DAYS" :key="d" class="day" :data-test="`strip-${i}`" :data-today="i === todayIndex"
-            :data-lit="lit === `strip-${i}`" :style="{ background: DAY_COLOURS[i] }"
-          ><span v-if="i === todayIndex" class="sun">☀️</span></span>
+            v-for="(d, i) in DAYS" :key="d" class="day" :data-test="`strip-${i}`"
+            :data-today="!!pickTask.aboutToday && i === todayIndex" :data-lit="isLit(`strip-${i}`)"
+            :style="{ background: DAY_COLOURS[i] }"
+          ><span v-if="pickTask.aboutToday && i === todayIndex" class="sun">☀️</span></span>
         </div>
 
         <div v-if="inExample && exampleClock" class="big-clock"><ClockFace :clock="exampleClock" /></div>
@@ -224,7 +226,7 @@ onBeforeUnmount(shutDown)
         >
           <button
             v-for="c in pickTask.choices" :key="`${view.index}-${c.id}`" class="choice" :data-test="`choice-${c.id}`"
-            :data-faded="view.wrong.includes(c.id)" :data-lit="lit === `choice-${c.id}`" :aria-label="c.say"
+            :data-faded="view.wrong.includes(c.id)" :data-lit="isLit(`choice-${c.id}`)" :aria-label="c.say"
             tabindex="-1" @pointerdown="choose(c.id)"
           >
             <SunSky v-if="c.kind === 'sun'" :time="c.time" />
@@ -300,6 +302,11 @@ button { border: 0; padding: 0; background: none; font: inherit; cursor: pointer
   line-height: 1;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
+.item { position: relative; }
+.badge-small { position: absolute; right: 6%; top: 4%; font-size: 0.42em; }
+.slot span { position: relative; }
+.loose[data-shown-only='true'], .choices[data-shown-only='true'] { pointer-events: none; }
+.loose[data-shown-only='true'] .item, .choices[data-shown-only='true'] .choice { box-shadow: none; opacity: 0.85; }
 .item[data-wiggle='true'] { animation: wiggle 0.6s ease; }
 @keyframes wiggle { 20% { transform: rotate(-10deg); } 40% { transform: rotate(9deg); } 60% { transform: rotate(-6deg); } 80% { transform: rotate(3deg); } }
 

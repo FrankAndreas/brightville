@@ -54,18 +54,29 @@ export interface ZeitFlow {
   next(): ZeitEffect[]
 }
 
-/** The question, then (except clocks: that would give the answer) each choice still there, named as it lights up */
+/**
+ * The question (the day it names lit in the week), then (except clocks: that would give the answer) each choice still
+ * there, named as it lights up, a day card with its day in the week
+ */
 function askPick(p: Pick, wrong: string[]): ZeitEffect[] {
   const named = p.topic === 'clock' ? [] : p.choices.filter(c => !wrong.includes(c.id))
   const again = named.length ? `${p.question} ${named.map(c => c.say).join(', ')}.` : p.question
+  const light = (c: Pick['choices'][number]) => (c.kind === 'day' ? `choice-${c.id} strip-${c.day}` : `choice-${c.id}`)
   return [
-    { type: 'speak', text: p.question, ask: true, again },
-    ...named.map((c): ZeitEffect => ({ type: 'speak', text: c.say, light: `choice-${c.id}` })),
+    { type: 'speak', text: p.question, ...(p.focus !== undefined ? { light: `strip-${p.focus}` } : {}), ask: true, again },
+    ...named.map((c): ZeitEffect => ({ type: 'speak', text: c.say, light: light(c) })),
   ]
 }
 
-const askOrder = (): ZeitEffect[] => [{ type: 'speak', text: SAY_ORDER, ask: true }]
-const ask = (task: ZeitTask, wrong: string[] = []) => (task.type === 'order' ? askOrder() : askPick(task, wrong))
+/** The question, then each picture still to place, named as it lights up, so she knows what it shows */
+function askOrder(o: Order, placed: string[]): ZeitEffect[] {
+  const left = o.shown.filter(i => !placed.includes(i.id))
+  return [
+    { type: 'speak', text: SAY_ORDER, ask: true, again: `${SAY_ORDER} ${left.map(i => i.say).join(', ')}.` },
+    ...left.map((i): ZeitEffect => ({ type: 'speak', text: i.say, light: `item-${i.id}` })),
+  ]
+}
+const ask = (task: ZeitTask, wrong: string[] = []) => (task.type === 'order' ? askOrder(task, []) : askPick(task, wrong))
 
 function showExample(example: ZeitExample): ZeitEffect[] {
   const all = example.lines.map(l => l.text).join(' ')
@@ -113,8 +124,7 @@ export function createZeitFlow(tasks: ZeitTask[], example: ZeitExample | null): 
       if (!choice || state.wrong.includes(id)) return []
       if (id === task.answer) {
         solve(state.wrong.length === 0)
-        const cheer = task.topic === 'clock' ? SAY_CHEER : `${choice.say}! ${SAY_CHEER}`
-        return [{ type: 'chime' }, { type: 'speak', text: cheer }]
+        return [{ type: 'chime' }, { type: 'speak', text: `${choice.say}! ${SAY_CHEER}` }]
       }
       // Never a buzzer: the choice fades and the question is asked again
       state.wrong.push(id)
