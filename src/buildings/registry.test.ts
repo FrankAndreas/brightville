@@ -138,6 +138,15 @@ describe('building registry', () => {
     expect(SCENERY_HOUSES.some(h => h.spot.x === 3.5 && h.spot.z === -24)).toBe(false)
   })
 
+  it('lists the Spielwelt as an earning building in the plain house by the playground', () => {
+    const b = BUILDINGS.find(x => x.id === 'spielwelt')
+    expect(b).toMatchObject({ spokenName: 'Spielwelt', icon: '🚗', kind: 'earn', needs: [], door: { x: -16, z: 35.5, side: 'front' } })
+    expect(b?.preload).toBeTypeOf('function')
+    const shared = (sharedBuildings as { id: string }[]).find(x => x.id === 'spielwelt')
+    expect(shared).toEqual({ id: 'spielwelt', kind: 'earn', maxStars: 10, minSecondsPerStar: 2 })
+    expect(SCENERY_HOUSES.some(h => h.spot.x === -16 && h.spot.z === 35.5)).toBe(false)
+  })
+
   it('lists the house, free, needing nothing, and kept out of the logbook', () => {
     const haus = BUILDINGS.find(x => x.id === 'haus')
     expect(haus).toMatchObject({ spokenName: 'Mein Haus', icon: '🏠', kind: 'free', needs: [], unlogged: true })
