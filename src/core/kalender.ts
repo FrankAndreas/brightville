@@ -4,6 +4,7 @@
 
 import { WINDOW } from './ladders'
 import { numberWord } from './numbers'
+import { pick, shuffle } from './random'
 
 export const DAYS = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag']
 /** Each day keeps its colour, in the week strip and on the cards */
@@ -97,18 +98,6 @@ export function seasonOf(date: Date): Season {
 export function clockName(t: ClockTime): string {
   if (t.half) return `halb ${numberWord((t.hour % 12) + 1)}`
   return t.hour === 1 ? 'ein Uhr' : `${numberWord(t.hour)} Uhr`
-}
-
-function pick<T>(items: T[], random: () => number): T {
-  return items[Math.floor(random() * items.length)]
-}
-function shuffle<T>(items: T[], random: () => number): T[] {
-  const a = [...items]
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(random() * (i + 1))
-    ;[a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
 }
 
 const sunChoice = (time: TimeOfDay): Choice => ({ id: time, say: TIME_WORD[time], kind: 'sun', time })

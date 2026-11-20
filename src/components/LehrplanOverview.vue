@@ -8,8 +8,8 @@ import { LETTERS } from '@/core/writing/letters'
 import type { Letters } from '@/core/writing/levels'
 import type { Api } from '@/services/api'
 
-// On the parents' page, in a child's card: how far she is against the Lehrplan 21 (Zyklus 1), opening into the
-// subjects, the School's two ladders (with a step to set) and this week's practice. Fetched the first time it is opened.
+// On the parents' page, in a child's card: how far she is against the Lehrplan 21 (Zyklus 1): a bar per subject with
+// its ladders (each with a step to set) and this week's practice. Fetched the first time it is opened.
 const props = defineProps<{ api: Api; personId: number }>()
 
 const FAILED = 'Konnte nicht speichern. Nochmal versuchen?'

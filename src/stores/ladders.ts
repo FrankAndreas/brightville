@@ -28,11 +28,12 @@ function lay(ladders: Ladders, item: SchoolResultsIn): Ladders {
 }
 
 /**
- * The Lehrplan 21 ladders for the child playing: the School's Zählen and Rechnen, the Reimhaus's Reimen. The server keeps them (backend/app/school.py); a visit's
- * answers move her steps here at once, wait on the device until the server has them, and are sent again with the next
- * load if they were lost.
+ * The Lehrplan 21 ladders for the child playing, all of them (shared/ladders.json): the School's Zählen and Rechnen and
+ * one for each other learning building. The server keeps them (backend/app/school.py, its API still says "school"); a
+ * visit's answers move her steps here at once, wait on the device until the server has them (under the key
+ * brightville.school.<id>, kept as it was), and are sent again with the next load if they were lost.
  */
-export const useSchoolStore = defineStore('school', () => {
+export const useLaddersStore = defineStore('ladders', () => {
   const ladders = ref<Ladders>(startLadders(false))
   /** Who the store is for: a visit keeps its answers for the child who started it */
   const who = ref<number | null>(null)

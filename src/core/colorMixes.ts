@@ -1,5 +1,7 @@
 // The Farblabor: two paint pots, one bowl. Which colour do they make?
 
+import { shuffle } from './random'
+
 export const COLORS = {
   rot: { hex: '#e53935', name: 'Rot' },
   gelb: { hex: '#fdd835', name: 'Gelb' },
@@ -38,15 +40,6 @@ export interface LabTask {
   /** Three colours to pick from */
   choices: ColorId[]
   answer: number
-}
-
-function shuffle<T>(list: T[], random: () => number): T[] {
-  const a = [...list]
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(random() * (i + 1))
-    ;[a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
 }
 
 /** One visit: LAB_TASKS different mixes, each with the result and two other mixed colours to pick from. */

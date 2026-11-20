@@ -122,5 +122,8 @@ A second architecture review after the Lehrplan work. Fixed so far:
 - Building colours and house shapes are looked up by building id, not by the position in the registry (#51).
 - One ladder table (`LADDER_DEFS` in `src/core/lehrplan.ts`): name, subject, step texts and where Kindergarten ends. The parents' page shows **one bar per subject** instead of a single overall number (the parent's choice), so a new ladder no longer moves every child's number. The server's results model is made from the shared file and refuses an unknown ladder (a newer page's results wait instead of being lost).
 
-Still to do: the visit lifecycle shared by the learning buildings (one building per PR), and small things (stale comments, the TS store's name, copied random helpers, seeded screen tests). Left for later: the two offline queues (merge when a third is needed), a growth plan for the town (no free lots), the Spielwelt's triple drawing (measure on the iPad first). The cool-down guesses for the new buildings: Reimhaus, Musterwerkstatt, Kalender and Spielwelt 2 s per Star, Trommelhaus 3.
+- The learning buildings share their visit lifecycle (`src/buildings/visit.ts`: timers, numbered runs, leaving, the ladder snapshot, scoring; `ProgressStars.vue`); each keeps its own effects (#53–#58).
+- Small things: the app's ladder store is `useLaddersStore` (`src/stores/ladders.ts`; the API path, the tables and the device keys still say "school"), `pick`/`shuffle` live once in `src/core/random.ts`, stale comments and README lines fixed, the School's random screen test is seeded.
+
+Left for later: the two offline queues (merge them when a third is needed), a growth plan for the town (no free lots), the Spielwelt's triple drawing (measure on the iPad first). The cool-down guesses for the new buildings: Reimhaus, Musterwerkstatt, Kalender and Spielwelt 2 s per Star, Trommelhaus 3.
 

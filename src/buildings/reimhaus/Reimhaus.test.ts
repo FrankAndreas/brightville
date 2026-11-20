@@ -5,7 +5,7 @@ import { exampleFor, WORDS, type RhymeTask } from '@/core/rhymes'
 import { playBeat } from '@/services/sound'
 import { askedAgain } from '@/services/sayAgain'
 import { forgetInstruction, instruction, speak } from '@/services/tts'
-import { useSchoolStore } from '@/stores/school'
+import { useLaddersStore } from '@/stores/ladders'
 import { requestLeave } from '../leave'
 import Reimhaus from './Reimhaus.vue'
 
@@ -176,7 +176,7 @@ describe('Reimhaus', () => {
   })
 
   it('records only answered tasks for the child who started, at the visit\'s step, and gives the Stars', async () => {
-    const school = useSchoolStore()
+    const school = useLaddersStore()
     school.ladders = { ...school.ladders, reimen: { step: 2, window: [] } }
     school.who = 2
     const record = vi.spyOn(school, 'record').mockImplementation(() => {})
@@ -193,7 +193,7 @@ describe('Reimhaus', () => {
   })
 
   it('records nothing new when she leaves during the example', async () => {
-    const school = useSchoolStore()
+    const school = useLaddersStore()
     const record = vi.spyOn(school, 'record').mockImplementation(() => {})
     const wrapper = await open([RHYME], exampleFor(1, 0))
     requestLeave()
@@ -203,7 +203,7 @@ describe('Reimhaus', () => {
   })
 
   it('builds the visit at her Reimen step when no tasks are given', () => {
-    const school = useSchoolStore()
+    const school = useLaddersStore()
     school.ladders = { ...school.ladders, reimen: { step: 3, window: [] } }
     const wrapper = mount(Reimhaus)
     const tasks = (wrapper.vm as unknown as { tasks: RhymeTask[] }).tasks

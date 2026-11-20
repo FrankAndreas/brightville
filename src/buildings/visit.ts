@@ -1,7 +1,7 @@
 import { onBeforeUnmount, onMounted } from 'vue'
 import type { Ladder } from '@/core/ladders'
 import { stopSpeaking } from '@/services/tts'
-import { useSchoolStore, type VisitResults } from '@/stores/school'
+import { useLaddersStore, type VisitResults } from '@/stores/ladders'
 import { onLeaveRequest } from './leave'
 
 // What every learning building's screen does the same way: its timers, its numbered runs of effects, the leave
@@ -79,14 +79,14 @@ export function useVisit(onLeave: () => void): Visit {
  * and the child who plays. Her answers are recorded at that step for that child, even if either changes meanwhile.
  */
 export function ladderVisit<L extends Ladder>(ladder: L) {
-  const school = useSchoolStore()
-  const step = school.ladders[ladder].step
-  const windowLength = school.ladders[ladder].window.length
-  const player = school.who
+  const ladderStore = useLaddersStore()
+  const step = ladderStore.ladders[ladder].step
+  const windowLength = ladderStore.ladders[ladder].window.length
+  const player = ladderStore.who
   return {
     step, windowLength, player,
     record(results: VisitResults) {
-      school.record(results, { [ladder]: step }, player)
+      ladderStore.record(results, { [ladder]: step }, player)
     },
   }
 }
