@@ -31,9 +31,9 @@ export function boats(t: number): Facing[] {
   return [0, Math.PI].map(phase => loop(LAKE.x + 2.5, LAKE.z + 2.5, 3, 2.5, 0.4, phase, t))
 }
 
-/** The cat sleeps on the back wall of the first garden; the dog plays in the third */
+/** The cat sleeps on the back wall of the first garden; the dog plays in the second */
 const CAT_GARDEN = 0
-export const DOG_GARDEN = 2
+export const DOG_GARDEN = 1
 const catGarden = footprint(EMPTY_LOTS[CAT_GARDEN])
 export const CAT = { x: catGarden.minX, z: (catGarden.minZ + catGarden.maxZ) / 2 }
 

@@ -57,12 +57,11 @@ export const LAKE = { x: 16, z: 17, rx: 9.5, rz: 8 }
 export const JETTY: Footprint = { minX: 15, maxX: 17, minZ: 3, maxZ: 13 }
 
 /**
- * Lots kept for buildings still to come: a garden till then. The cat sleeps in the first and the dog lives in the third
- * (src/city/animals.ts); the Reimhaus took the fourth, at (35.5, −16).
+ * Gardens between the houses: the cat sleeps in the first and the dog lives in the second (src/city/animals.ts). The
+ * Reimhaus took the lot at (35.5, −16) and the Musterwerkstatt the one at (3.5, 51); no lot is left for a building.
  */
 export const EMPTY_LOTS: DoorSpot[] = [
   { x: -3.5, z: -40, side: 'left' },
-  { x: 3.5, z: 51, side: 'right' },
   { x: -51, z: 3.5, side: 'front' },
 ]
 

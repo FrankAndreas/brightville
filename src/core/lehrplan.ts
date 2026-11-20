@@ -54,6 +54,7 @@ export const TAGS: Record<string, Tag> = {
   bonbonjagd: { codes: [], zugaenge: [] },
   flatterflug: { codes: [], zugaenge: [] },
   reimhaus: { codes: ['D.1.A.1'], zugaenge: [8, 2] },
+  muster: { codes: ['MA.1.B', 'MA.3'], zugaenge: [5, 2] },
   kino: { codes: [], zugaenge: [] },
   haus: { codes: [], zugaenge: [9] },
   laden: { codes: [], zugaenge: [9] },
