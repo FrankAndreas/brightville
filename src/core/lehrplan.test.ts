@@ -40,6 +40,10 @@ describe('Lehrplan 21', () => {
     expect(overall(ladders(3, 2, 4, 3, 2), known('MIAPLENO'))).toBe(Math.round(((0.4 + 0.2 + 0.6 + 0.4 + 0.2 + 8 / 29) / 6) * 100))
   })
 
+  it('tags the Kalender as Mathematik, Zeitliche Orientierung and Sprache', () => {
+    expect(TAGS.kalender).toEqual({ codes: ['MA.3'], zugaenge: [3, 8] })
+  })
+
   it('tags the Musterwerkstatt as Mathematik, Zusammenhänge and Wahrnehmung', () => {
     expect(TAGS.muster).toEqual({ codes: ['MA.1.B', 'MA.3'], zugaenge: [5, 2] })
   })

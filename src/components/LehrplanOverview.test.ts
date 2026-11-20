@@ -108,6 +108,17 @@ describe('LehrplanOverview', () => {
     expect(api.calls).toContain('setPlayerStep 2 muster 5')
   })
 
+  it('shows Zeit under Mathematik and sets its step', async () => {
+    api.school_.zeit = { step: 4, window: [] }
+    const w = await open(api)
+    const row = w.find('[data-test="mathe"] [data-test="ladder-zeit"]')
+    expect(row.text()).toContain('Stufe 4 von 5')
+    expect(row.text()).toContain('gestern, morgen, Jahreszeiten')
+    await w.find('[data-test="step-zeit"]').setValue('2')
+    await flushPromises()
+    expect(api.calls).toContain('setPlayerStep 2 zeit 2')
+  })
+
   it('shows "fertig" at the last step', async () => {
     api.school_.zaehlen = { step: 6, window: [] }
     const w = await open(api)

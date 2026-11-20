@@ -17,7 +17,10 @@ const FAILED = 'Konnte nicht speichern. Nochmal versuchen?'
 const SUBJECTS: { name: string; test: string; ladders: { id: Ladder; name: string }[] }[] = [
   {
     name: 'Mathematik', test: 'mathe',
-    ladders: [{ id: 'zaehlen', name: 'Zählen' }, { id: 'rechnen', name: 'Rechnen' }, { id: 'muster', name: 'Muster' }],
+    ladders: [
+      { id: 'zaehlen', name: 'Zählen' }, { id: 'rechnen', name: 'Rechnen' }, { id: 'muster', name: 'Muster' },
+      { id: 'zeit', name: 'Zeit' },
+    ],
   },
   { name: 'Deutsch', test: 'deutsch', ladders: [{ id: 'reimen', name: 'Reimen' }] },
 ]
