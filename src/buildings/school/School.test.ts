@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount, type VueWrapper } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
+import { useSchoolStore } from '@/stores/school'
 import { playBeat } from '@/services/sound'
 import { speak } from '@/services/tts'
 import { requestLeave } from '../leave'
@@ -34,6 +36,7 @@ const CHEER = 1000
 
 describe('School', () => {
   beforeEach(() => {
+    setActivePinia(createPinia())
     vi.useFakeTimers()
     vi.mocked(speak).mockClear()
     vi.mocked(playBeat).mockClear()
@@ -347,5 +350,37 @@ describe('School', () => {
       expect(w.find('[data-test="progress-star"][data-done="true"]').exists()).toBe(true)
     })
   })
-})
 
+  describe('at her steps', () => {
+    it('asks the visit\'s Zählen tasks at her step', () => {
+      const school = useSchoolStore()
+      school.ladders = { zaehlen: { step: 3, window: [] }, rechnen: { step: 4, window: [] } }
+      const kinds = new Set<string>()
+      for (let i = 0; i < 30; i++) {
+        const w = mount(School, { props: { things: TEST_THINGS } })
+        const tasks = (w.vm as unknown as { tasks: Task[] }).tasks
+        for (const t of tasks) {
+          kinds.add(t.type)
+          expect(t.answer).toBeLessThanOrEqual(20)
+        }
+        w.unmount()
+      }
+      expect(kinds.has('next') || kinds.has('flash')).toBe(true)
+      expect(kinds.has('count')).toBe(false)
+    })
+
+    it('records the answered tasks when she leaves', async () => {
+      const school = useSchoolStore()
+      const w = await open()
+      await choice(w, 3).trigger('pointerdown')
+      await run(CHEER)
+      await choice(w, 5).trigger('pointerdown')
+      await run(10)
+      requestLeave()
+      await run(10)
+      // Two right Zählen answers (the second after a wrong one is still to come: not solved, not counted)
+      expect(school.ladders.zaehlen.window).toEqual([true])
+      expect(w.emitted('finished')).toBeTruthy()
+    })
+  })
+})

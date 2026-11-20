@@ -9,6 +9,7 @@ import Confetti from '@/components/Confetti.vue'
 import { buildLadderSession, countable, dicePips, looseLayout, numberWord, seededRandom, type Task, type Thing } from '@/core/numbers'
 import { playBeat } from '@/services/sound'
 import { instruct, speak, stopSpeaking } from '@/services/tts'
+import { useSchoolStore } from '@/stores/school'
 import { onLeaveRequest } from '../leave'
 import type { BuildingResult } from '../types'
 import { createSchoolFlow, type SchoolEffect } from './flow'
@@ -28,7 +29,10 @@ const RECOUNT_STEP_MS = 700
 const CONFETTI_MS = 3000
 
 const things = props.things ?? THINGS
-const tasks = props.tasks ?? buildLadderSession({ zaehlen: 1, rechnen: 2 }, things.length)
+const school = useSchoolStore()
+// Her steps as the visit starts: the answers are counted at these steps, even if they change meanwhile
+const steps = { zaehlen: school.ladders.zaehlen.step, rechnen: school.ladders.rechnen.step }
+const tasks = props.tasks ?? buildLadderSession(steps, things.length)
 const flow = createSchoolFlow(tasks, things)
 const view = reactive({ ...flow.state, wrong: [...flow.state.wrong] })
 /** Objects that are lit: pointed at by the child, or counted along */
@@ -136,6 +140,7 @@ function shutDown() {
 function leave() {
   if (closed) return
   shutDown()
+  school.record(flow.state.results, steps)
   emit('finished', { stars: flow.state.stars })
 }
 

@@ -2,6 +2,7 @@ import type { LogDay } from '@/core/diary'
 import type { Look } from '@/core/look'
 import type { Place } from '@/core/outfits'
 import type { Spot } from '@/core/furniture'
+import type { Ladder, Ladders } from '@/core/ladders'
 import type { Letters } from '@/core/writing/levels'
 
 export type { LogDay, LogEntry } from '@/core/diary'
@@ -62,6 +63,14 @@ export interface WritingState {
   texts: string[]
   letters: Letters
   new_left_today: number
+}
+
+/** The School's ladders (backend/app/school.py), and one visit's first-try answers per ladder at the steps asked */
+export type { Ladder, Ladders } from '@/core/ladders'
+export interface SchoolResultsIn {
+  key: string
+  zaehlen: { step: number; results: boolean[] }
+  rechnen: { step: number; results: boolean[] }
 }
 
 /** One counted write: clean or bumpy, at the level the letter was shown at */
@@ -168,6 +177,12 @@ export interface Api {
   playerWriting(personId: number): Promise<WritingState>
   /** Parents only; the whole list. Rejects with 'empty', 'letters', 'too-long', 'exists' or 'too-many'. */
   setPlayerTexts(personId: number, texts: string[]): Promise<WritingState>
+  school(): Promise<Ladders>
+  schoolResults(results: SchoolResultsIn): Promise<Ladders>
+  /** Parents only */
+  playerSchool(personId: number): Promise<Ladders>
+  /** Parents only; step 1–6. Rejects with 'bad_step' or 'unknown'. */
+  setPlayerStep(personId: number, ladder: Ladder, step: number): Promise<Ladders>
 }
 
 type Fetch = (url: string, init: RequestInit) => Promise<Response>
@@ -250,5 +265,9 @@ export function httpApi(fetchFn: Fetch = (url, init) => fetch(url, init), onRene
     introduced: (glyph, key, day) => call('POST', '/api/writing/introduced', { glyph, key, day }, WRITING_TIMEOUT_MS),
     playerWriting: personId => call('GET', `/api/players/${personId}/writing`),
     setPlayerTexts: (personId, texts) => call('PUT', `/api/players/${personId}/writing/texts`, { texts }),
+    school: () => call('GET', '/api/school'),
+    schoolResults: results => call('POST', '/api/school/results', results, WRITING_TIMEOUT_MS),
+    playerSchool: personId => call('GET', `/api/players/${personId}/school`),
+    setPlayerStep: (personId, ladder, step) => call('PUT', `/api/players/${personId}/school`, { ladder, step }),
   }
 }
