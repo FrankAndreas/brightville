@@ -160,7 +160,7 @@ onBeforeUnmount(shutDown)
         <span
           v-for="h in round.hotspots" :key="h.id" class="dot" data-test="dot"
           :data-found="view.found.includes(h.id)" :data-star="view.found.includes(h.id) && !view.hinted.includes(h.id)"
-          :data-hinted="view.hinted.includes(h.id)" :data-x="h.x" :data-y="h.y" :data-label="h.label"
+          :data-hinted="view.hinted.includes(h.id)" :data-x="h.x" :data-y="h.y" :data-r="h.r" :data-label="h.label"
         >{{ view.found.includes(h.id) ? (view.hinted.includes(h.id) ? '✔️' : '⭐') : '' }}</span>
       </div>
       <button class="lamp" data-test="hint" aria-label="Zeig mir einen" :disabled="view.done" @click="showHint">💡</button>

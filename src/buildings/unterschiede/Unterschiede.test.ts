@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount, type VueWrapper } from '@vue/test-utils'
-import { REST_MS } from '@/core/differences'
+import { hitTest, REST_MS } from '@/core/differences'
 import { playBeat } from '@/services/sound'
 import { speak } from '@/services/tts'
 import { requestLeave } from '../leave'
@@ -40,12 +40,19 @@ function tapAt(w: VueWrapper, x: number, y: number, picture = 1) {
 }
 const tapDot = (w: VueWrapper, i: number, picture = 1) =>
   tapAt(w, Number(dots(w)[i].attributes('data-x')), Number(dots(w)[i].attributes('data-y')), picture)
-/** A spot no difference of the scene is near */
+/** Extra room around each difference's own hit circle, so the spot is clearly a miss */
+const MARGIN = 15
+/**
+ * A spot no difference of the round answers to, checked with the game's own hit test. (A fixed distance from every
+ * difference found no spot in about 1 round in 70: the ten picked at random can cover the picture.)
+ */
 async function emptySpot(w: VueWrapper): Promise<[number, number]> {
-  const spots = dots(w).map(d => [Number(d.attributes('data-x')), Number(d.attributes('data-y'))])
-  for (let y = 0.05; y < 1; y += 0.05) {
-    for (let x = 0.05; x < 1; x += 0.05) {
-      if (spots.every(([sx, sy]) => Math.hypot((sx - x) * 800, (sy - y) * 600) > 200)) return [x, y]
+  const spots = dots(w).map(d => ({
+    x: Number(d.attributes('data-x')), y: Number(d.attributes('data-y')), r: Number(d.attributes('data-r')) + MARGIN,
+  }))
+  for (let y = 0.04; y < 1; y += 0.02) {
+    for (let x = 0.04; x < 1; x += 0.02) {
+      if (spots.every(s => !hitTest(x, y, s, RECT))) return [x, y]
     }
   }
   throw new Error('no empty spot')
