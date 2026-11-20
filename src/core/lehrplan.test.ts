@@ -28,13 +28,18 @@ describe('Lehrplan 21', () => {
   it('has a text for every step', () => {
     expect(STEP_TEXT.zaehlen).toHaveLength(6)
     expect(STEP_TEXT.rechnen).toHaveLength(6)
+    expect(STEP_TEXT.reimen).toHaveLength(6)
   })
 
-  it('makes one number from the three ladders', () => {
-    expect(overall(ladders(1, 1), {})).toBe(0)
+  it('makes one number from the four ladders', () => {
+    expect(overall(ladders(1, 1, 1), {})).toBe(0)
     const all = known('ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ')
-    expect(overall(ladders(6, 6), all)).toBe(100)
-    expect(overall(ladders(3, 2), known('MIAPLENO'))).toBe(Math.round(((0.4 + 0.2 + 8 / 29) / 3) * 100))
+    expect(overall(ladders(6, 6, 6), all)).toBe(100)
+    expect(overall(ladders(3, 2, 4), known('MIAPLENO'))).toBe(Math.round(((0.4 + 0.2 + 0.6 + 8 / 29) / 4) * 100))
+  })
+
+  it('tags the Reimhaus as Deutsch, Sprache and Wahrnehmung', () => {
+    expect(TAGS.reimhaus).toEqual({ codes: ['D.1.A.1'], zugaenge: [8, 2] })
   })
 
   it('counts only letters she knows, not digits or letters still practised', () => {
@@ -43,7 +48,7 @@ describe('Lehrplan 21', () => {
   })
 
   it('marks the end of Kindergarten', () => {
-    expect(kgMark()).toBe(27)
+    expect(kgMark()).toBe(45)
   })
 
   it('takes the last seven calendar days, today first', () => {
