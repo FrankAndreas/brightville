@@ -147,6 +147,14 @@ describe('building registry', () => {
     expect(SCENERY_HOUSES.some(h => h.spot.x === -16 && h.spot.z === 35.5)).toBe(false)
   })
 
+  it('lists the Trommelhaus as an earning building that needs nothing, in a plain house near the Tanzsaal', () => {
+    const b = BUILDINGS.find(x => x.id === 'trommelhaus')
+    expect(b).toMatchObject({ spokenName: 'Trommelhaus', icon: '🥁', kind: 'earn', needs: [], door: { x: 24, z: -3.5, side: 'back' } })
+    const shared = (sharedBuildings as { id: string }[]).find(x => x.id === 'trommelhaus')
+    expect(shared).toEqual({ id: 'trommelhaus', kind: 'earn', maxStars: 10, minSecondsPerStar: 3 })
+    expect(SCENERY_HOUSES.some(h => h.spot.x === 24 && h.spot.z === -3.5)).toBe(false)
+  })
+
   it('lists the house, free, needing nothing, and kept out of the logbook', () => {
     const haus = BUILDINGS.find(x => x.id === 'haus')
     expect(haus).toMatchObject({ spokenName: 'Mein Haus', icon: '🏠', kind: 'free', needs: [], unlogged: true })

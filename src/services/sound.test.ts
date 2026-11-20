@@ -67,7 +67,7 @@ describe('sound with Web Audio', () => {
     const { unlockAudio, playBeat, SOUND_KINDS } = await load()
     const ctx = unlockAudio() as unknown as FakeAudioContext
     expect(ctx.resume).toHaveBeenCalled()
-    expect(SOUND_KINDS).toEqual(['sparkle', 'bell', 'chime', 'siren', 'piano', 'drum'])
+    expect(SOUND_KINDS).toEqual(['sparkle', 'bell', 'chime', 'siren', 'piano', 'drum', 'softDrum'])
     for (const kind of SOUND_KINDS) {
       const before = ctx.started
       playBeat(kind)

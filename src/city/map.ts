@@ -83,7 +83,7 @@ export const SCENERY_HOUSES: SceneryHouse[] = [
   scenery(-3.5, 51, 'left', 2),
   scenery(-24, -3.5, 'back', 2),
   scenery(-51, -3.5, 'back', 1),
-  scenery(24, -3.5, 'back', 3),
+  // (24, −3.5, back) is the Trommelhaus now
   scenery(51, 3.5, 'front', 2),
   scenery(-35.5, 16, 'left', 2),
   scenery(-35.5, 27, 'left', 1),
