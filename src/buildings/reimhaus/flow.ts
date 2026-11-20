@@ -1,5 +1,5 @@
 import type { Example, RhymeTask } from '@/core/rhymes'
-import { SET_BONUS, STARS_PER_TASK } from '../school/flow'
+import { scoreSolved } from '../visit'
 
 const SAY_LISTEN = 'Hör nochmal gut zu.'
 const SAY_LISTEN_COUNT = 'Hör nochmal gut zu:'
@@ -72,11 +72,7 @@ export function createRhymeFlow(tasks: RhymeTask[], example: Example | null): Rh
 
   function solve(firstTry: boolean) {
     state.phase = 'cheering'
-    state.solved += 1
-    state.results.push({ ladder: 'reimen', firstTry })
-    state.stars += STARS_PER_TASK
-    // The bonus is earned with the last right answer, so leaving during the cheer keeps it
-    if (state.solved === tasks.length) state.stars += SET_BONUS
+    scoreSolved(state, 'reimen', firstTry, tasks.length)
   }
 
   return {

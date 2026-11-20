@@ -1,9 +1,10 @@
 import type { Ladder } from '@/core/ladders'
 import { cheerText, countable, numberWord, questionText, type Task, type Thing } from '@/core/numbers'
 
-export const STARS_PER_TASK = 1
-/** Extra Stars for finishing the whole visit */
-export const SET_BONUS = 5
+import { SET_BONUS, STARS_PER_TASK } from '../visit'
+
+// The Stars are the same for every learning building (../visit.ts); kept here for the buildings that import them so
+export { SET_BONUS, STARS_PER_TASK }
 
 const SAY_RECOUNT = 'Hmm, zähl nochmal mit mir'
 const SAY_LISTEN = 'Hör nochmal gut zu'
