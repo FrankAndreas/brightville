@@ -38,18 +38,43 @@ const COLORS = {
   doorClosed: 0xb8b8b8,
 }
 
+export interface BuildingLook { wall: number; roof: number; seed: number }
 /**
- * One wall and roof colour per door building, in the order of the registry: each its own, warmer than the pastels
- * before, and close to the colour it had so she still knows it
+ * Each door building's colours (each its own, warm, close to the colour it always had) and the seed of its house's
+ * shape, by building id: she knows the buildings by colour, so
+ * adding, removing or moving one in the registry changes no other building. (The seeds are the places they had in the
+ * list when these were fixed.) A new building gets its own entry here.
  */
-export const BUILDING_COLORS: [wall: number, roof: number][] = [
-  [0xc9b2ff, 0x8a63e8], [0xffd98a, 0xf08a3c], [0xa9d4fa, 0x5f9fd6], [0xb5e8be, 0x4fb862],
-  [0xf0cfa0, 0xb0702a], [0xb9dcf7, 0x4a6f9e], [0xffe58a, 0xf2a100], [0xa8e3db, 0x1f9488],
-  [0xffb3cf, 0xf0668f], [0xd9bcff, 0x8a44b0], [0xffc0dc, 0xe8509c], [0x4a4a78, 0xc92a2a],
-  [0xb8c0ff, 0x5c6bd6], [0xffc48a, 0xd9622b], [0x9fe0f0, 0x3a9cb5], [0xc0f0a0, 0x7cbf3a],
-  [0xe8c3a0, 0x8c5a2b], [0xb3f0ff, 0x2fa8c9], [0xfff3b0, 0xc77d2e],
-  [0xc6f0e6, 0x3a8f7f], [0xffd0e0, 0xc2477a], [0xdcd0ff, 0x6a4fc4], [0xffd9ec, 0xd2557f],
-]
+export const BUILDING_LOOKS: Record<string, BuildingLook> = {
+  school: { wall: 0xc9b2ff, roof: 0x8a63e8, seed: 101 },
+  schreiben: { wall: 0xffd98a, roof: 0xf08a3c, seed: 102 },
+  yoga: { wall: 0xa9d4fa, roof: 0x5f9fd6, seed: 103 },
+  unterschiede: { wall: 0xb5e8be, roof: 0x4fb862, seed: 104 },
+  bibliothek: { wall: 0xf0cfa0, roof: 0xb0702a, seed: 105 },
+  farblabor: { wall: 0xb9dcf7, roof: 0x4a6f9e, seed: 106 },
+  ausmalen: { wall: 0xffe58a, roof: 0xf2a100, seed: 107 },
+  malen: { wall: 0xa8e3db, roof: 0x1f9488, seed: 108 },
+  huepfhalle: { wall: 0xffb3cf, roof: 0xf0668f, seed: 109 },
+  tanzsaal: { wall: 0xd9bcff, roof: 0x8a44b0, seed: 110 },
+  arcade: { wall: 0xffc0dc, roof: 0xe8509c, seed: 111 },
+  schlange: { wall: 0x4a4a78, roof: 0xc92a2a, seed: 112 },
+  bonbonjagd: { wall: 0xb8c0ff, roof: 0x5c6bd6, seed: 113 },
+  kino: { wall: 0xffc48a, roof: 0xd9622b, seed: 114 },
+  haus: { wall: 0x9fe0f0, roof: 0x3a9cb5, seed: 115 },
+  laden: { wall: 0xc0f0a0, roof: 0x7cbf3a, seed: 116 },
+  moebel: { wall: 0xe8c3a0, roof: 0x8c5a2b, seed: 117 },
+  flatterflug: { wall: 0xb3f0ff, roof: 0x2fa8c9, seed: 118 },
+  reimhaus: { wall: 0xfff3b0, roof: 0xc77d2e, seed: 119 },
+  muster: { wall: 0xc6f0e6, roof: 0x3a8f7f, seed: 120 },
+  kalender: { wall: 0xffd0e0, roof: 0xc2477a, seed: 121 },
+  spielwelt: { wall: 0xdcd0ff, roof: 0x6a4fc4, seed: 122 },
+  trommelhaus: { wall: 0xffd9ec, roof: 0xd2557f, seed: 123 },
+}
+
+/** A building's look; one not in the table gets a grey one rather than failing */
+export function lookOf(id: string): BuildingLook {
+  return BUILDING_LOOKS[id] ?? { wall: 0xdddddd, roof: 0x888888, seed: 999 }
+}
 
 export interface DoorVisual {
   /** Pulses the glowing ring of an open door */
@@ -168,15 +193,15 @@ function signTexture(icon: string | undefined, locked: boolean): THREE.Texture {
 
 /** The building behind a door: a larger house with a sign and a door that glows when open. */
 function doorBuilding(
-  R: Rapier, world: RAPIER.World, scene: THREE.Scene, parts: PlacedPart[], door: DoorDef, index: number,
+  R: Rapier, world: RAPIER.World, scene: THREE.Scene, parts: PlacedPart[], door: DoorDef,
 ): DoorVisual {
   const depth = HOUSE_DEPTH
   const side = door.side ?? 'back'
   const area = footprint(door)
-  const [wall, roofColor] = BUILDING_COLORS[index % BUILDING_COLORS.length]
+  const { wall, roof: roofColor, seed } = lookOf(door.id)
   const group = house(
     R, world, scene, parts, (area.minX + area.maxX) / 2, (area.minZ + area.maxZ) / 2,
-    { w: HOUSE_WIDTH, d: depth, floors: 2, wall, roof: roofColor, seed: index + 101, door: true }, facingAngle(side),
+    { w: HOUSE_WIDTH, d: depth, floors: 2, wall, roof: roofColor, seed, door: true }, facingAngle(side),
   )
 
   const frame = box(2.2, 2.9, 0.2, COLORS.doorOpen)
@@ -411,7 +436,7 @@ export function buildTown(R: Rapier, world: RAPIER.World, doors: DoorDef[]): Tow
       { w: h.w, d: h.d, floors: h.floors, wall, roof, seed: i + 1, door: false }, facingAngle(h.spot.side ?? 'back'),
     )
   })
-  const doorVisuals = doors.map((door, i) => doorBuilding(R, world, scene, parts, door, i))
+  const doorVisuals = doors.map(door => doorBuilding(R, world, scene, parts, door))
   for (const mesh of mergeParts(parts)) scene.add(mesh)
   buildNature(R, world, scene, placeNature(NATURE_SEED, doors))
 
