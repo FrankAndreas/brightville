@@ -45,7 +45,7 @@ export const FRONT_LANE = 88
 /** Half a thing's width */
 const HALF = 5
 /** How far from an object's side a thing still stands "neben" it */
-const NEXT_TO = 12
+const NEXT_TO = 20
 /** How far from each a thing "zwischen" two objects may be */
 const BETWEEN = 20
 export const CAR = 'auto'
@@ -55,7 +55,7 @@ const o = (id: string, noun: string, gender: Gender, x: number, w: number, h: nu
 
 /** From the left: the house, the garden, the pond, the playground, the street, the meadow */
 export const OBJECTS: WorldObject[] = [
-  o('bett', 'Bett', 'n', 28, 36, 14, 66, true),
+  o('bett', 'Bett', 'n', 28, 36, 18, 68, true),
   o('tisch', 'Tisch', 'm', 76, 26, 16, 64, true),
   o('schrank', 'Schrank', 'm', 118, 22, 40, 40, false, true),
   o('kiste', 'Kiste', 'f', 152, 16, 10, 70, false, true),
@@ -63,9 +63,9 @@ export const OBJECTS: WorldObject[] = [
   o('bank', 'Bank', 'f', 245, 30, 10, 70, true),
   o('zaun', 'Zaun', 'm', 295, 30, 14, null),
   o('bruecke', 'Brücke', 'f', 395, 60, 8, 72, true),
-  o('rutschbahn', 'Rutschbahn', 'f', 510, 34, 26, 54, true),
+  o('rutschbahn', 'Rutschbahn', 'f', 510, 34, 26, 62, true),
   o('sandkasten', 'Sandkasten', 'm', 565, 34, 6, null, false, true),
-  o('schaukel', 'Schaukel', 'f', 612, 24, 34, 66),
+  o('schaukel', 'Schaukel', 'f', 612, 24, 34, 66, true),
   o('garage', 'Garage', 'f', 670, 40, 36, null, false, true),
   o(CAR, 'Auto', 'n', 730, 30, 14, 66, false, true),
   o('stein', 'Stein', 'm', 805, 22, 10, 70),
@@ -116,9 +116,12 @@ const onGround = (p: Place) => !p.on && !p.inside && !p.under
 /** Where a thing dropped at (x, y) comes to rest */
 export function settle(x: number, y: number, objects: WorldObject[] = OBJECTS): Place {
   const at = wrap(x)
-  for (const obj of objects) {
+  // The car last: a thing dropped on the stone lands on the stone, even with the car parked there
+  const ordered = [...objects].sort((a, b) => Number(a.id === CAR) - Number(b.id === CAR))
+  for (const obj of ordered) {
     if (Math.abs(delta(obj.x, at)) > obj.w / 2) continue
-    if (obj.top !== null && y <= obj.top + 3 && y >= obj.top - 30) return { x: at, y: obj.top, lane: 'mid', on: obj.id }
+    // Above a surface, however high: it settles onto it
+    if (obj.top !== null && y <= obj.top + 3) return { x: at, y: obj.top, lane: 'mid', on: obj.id }
     if (obj.container && y >= GROUND - obj.h - 2 && y <= GROUND + 2) return { x: at, y: GROUND, lane: 'mid', inside: obj.id }
     if (obj.under && obj.top !== null && y > obj.top + 3 && y <= GROUND + 2) return { x: at, y: GROUND, lane: 'mid', under: obj.id }
   }
@@ -217,5 +220,5 @@ export function describe(thingId: string, place: Place, objects: WorldObject[] =
   for (const word of ['vor', 'hinter', 'neben'] as Word[]) {
     if (holds(place, { word, object: closest.id }, objects)) return `${start} ${prepPhrase({ word, object: closest.id }, 'dat')}.`
   }
-  return `${start} auf der Wiese.`
+  return `${start} auf dem Boden.`
 }

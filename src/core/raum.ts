@@ -19,6 +19,8 @@ const EXAMPLE_UNTIL = 10
 /** At steps 1–3 the thing to carry starts this close to the object (on its screen) */
 const NEAR = 60
 const KINDS: RaumTask['type'][] = ['find', 'place', 'place', 'find', 'place']
+/** A two-clue spot must be at least this wide */
+const MIN_ZONE = 10
 
 const TASK_OBJECTS = OBJECTS.filter(o => o.id !== CAR)
 const takes = (o: WorldObject, word: Word) =>
@@ -41,11 +43,24 @@ export function placeForAll(clues: Clue[], objects: WorldObject[] = OBJECTS): Pl
   return null
 }
 
-/** Step 5: two clues to two objects that stand close, both true at one place (in front of or behind one, beside the other) */
+/** How wide the stretch is where every clue is true (in units; a finger is about 10) */
+export function zoneWidth(clues: Clue[], objects: WorldObject[] = OBJECTS): number {
+  let best = 0
+  for (const [lane, y] of [['back', BACK_LANE], ['mid', GROUND], ['front', FRONT_LANE]] as const) {
+    let run = 0
+    for (let x = 0; x < WORLD_WIDTH * 2; x += 1) {
+      run = clues.every(c => holds({ x: wrap(x), y, lane }, c, objects)) ? run + 1 : 0
+      best = Math.max(best, Math.min(run, WORLD_WIDTH))
+    }
+  }
+  return best
+}
+
+/** Step 5: two clues to two objects that stand close (in front of or behind one, beside the other), true together on a spot a finger can find */
 export const TWO_CLUES: Clue[][] = PAIRS.filter(([a, b]) => a !== CAR && b !== CAR).flatMap(([left, right]) => [
   ...(['vor', 'hinter'] as Word[]).map(w => [{ word: w, object: right }, { word: 'rechts neben' as Word, object: left }]),
   ...(['vor', 'hinter'] as Word[]).map(w => [{ word: w, object: left }, { word: 'links neben' as Word, object: right }]),
-]).filter(clues => placeForAll(clues) !== null)
+]).filter(clues => zoneWidth(clues) >= MIN_ZONE)
 
 function oneClue(words: Word[], random: () => number): Clue[] {
   const word = pick(words, random)
@@ -98,34 +113,52 @@ export function taskText(task: RaumTask): string {
   return `${capital(nounPhrase(thing, 'nom'))} ist ${cluesText(task.clues, 'dat')}. Findest du ${PRONOUN[thing.gender]}?`
 }
 
-/** "Leg ihn auf das Bett." */
-export const againText = (task: RaumTask) => `Leg ${PRONOUN[thingOf(task.thing).gender]} ${cluesText(task.clues, 'acc')}.`
+/** "Leg ihn auf das Bett." — `clues`: only those still to be met */
+export const againText = (task: RaumTask, clues: Clue[] = task.clues) =>
+  `Leg ${PRONOUN[thingOf(task.thing).gender]} ${cluesText(clues, 'acc')}.`
 
 /** A free spot on the ground near `around`: on no object, off the other things, where no clue is true */
-function freeSpot(around: number, clues: Clue[], arrangement: Arrangement, thing: string): Place {
+function freeSpot(
+  around: number, clues: Clue[], arrangement: Arrangement, thing: string, objects: WorldObject[] = OBJECTS, near = NEAR,
+): Place {
   // First apart from the other things too; where it's crowded (the house), next to one is fine
   for (const apart of [true, false]) {
-    for (let d = 14; d <= NEAR; d += 2) {
+    for (let d = 14; d <= near; d += 2) {
       for (const x of [wrap(around + d), wrap(around - d)]) {
         const p: Place = { x, y: GROUND, lane: 'mid' }
-        const clear = OBJECTS.every(o => Math.abs(delta(o.x, x)) > o.w / 2 + 6)
+        const clear = objects.every(o => Math.abs(delta(o.x, x)) > o.w / 2 + 6)
           && (!apart || Object.entries(arrangement).every(([id, q]) => id === thing || Math.abs(delta(q.x, x)) > 8))
-        if (clear && !clues.some(c => holds(p, c))) return p
+        if (clear && !clues.some(c => holds(p, c, objects))) return p
       }
     }
   }
-  return { x: wrap(around + NEAR), y: GROUND, lane: 'mid' }
+  return { x: wrap(around + near), y: GROUND, lane: 'mid' }
 }
 
-/** Before a task: the things it needs put where it can be done; nothing else moves */
-export function setupFor(task: RaumTask, arrangement: Arrangement, viewX: number, step: number): Arrangement {
+const sameSpot = (a: Place, b: Place) =>
+  Math.abs(delta(a.x, b.x)) < 10 && a.lane === b.lane && a.on === b.on && a.inside === b.inside && a.under === b.under
+
+/**
+ * Before a task: the things it needs put where it can be done; nothing else moves, except a thing sitting on the very
+ * spot the thing to find goes (it would hide it). `viewCentre`: the middle of what she sees; at steps 4 and later the
+ * thing to carry starts there, within her view.
+ */
+export function setupFor(
+  task: RaumTask, arrangement: Arrangement, viewCentre: number, step: number, objects: WorldObject[] = OBJECTS,
+): Arrangement {
   if (task.type === 'find') {
-    const place = placeForAll(task.clues)
-    return place ? { ...arrangement, [task.thing]: place } : arrangement
+    const place = placeForAll(task.clues, objects)
+    if (!place) return arrangement
+    const next = { ...arrangement, [task.thing]: place }
+    for (const [id, p] of Object.entries(arrangement)) {
+      if (id !== task.thing && sameSpot(p, place)) next[id] = freeSpot(place.x, [], next, id, objects, 2 * NEAR)
+    }
+    return next
   }
-  const object = OBJECTS.find(o => o.id === task.clues[0].object)
-  const around = step <= 3 && object ? object.x : viewX
-  return { ...arrangement, [task.thing]: freeSpot(around, task.clues, arrangement, task.thing) }
+  const object = objects.find(o => o.id === task.clues[0].object)
+  if (step <= 3 && object) return { ...arrangement, [task.thing]: freeSpot(object.x, task.clues, arrangement, task.thing, objects) }
+  // Within the view (it is about 140 wide): near enough its middle to be seen
+  return { ...arrangement, [task.thing]: freeSpot(viewCentre, task.clues, arrangement, task.thing, objects) }
 }
 
 const show = (text: string, clue: Clue[]) => {
@@ -138,15 +171,15 @@ const show = (text: string, clue: Clue[]) => {
 export function exampleFor(step: number, windowLength: number): RaumExample | null {
   if (step >= LAST_STEP || windowLength >= EXAMPLE_UNTIL) return null
   const lines = [
-    [show('Schau: der Ball ist auf dem Tisch.', [{ word: 'auf', object: 'tisch' }]),
+    [show('Schau: Der Ball ist auf dem Tisch.', [{ word: 'auf', object: 'tisch' }]),
       show('Jetzt ist er unter dem Tisch.', [{ word: 'unter', object: 'tisch' }])],
-    [show('Schau: der Ball ist vor dem Baum.', [{ word: 'vor', object: 'baum' }]),
+    [show('Schau: Der Ball ist vor dem Baum.', [{ word: 'vor', object: 'baum' }]),
       show('Jetzt ist er hinter dem Baum.', [{ word: 'hinter', object: 'baum' }]),
       show('Und jetzt ist er neben dem Baum.', [{ word: 'neben', object: 'baum' }])],
-    [show('Schau: der Ball ist zwischen der Bank und dem Zaun.', [{ word: 'zwischen', object: 'bank', other: 'zaun' }])],
-    [show('Schau: der Ball ist links neben der Bank.', [{ word: 'links neben', object: 'bank' }]),
+    [show('Schau: Der Ball ist zwischen der Bank und dem Zaun.', [{ word: 'zwischen', object: 'bank', other: 'zaun' }])],
+    [show('Schau: Der Ball ist links neben der Bank.', [{ word: 'links neben', object: 'bank' }]),
       show('Jetzt ist er rechts neben der Bank.', [{ word: 'rechts neben', object: 'bank' }])],
-    [show('Schau: der Ball ist hinter dem Busch, rechts neben dem Stein.',
+    [show('Schau: Der Ball ist hinter dem Busch, rechts neben dem Stein.',
       [{ word: 'hinter', object: 'busch' }, { word: 'rechts neben', object: 'stein' }])],
   ][step - 1]
   return { thing: 'ball', lines }

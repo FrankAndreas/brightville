@@ -22,7 +22,8 @@ describe('the Spielwelt flow', () => {
     const { flow, apply } = open([PLACE])
     const effects = apply(flow.start())
     expect(effects[0].type).toBe('setup')
-    expect(effects[1]).toEqual({ type: 'speak', text: 'Leg den Ball auf den Tisch.', ask: true })
+    // The object lights up as the task is said
+    expect(effects[1]).toEqual({ type: 'speak', text: 'Leg den Ball auf den Tisch.', light: 'object-tisch', ask: true })
   })
 
   it('cheers the thing let go where the clue is true', () => {
@@ -41,6 +42,14 @@ describe('the Spielwelt flow', () => {
     expect(flow.state.missed).toBe(true)
     flow.released('ball', placeFor({ word: 'auf', object: 'tisch' }))
     expect(flow.state.results).toEqual([{ ladder: 'raum', firstTry: false }])
+  })
+
+  it('names the clue still missing in a task with two', () => {
+    const TWO: RaumTask = { type: 'place', thing: 'hut', clues: [{ word: 'hinter', object: 'busch' }, { word: 'rechts neben', object: 'stein' }] }
+    const { flow, apply } = open([TWO])
+    apply(flow.start())
+    const busch = OBJECTS.find(o => o.id === 'busch')!
+    expect(said(flow.released('hut', { x: busch.x + 10, y: 74, lane: 'back' }))).toEqual(['Der Hut ist jetzt hinter dem Busch. Leg ihn rechts neben den Stein.'])
   })
 
   it('lets a thing be set down far away, or another thing anywhere, without a word', () => {
@@ -80,7 +89,7 @@ describe('the Spielwelt flow', () => {
     const effects = flow.start()
     expect(flow.state.phase).toBe('example')
     expect(effects.filter(e => e.type === 'show')).toHaveLength(2)
-    expect(effects[1]).toMatchObject({ type: 'speak', text: 'Schau: der Ball ist auf dem Tisch.', ask: true })
+    expect(effects[1]).toMatchObject({ type: 'speak', text: 'Schau: Der Ball ist auf dem Tisch.', ask: true })
     expect([flow.tapThing('ball'), flow.released('ball', placeFor({ word: 'auf', object: 'tisch' }))]).toEqual([[], []])
     expect(apply(flow.exampleDone())[0].type).toBe('setup')
   })

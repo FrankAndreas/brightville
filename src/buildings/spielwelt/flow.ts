@@ -1,5 +1,5 @@
 import { againText, setupFor, taskText, type RaumExample, type RaumTask } from '@/core/raum'
-import { delta, describe, holds, nounPhrase, OBJECTS, THINGS, type Arrangement, type Place } from '@/core/world'
+import { delta, describe, holds, nounPhrase, OBJECTS, THINGS, type Arrangement, type Place, type WorldObject } from '@/core/world'
 import { SET_BONUS, STARS_PER_TASK } from '../school/flow'
 
 const SAY_CHEER = 'Super!'
@@ -53,10 +53,12 @@ const thingName = (id: string, kase: 'nom' | 'acc') => {
 
 /**
  * One visit to the Spielwelt: an example while she is new to the step, five tasks (each ends only when right), then
- * free play. `arrangement` and `viewX` are read when a task is got ready.
+ * free play. `arrangement`, `viewCentre` (the middle of what she sees) and `objects` (with the car where it is now)
+ * are read when they are needed.
  */
 export function createRaumFlow(
-  tasks: RaumTask[], example: RaumExample | null, arrangement: () => Arrangement, viewX: () => number, step: number,
+  tasks: RaumTask[], example: RaumExample | null, arrangement: () => Arrangement, viewCentre: () => number, step: number,
+  objects: () => WorldObject[] = () => OBJECTS,
 ): RaumFlow {
   const state: RaumState = {
     index: 0, task: tasks[0] ?? null, missed: false, solved: 0, stars: 0, results: [],
@@ -64,8 +66,12 @@ export function createRaumFlow(
   }
 
   const ask = (task: RaumTask): RaumEffect[] => [
-    { type: 'setup', arrangement: setupFor(task, arrangement(), viewX(), step) },
-    { type: 'speak', text: taskText(task), ask: true },
+    { type: 'setup', arrangement: setupFor(task, arrangement(), viewCentre(), step, objects()) },
+    // A placing task lights its object; a finding task leaves her to look
+    {
+      type: 'speak', text: taskText(task), ...(task.type === 'place' ? { light: `object-${task.clues[0].object}` } : {}),
+      ask: true,
+    },
   ]
 
   function solve() {
@@ -111,18 +117,20 @@ export function createRaumFlow(
     released(id, place) {
       const task = state.task
       if (state.phase !== 'asking' || task?.type !== 'place' || id !== task.thing) return []
+      const world = objects()
       const near = task.clues.some(c => [c.object, c.other].some(o => {
-        const obj = OBJECTS.find(x => x.id === o)
+        const obj = world.find(x => x.id === o)
         return obj && Math.abs(delta(obj.x, place.x)) <= NEAR
       }))
       if (!near) return []
-      if (task.clues.every(c => holds(place, c))) {
+      const unmet = task.clues.filter(c => !holds(place, c, world))
+      if (unmet.length === 0) {
         solve()
         return [{ type: 'chime' }, { type: 'speak', text: SAY_CHEER }]
       }
-      // It stays where she put it: the voice says where that is, and asks again
+      // It stays where she put it: the voice says where that is, and asks for what is still missing
       state.missed = true
-      return [{ type: 'speak', text: `${describe(id, place)} ${againText(task)}` }]
+      return [{ type: 'speak', text: `${describe(id, place, world)} ${againText(task, unmet)}` }]
     },
 
     next() {

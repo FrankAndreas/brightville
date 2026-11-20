@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { seededRandom } from './numbers'
-import { buildRaumSession, exampleFor, placeForAll, setupFor, taskText, TWO_CLUES, type RaumTask } from './raum'
-import { CAR, delta, holds, OBJECTS, startArrangement, type Arrangement } from './world'
+import { buildRaumSession, exampleFor, placeForAll, setupFor, taskText, TWO_CLUES, zoneWidth, type RaumTask } from './raum'
+import { CAR, delta, holds, OBJECTS, placeFor, startArrangement, type Arrangement } from './world'
 
 const sessions = function* (): Generator<[number, RaumTask[]]> {
   for (let seed = 0; seed < 300; seed++) {
@@ -41,8 +41,9 @@ describe('a Spielwelt visit', () => {
     }
   })
 
-  it('pairs two clues only where both can be true at once', () => {
-    expect(TWO_CLUES.length).toBeGreaterThanOrEqual(6)
+  it('pairs two clues only where both are true on a spot wide enough for a finger', () => {
+    expect(TWO_CLUES.length).toBeGreaterThanOrEqual(4)
+    for (const clues of TWO_CLUES) expect(zoneWidth(clues), JSON.stringify(clues)).toBeGreaterThanOrEqual(10)
     for (const clues of TWO_CLUES) {
       const place = placeForAll(clues)
       expect(place, JSON.stringify(clues)).not.toBeNull()
@@ -82,9 +83,17 @@ describe('getting a task ready', () => {
         expect(p.on ?? p.inside ?? p.under).toBeUndefined()
         const at = OBJECTS.find(o => o.id === t.clues[0].object)!.x
         if (step <= 3) expect(Math.abs(delta(at, p.x))).toBeLessThanOrEqual(60)
+        // Later it starts in the middle of the view she has: she carries it to the object
         else expect(Math.abs(delta(view, p.x))).toBeLessThanOrEqual(60)
       }
     }
+  })
+
+  it('moves another thing off the spot where the thing to find goes, so it can be seen', () => {
+    const t: RaumTask = { type: 'find', thing: 'teddy', clues: [{ word: 'vor', object: 'baum' }] }
+    const before = { ...startArrangement(), ente: placeFor({ word: 'vor', object: 'baum' }) }
+    const after = setupFor(t, before, view, 2)
+    expect(Math.abs(delta(after.ente.x, after.teddy.x))).toBeGreaterThanOrEqual(10)
   })
 
   it('moves only the task\'s thing', () => {
@@ -104,6 +113,6 @@ describe('the example', () => {
       expect(ex.lines.length).toBeGreaterThanOrEqual(1)
       for (const line of ex.lines) expect(line.place).toBeDefined()
     }
-    expect(exampleFor(1, 0)!.lines.map(l => l.text)).toEqual(['Schau: der Ball ist auf dem Tisch.', 'Jetzt ist er unter dem Tisch.'])
+    expect(exampleFor(1, 0)!.lines.map(l => l.text)).toEqual(['Schau: Der Ball ist auf dem Tisch.', 'Jetzt ist er unter dem Tisch.'])
   })
 })

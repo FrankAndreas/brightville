@@ -60,6 +60,19 @@ describe('where a dropped thing comes to rest', () => {
     expect(settle(b.x, GROUND)).toMatchObject({ lane: 'front' })
   })
 
+  it('lands on a surface however high above it it was dropped, and under the swing\'s seat', () => {
+    const b = obj('bett')
+    expect(settle(b.x, 5)).toMatchObject({ on: 'bett' })
+    const s = obj('schaukel')
+    expect(settle(s.x, (s.top ?? 0) + 6)).toMatchObject({ under: 'schaukel' })
+  })
+
+  it('checks the car last: a thing dropped on the stone lands on the stone even with the car parked there', () => {
+    const stone = obj('stein')
+    const parked = objectsWith(stone.x)
+    expect(settle(stone.x, (stone.top ?? 0) - 2, parked)).toMatchObject({ on: 'stein' })
+  })
+
   it('never ends up outside the world', () => {
     expect(settle(-5, GROUND).x).toBeGreaterThanOrEqual(0)
     expect(settle(WORLD_WIDTH + 5, GROUND).x).toBeLessThan(WORLD_WIDTH)
@@ -120,6 +133,13 @@ describe('saying where a thing is', () => {
     expect(describePlace('ball', { x: bett.x + bett.w / 2 + 6, y: GROUND, lane: 'mid' })).toBe('Der Ball ist jetzt neben dem Bett.')
     expect(describePlace('katze', { x: 0, y: 0, lane: 'mid', inside: 'kiste' })).toBe('Die Katze ist jetzt in der Kiste.')
     expect(describePlace('buch', { x: 0, y: 0, lane: 'mid', on: 'tisch' })).toBe('Das Buch ist jetzt auf dem Tisch.')
+    expect(describePlace('hut', { x: 337, y: GROUND, lane: 'mid' })).toBe('Der Hut ist jetzt auf dem Boden.')
+  })
+
+  it('says where the car really is', () => {
+    const garage = obj('garage')
+    const away = objectsWith(100)
+    expect(describePlace('ball', { x: garage.x + garage.w / 2 + 25, y: GROUND, lane: 'mid' }, away)).not.toContain('Auto')
   })
 })
 

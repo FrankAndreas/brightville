@@ -38,9 +38,11 @@ const TAP_PX = 8
 /** Carrying a thing this close to the screen's side scrolls the world */
 const EDGE = 0.08
 const TICK_MS = 16
-const EDGE_SPEED = 2.5
+const EDGE_SPEED = 1.2
 const CAR_SPEED = 1.2
 const START_CAR_X = OBJECTS.find(o => o.id === CAR)?.x ?? 0
+/** Bump when objects move in world.ts: an arrangement saved for another layout starts afresh */
+const LAYOUT = 1
 
 const school = useSchoolStore()
 // Her step as the visit starts: the answers are counted at it, even if it changes meanwhile
@@ -54,8 +56,9 @@ const store = () => props.storage ?? window.localStorage
 function load(): { arrangement: Arrangement; carX: number } {
   const fresh = { arrangement: startArrangement(), carX: START_CAR_X }
   try {
-    const raw = JSON.parse(store().getItem(key) ?? 'null') as { arrangement?: Record<string, unknown>; carX?: unknown } | null
-    if (!raw || typeof raw !== 'object') return fresh
+    const raw = JSON.parse(store().getItem(key) ?? 'null') as
+      { layout?: unknown; arrangement?: Record<string, unknown>; carX?: unknown } | null
+    if (!raw || typeof raw !== 'object' || raw.layout !== LAYOUT) return fresh
     const ids = new Set(OBJECTS.map(o => o.id))
     const ok = (p: unknown): p is Place => {
       const q = p as Place
@@ -76,7 +79,7 @@ function load(): { arrangement: Arrangement; carX: number } {
 }
 function save() {
   try {
-    store().setItem(key, JSON.stringify({ arrangement: arrangement.value, carX: carX.value }))
+    store().setItem(key, JSON.stringify({ layout: LAYOUT, arrangement: arrangement.value, carX: carX.value }))
   } catch {
     // Not kept: it's only where things lie
   }
@@ -95,7 +98,9 @@ const stripEl = ref<HTMLElement | null>(null)
 
 const tasks = props.tasks ?? buildRaumSession(step)
 const example = props.example !== undefined ? props.example : exampleFor(step, school.ladders.raum.window.length)
-const flow = createRaumFlow(tasks, example, () => arrangement.value, () => viewX.value, step)
+const flow = createRaumFlow(
+  tasks, example, () => arrangement.value, () => wrap(viewX.value + viewW.value / 2), step, () => objects.value,
+)
 const view = reactive({ ...flow.state })
 const lit = ref<string | null>(null)
 const confetti = ref(false)
@@ -118,11 +123,13 @@ function spot(id: string): { x: number; y: number; lane: Place['lane']; ghost: b
   const p = arrangement.value[id]
   const host = p.on ?? p.inside
   const x = host === CAR ? carX.value : p.x
-  return { x, y: p.y, lane: p.lane, ghost: p.lane === 'back', small: !!p.inside || p.lane === 'back' }
+  return { x, y: p.y, lane: p.lane, ghost: p.lane === 'back', small: !!p.inside || !!p.under || p.lane === 'back' }
 }
-/** Behind things come first, then in/under/on/mid, then the ones in front */
+/** In/under/on/mid and behind first, then the ones in front, then the one to find, then the one being carried */
 const order = computed(() => {
-  const rank = (id: string) => (carried.value?.id === id ? 3 : arrangement.value[id].lane === 'front' ? 2 : 1)
+  const toFind = view.task?.type === 'find' && view.phase === 'asking' ? view.task.thing : null
+  const rank = (id: string) =>
+    (carried.value?.id === id ? 4 : id === toFind ? 3 : arrangement.value[id].lane === 'front' ? 2 : 1)
   return [...THINGS].sort((a, b) => rank(a.id) - rank(b.id))
 })
 const COPIES = [-WORLD_WIDTH, 0, WORLD_WIDTH]
@@ -162,11 +169,14 @@ function run(effects: RaumEffect[]): Promise<boolean> {
       confetti.value = true
       later(() => { confetti.value = false }, CONFETTI_MS)
     } else if (effect.type === 'setup') {
+      // Whatever she still holds is let go: the task needs things where it put them
+      dropPress()
       arrangement.value = effect.arrangement
       save()
-      // A placing task shows its object; a finding task leaves her to look
+      // At steps 1–3 a placing task shows its object (the thing waits next to it); later the thing starts where she
+      // looks and she carries it there. A finding task leaves her to look.
       const task = flow.state.task
-      const obj = task?.type === 'place' ? OBJECTS.find(o => o.id === task.clues[0].object) : undefined
+      const obj = task?.type === 'place' && step <= 3 ? OBJECTS.find(o => o.id === task.clues[0].object) : undefined
       if (obj) centreOn(obj.x)
     } else if (effect.type === 'show') {
       chain = chain.then(() => {
@@ -200,12 +210,15 @@ function carryOn(effects: RaumEffect[]) {
 
 // ---- Pointer: carrying things, swiping the world, tapping the car ----
 
-type Press =
-  | { kind: 'thing'; id: string; x0: number; y0: number; moved: boolean }
-  | { kind: 'world'; x0: number; view0: number; moved: boolean }
-  | { kind: 'car'; x0: number; y0: number; moved: boolean }
+type Press = { pointer: number; x0: number; y0: number; view0: number; moved: boolean } & (
+  | { kind: 'thing'; id: string }
+  | { kind: 'world' }
+  | { kind: 'car' }
+  | { kind: 'strip' })
+/** One finger at a time: another one is ignored while a press lasts */
 let press: Press | null = null
 let lastPointer = { x: 0, y: 0 }
+let edgeLoop = false
 
 function rect() {
   const r = worldEl.value?.getBoundingClientRect()
@@ -216,22 +229,31 @@ const toWorld = (cx: number, cy: number) => {
   return { x: wrap(viewX.value + (cx - r.left) / scale.value), y: (cy - r.top) / scale.value }
 }
 
+const begin = (e: PointerEvent) => ({ pointer: e.pointerId, x0: e.clientX, y0: e.clientY, view0: viewX.value, moved: false })
+
 function onThing(id: string, e: PointerEvent) {
-  if (closed || view.phase === 'example') return
   e.stopPropagation()
-  press = { kind: 'thing', id, x0: e.clientX, y0: e.clientY, moved: false }
+  if (closed || press || view.phase === 'example') return
+  press = { ...begin(e), kind: 'thing', id }
   listen()
 }
 function onObject(id: string, e: PointerEvent) {
   if (closed || id !== CAR || view.phase === 'example') return
   e.stopPropagation()
-  press = { kind: 'car', x0: e.clientX, y0: e.clientY, moved: false }
+  if (press) return
+  press = { ...begin(e), kind: 'car' }
   listen()
 }
 function onWorld(e: PointerEvent) {
-  if (closed) return
-  press = { kind: 'world', x0: e.clientX, view0: viewX.value, moved: false }
+  if (closed || press) return
+  press = { ...begin(e), kind: 'world' }
   listen()
+}
+/** Lets go of whatever she holds, without placing it */
+function dropPress() {
+  press = null
+  carried.value = null
+  unlisten()
 }
 function listen() {
   window.addEventListener('pointermove', onMove)
@@ -245,21 +267,28 @@ function unlisten() {
 }
 
 function onMove(e: PointerEvent) {
-  if (!press) return
+  if (!press || e.pointerId !== press.pointer) return
   lastPointer = { x: e.clientX, y: e.clientY }
-  const far = Math.hypot(e.clientX - press.x0, e.clientY - ('y0' in press ? press.y0 : e.clientY)) > TAP_PX
-  if (far) press.moved = true
-  if (press.kind === 'world') viewX.value = wrap(press.view0 - (e.clientX - press.x0) / scale.value)
-  else if (press.kind === 'thing' && press.moved) {
-    const at = toWorld(e.clientX, e.clientY)
-    if (!carried.value) edgeScroll()
-    carried.value = { id: press.id, ...at }
+  if (Math.hypot(e.clientX - press.x0, e.clientY - press.y0) > TAP_PX) press.moved = true
+  if (press.kind === 'strip') stripTo(e.clientX)
+  // Swiping on the background, or on the car, scrolls
+  else if (press.kind === 'world' || (press.kind === 'car' && press.moved)) {
+    viewX.value = wrap(press.view0 - (e.clientX - press.x0) / scale.value)
+  } else if (press.kind === 'thing' && press.moved) {
+    carried.value = { id: press.id, ...toWorld(e.clientX, e.clientY) }
+    if (!edgeLoop) {
+      edgeLoop = true
+      edgeScroll()
+    }
   }
 }
 
 /** While she carries a thing near a side, the world scrolls that way */
 function edgeScroll() {
-  if (!carried.value || closed) return
+  if (!carried.value || closed) {
+    edgeLoop = false
+    return
+  }
   const r = rect()
   const rel = (lastPointer.x - r.left) / r.width
   const dir = rel < EDGE ? -1 : rel > 1 - EDGE ? 1 : 0
@@ -272,21 +301,26 @@ function edgeScroll() {
 
 function onUp(e: PointerEvent) {
   const p = press
+  if (!p || e.pointerId !== p.pointer) return
   press = null
   unlisten()
-  if (!p || closed) return
+  if (closed) {
+    carried.value = null
+    return
+  }
   if (p.kind === 'car' && !p.moved) {
     driving.value = !driving.value
     if (driving.value) playBeat('bell')
     return
   }
   if (p.kind !== 'thing') return
+  const at = carried.value ?? toWorld(e.clientX, e.clientY)
+  // Never left in the air
+  carried.value = null
   if (!p.moved) {
     carryOn(flow.tapThing(p.id))
     return
   }
-  const at = carried.value ?? toWorld(e.clientX, e.clientY)
-  carried.value = null
   const place = settle(at.x, at.y, objects.value)
   arrangement.value = { ...arrangement.value, [p.id]: place }
   save()
@@ -296,10 +330,17 @@ function onUp(e: PointerEvent) {
 // ---- The car ----
 
 let driveDir = 0
+let driveLoop = false
+/** One loop drives the car, however many arrows are held */
 function drive(dir: number) {
   driveDir = dir
+  if (driveLoop) return
+  driveLoop = true
   const tick = () => {
-    if (driveDir === 0 || closed) return
+    if (driveDir === 0 || closed || !driving.value) {
+      driveLoop = false
+      return
+    }
     carX.value = wrap(carX.value + driveDir * CAR_SPEED)
     centreOn(carX.value)
     later(tick, TICK_MS)
@@ -310,13 +351,22 @@ function stopDriving() {
   if (driveDir !== 0) save()
   driveDir = 0
 }
+// Getting out stops the car, even while an arrow is held (its button is gone, so its pointerup never comes)
+watch(driving, on => { if (!on) stopDriving() })
 
 // ---- The strip: the whole world, small ----
 
-function onStrip(e: PointerEvent) {
+function stripTo(clientX: number) {
   const r = stripEl.value?.getBoundingClientRect()
   if (!r || r.width <= 0) return
-  centreOn(((e.clientX - r.left) / r.width) * WORLD_WIDTH)
+  centreOn(((clientX - r.left) / r.width) * WORLD_WIDTH)
+}
+/** A tap on the strip jumps there; dragging along it scrolls */
+function onStrip(e: PointerEvent) {
+  stripTo(e.clientX)
+  if (closed || press) return
+  press = { ...begin(e), kind: 'strip' }
+  listen()
 }
 
 // ---- Leaving ----

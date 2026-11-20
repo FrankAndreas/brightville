@@ -78,6 +78,79 @@ describe('Spielwelt', () => {
     w.unmount()
   })
 
+  it('scrolls while she holds a thing near the side of the screen', async () => {
+    const w = await open([PLACE])
+    const before = viewX(w)
+    const width = Number(w.find('[data-test="world"]').attributes('data-view-w')) * PX_PER_UNIT
+    await w.find('[data-test="thing-ball"]').trigger('pointerdown', { clientX: 0, clientY: 0, pointerId: 1 })
+    pointer('pointermove', width - 5, 400)
+    await run(500)
+    expect(viewX(w)).not.toBe(before)
+    pointer('pointerup', width - 5, 400)
+    await run(10)
+    w.unmount()
+  })
+
+  it('ignores a second finger while one carries a thing, and never leaves a thing in the air', async () => {
+    const w = await open([PLACE])
+    await w.find('[data-test="thing-ball"]').trigger('pointerdown', { clientX: 0, clientY: 0, pointerId: 1 })
+    pointer('pointermove', 200, 200)
+    await w.find('[data-test="world"]').trigger('pointerdown', { clientX: 600, clientY: 300, pointerId: 2 })
+    window.dispatchEvent(new PointerEvent('pointerup', { clientX: 600, clientY: 300, pointerId: 2 }))
+    expect(w.find('[data-test="thing-ball"]').attributes('data-lifted')).toBe('true')
+    pointer('pointerup', 200, 200)
+    await run(10)
+    expect(w.find('[data-test="thing-ball"]').attributes('data-lifted')).toBe('false')
+    w.unmount()
+  })
+
+  it('drives at one speed with both arrows held, and stops when she gets out', async () => {
+    const w = await open([FIND])
+    await w.find(`[data-test="object-${CAR}"]`).trigger('pointerdown', { clientX: 1, clientY: 1, pointerId: 1 })
+    pointer('pointerup', 1, 1)
+    await run(10)
+    await w.find('[data-test="drive-right"]').trigger('pointerdown')
+    await w.find('[data-test="drive-right"]').trigger('pointerdown')
+    await run(160)
+    const after = Number(w.find(`[data-test="object-${CAR}"]`).attributes('data-x'))
+    // Eleven ticks at one speed; two loops would be twice as far
+    expect(after - 730).toBeLessThanOrEqual(14)
+    // Getting out while an arrow is held stops the car
+    await w.find(`[data-test="object-${CAR}"]`).trigger('pointerdown', { clientX: 1, clientY: 1, pointerId: 1 })
+    pointer('pointerup', 1, 1)
+    await run(10)
+    const stopped = Number(w.find(`[data-test="object-${CAR}"]`).attributes('data-x'))
+    await run(500)
+    expect(Number(w.find(`[data-test="object-${CAR}"]`).attributes('data-x'))).toBe(stopped)
+    w.unmount()
+  })
+
+  it('starts the thing to carry in view at the later steps, and does not move the view away from it', async () => {
+    const school = useSchoolStore()
+    school.ladders = { ...school.ladders, raum: { step: 4, window: [] } }
+    const far: RaumTask = { type: 'place', thing: 'ball', clues: [{ word: 'links neben', object: 'busch' }] }
+    const w = await open([far])
+    const x = Number(w.find('[data-test="thing-ball"]').attributes('data-x'))
+    const vw = Number(w.find('[data-test="world"]').attributes('data-view-w'))
+    const d = ((x - viewX(w)) % WORLD_WIDTH + WORLD_WIDTH) % WORLD_WIDTH
+    expect(d).toBeLessThan(vw)
+    w.unmount()
+  })
+
+  it('draws the thing to find on top of any other thing', async () => {
+    const w = await open([FIND])
+    const texts = w.findAll('text.thing').slice(0, 8).map(t => t.attributes('data-test'))
+    expect(texts.at(-1)).toBe('thing-katze')
+    w.unmount()
+  })
+
+  it('starts afresh from an arrangement saved for another layout', async () => {
+    storage.setItem(KEY, JSON.stringify({ layout: 0, arrangement: { ball: { x: 400, y: 30, lane: 'mid', on: 'tisch' } }, carX: 730 }))
+    const w = await open([FIND])
+    expect(Number(w.find('[data-test="thing-ball"]').attributes('data-x'))).not.toBe(400)
+    w.unmount()
+  })
+
   it('says nothing when the thing is set down far from the object', async () => {
     const w = await open([PLACE])
     vi.mocked(speak).mockClear()
@@ -121,7 +194,7 @@ describe('Spielwelt', () => {
   })
 
   it('drives the car, and what is on it rides along', async () => {
-    storage.setItem(KEY, JSON.stringify({ arrangement: { ball: { x: 0, y: 66, lane: 'mid', on: CAR } }, carX: 730 }))
+    storage.setItem(KEY, JSON.stringify({ layout: 1, arrangement: { ball: { x: 0, y: 66, lane: 'mid', on: CAR } }, carX: 730 }))
     const w = await open([FIND])
     await w.find(`[data-test="object-${CAR}"]`).trigger('pointerdown', { clientX: 1, clientY: 1, pointerId: 1 })
     pointer('pointerup', 1, 1)
@@ -181,7 +254,7 @@ describe('Spielwelt', () => {
     const w = mount(Spielwelt, { props: { tasks: [PLACE], example: exampleFor(1, 0), storage }, attachTo: document.body })
     expect(w.find('[data-test="example"]').exists()).toBe(true)
     await run(CHEER)
-    expect(said()[0]).toBe('Schau: der Ball ist auf dem Tisch.')
+    expect(said()[0]).toBe('Schau: Der Ball ist auf dem Tisch.')
     expect(said()).toContain('Leg den Ball auf den Tisch.')
     w.unmount()
   })

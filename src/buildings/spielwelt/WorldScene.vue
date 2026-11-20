@@ -51,6 +51,8 @@ const top = (o: WorldObject) => GROUND - o.h
       <template v-else-if="o.id === 'kiste' || o.id === 'sandkasten'">
         <rect :x="left(o)" :y="top(o)" :width="o.w" :height="o.h" :fill="o.id === 'kiste' ? '#ffb74d' : '#c8a165'" stroke="#a1774a" stroke-width="1" />
         <rect v-if="o.id === 'sandkasten'" :x="left(o) + 1.5" :y="top(o) + 1" :width="o.w - 3" height="2.5" fill="#f2dc9b" />
+        <!-- The box is open: its dark inside shows at the top -->
+        <rect v-if="o.id === 'kiste'" :x="left(o) + 1.5" :y="top(o) + 0.8" :width="o.w - 3" height="2.2" fill="#a1662f" />
       </template>
       <template v-else-if="o.id === 'baum'">
         <rect :x="o.x - 3" :y="GROUND - 30" width="6" height="30" fill="#8d6e63" />
