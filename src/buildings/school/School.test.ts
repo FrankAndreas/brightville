@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
+import { laddersAt } from '@/core/ladders.fixture'
 import { useSchoolStore } from '@/stores/school'
 import { playBeat } from '@/services/sound'
 import { speak } from '@/services/tts'
@@ -368,7 +369,7 @@ describe('School', () => {
   describe('at her steps', () => {
     it('asks the visit\'s Zählen tasks at her step', () => {
       const school = useSchoolStore()
-      school.ladders = { zaehlen: { step: 3, window: [] }, rechnen: { step: 4, window: [] }, reimen: { step: 1, window: [] }, muster: { step: 1, window: [] }, zeit: { step: 1, window: [] }, raum: { step: 1, window: [] }, rhythmus: { step: 1, window: [] } }
+      school.ladders = laddersAt({ zaehlen: 3, rechnen: 4 })
       const kinds = new Set<string>()
       for (let i = 0; i < 30; i++) {
         const w = mount(School, { props: { things: TEST_THINGS } })

@@ -254,3 +254,16 @@ def test_the_ladder_rules_come_from_the_file_the_page_reads_too():
         shared = json.load(file)
     assert school.WINDOW == {ladder["id"]: ladder["window"] for ladder in shared}
     assert school.MISSES_ALLOWED == {ladder["id"]: ladder["misses"] for ladder in shared}
+
+
+def test_a_result_for_a_ladder_this_server_doesnt_know_is_refused_so_it_waits(mia):
+    """A newer page talking to an older server during an update: refused (the device keeps it), not silently lost"""
+    answer = mia.post("/api/school/results", json={"key": "new", "lesen": {"step": 1, "results": [True]}})
+    assert answer.status_code == 422
+    assert "new" not in mia.get("/api/school").json()["seen"]
+
+
+def test_the_results_model_names_every_ladder_of_the_shared_file():
+    from app.main import SchoolResultsIn
+
+    assert set(SchoolResultsIn.model_fields) == {"key", *school.WINDOW}

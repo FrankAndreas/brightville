@@ -6,11 +6,11 @@ import os
 import sqlite3
 from contextlib import asynccontextmanager
 from dataclasses import asdict
-from typing import Annotated, Optional
+from typing import Annotated, Optional, TYPE_CHECKING
 
 from fastapi import Depends, FastAPI, Path, Query, Request, Response
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, ConfigDict, Field, StrictInt, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, StringConstraints, create_model
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from . import auth, films, game, hub, local, paintings, people, room, school, stickers, wardrobe, writing
@@ -110,17 +110,24 @@ class LadderResultIn(BaseModel):
     results: list[bool] = Field(max_length=10)
 
 
-class SchoolResultsIn(BaseModel):
-    """A visit's answers: the School sends Zählen and Rechnen; the other learning buildings one each"""
+class _SchoolResultsBase(BaseModel):
+    # A ladder this server doesn't know (a newer page during an update) is refused: the device keeps the result and
+    # sends it again later, instead of the server taking its key and dropping the answers
+    model_config = ConfigDict(extra="forbid")
 
     key: str = Field(min_length=1, max_length=64)
-    zaehlen: LadderResultIn | None = None
-    rechnen: LadderResultIn | None = None
-    reimen: LadderResultIn | None = None
-    muster: LadderResultIn | None = None
-    zeit: LadderResultIn | None = None
-    raum: LadderResultIn | None = None
-    rhythmus: LadderResultIn | None = None
+
+
+# A visit's answers, one optional field per ladder of shared/ladders.json: the School sends Zählen and Rechnen, the
+# other learning buildings one each. A new ladder needs no change here.
+if TYPE_CHECKING:
+    SchoolResultsIn = _SchoolResultsBase
+else:
+    SchoolResultsIn = create_model(
+        "SchoolResultsIn",
+        __base__=_SchoolResultsBase,
+        **{ladder: (LadderResultIn | None, None) for ladder in school.WINDOW},
+    )
 
 
 class StepIn(BaseModel):

@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import { BUILDINGS } from '@/buildings/registry'
 import type { LogDay } from '@/core/diary'
 import { LAST_STEP, type Ladder, type Ladders } from '@/core/ladders'
-import { kgMark, lettersShare, overall, practice, STEP_TEXT, subjects, type Visits } from '@/core/lehrplan'
+import { LADDER_DEFS, lettersShare, practice, STEP_TEXT, subjectProgress, subjects, type Visits } from '@/core/lehrplan'
 import { LETTERS } from '@/core/writing/letters'
 import type { Letters } from '@/core/writing/levels'
 import type { Api } from '@/services/api'
@@ -13,18 +13,6 @@ import type { Api } from '@/services/api'
 const props = defineProps<{ api: Api; personId: number }>()
 
 const FAILED = 'Konnte nicht speichern. Nochmal versuchen?'
-/** The subjects with ladders, each ladder with a step to set; the letters follow under Deutsch */
-const SUBJECTS: { name: string; test: string; ladders: { id: Ladder; name: string }[] }[] = [
-  {
-    name: 'Mathematik', test: 'mathe',
-    ladders: [
-      { id: 'zaehlen', name: 'Zählen' }, { id: 'rechnen', name: 'Rechnen' }, { id: 'muster', name: 'Muster' },
-      { id: 'zeit', name: 'Zeit' }, { id: 'raum', name: 'Raum' },
-    ],
-  },
-  { name: 'Deutsch', test: 'deutsch', ladders: [{ id: 'reimen', name: 'Reimen' }] },
-  { name: 'Musik', test: 'musik', ladders: [{ id: 'rhythmus', name: 'Rhythmus' }] },
-]
 const STEPS = Array.from({ length: LAST_STEP }, (_, i) => i + 1)
 
 const status = ref<'idle' | 'loading' | 'ready' | 'error'>('idle')
@@ -76,7 +64,8 @@ async function setStep(ladder: Ladder, event: Event) {
   }
 }
 
-const percent = computed(() => (ladders.value ? overall(ladders.value, letters.value) : 0))
+/** One bar per subject (Mathematik, Deutsch, Musik), each with where Kindergarten ends */
+const progress = computed(() => (ladders.value ? subjectProgress(ladders.value, letters.value) : []))
 const known = computed(() => Math.round(lettersShare(letters.value) * LETTERS.length))
 const nameOf = (id: string) => BUILDINGS.find(b => b.id === id)?.spokenName ?? id
 const visitText = (visits: Visits[]) => visits.map(v => `${nameOf(v.building)} ×${v.times}`).join(', ')
@@ -91,32 +80,29 @@ const stepLabel = (step: number) => (step >= LAST_STEP ? 'fertig' : `Stufe ${ste
     <p v-if="status === 'loading'">Lädt …</p>
     <p v-else-if="status === 'error'">Konnte nicht geladen werden.</p>
     <template v-else-if="status === 'ready' && ladders">
-      <div class="overall">
-        <div class="track" aria-hidden="true">
-          <div class="fill" data-test="lehrplan-bar" :style="{ width: `${percent}%` }" />
-          <div class="kg" data-test="lehrplan-kg" :style="{ left: `${kgMark()}%` }" />
-        </div>
-        <strong data-test="lehrplan-percent">{{ percent }} %</strong>
-      </div>
       <p class="hint">100 % ist das Ende der 2. Klasse; die Linie zeigt, wo der Kindergarten ungefähr endet.</p>
-
-      <template v-for="part in SUBJECTS" :key="part.test">
-        <section :data-test="part.test">
-          <h4>{{ part.name }}</h4>
-          <div v-for="l in part.ladders" :key="l.id" class="ladder" :data-test="`ladder-${l.id}`">
-            <span class="name">{{ l.name }}</span>
-            <span class="step">{{ stepLabel(ladders[l.id].step) }}</span>
-            <span class="what">„{{ STEP_TEXT[l.id][ladders[l.id].step - 1] }}“</span>
-            <select
-              :data-test="`step-${l.id}`" :value="ladders[l.id].step" :disabled="busy" :aria-label="`${l.name}: Stufe ändern`"
-              @change="setStep(l.id, $event)"
-            >
-              <option v-for="s in STEPS" :key="s" :value="s">{{ s >= LAST_STEP ? 'fertig' : `Stufe ${s}` }}</option>
-            </select>
+      <section v-for="part in progress" :key="part.code" :data-test="part.code === 'MA' ? 'mathe' : part.code === 'D' ? 'deutsch' : 'musik'">
+        <h4>{{ part.name }}</h4>
+        <div class="overall">
+          <div class="track" aria-hidden="true">
+            <div class="fill" :data-test="`bar-${part.code}`" :style="{ width: `${part.percent}%` }" />
+            <div class="kg" :data-test="`kg-${part.code}`" :style="{ left: `${part.kg}%` }" />
           </div>
-          <p v-if="part.test === 'deutsch'" data-test="letters">Buchstaben: {{ known }} von {{ LETTERS.length }} gelernt</p>
-        </section>
-      </template>
+          <strong :data-test="`percent-${part.code}`">{{ part.percent }} %</strong>
+        </div>
+        <div v-for="id in part.ladders" :key="id" class="ladder" :data-test="`ladder-${id}`">
+          <span class="name">{{ LADDER_DEFS[id].name }}</span>
+          <span class="step">{{ stepLabel(ladders[id].step) }}</span>
+          <span class="what">„{{ STEP_TEXT[id][ladders[id].step - 1] }}“</span>
+          <select
+            :data-test="`step-${id}`" :value="ladders[id].step" :disabled="busy" :aria-label="`${LADDER_DEFS[id].name}: Stufe ändern`"
+            @change="setStep(id, $event)"
+          >
+            <option v-for="s in STEPS" :key="s" :value="s">{{ s >= LAST_STEP ? 'fertig' : `Stufe ${s}` }}</option>
+          </select>
+        </div>
+        <p v-if="part.letters" data-test="letters">Buchstaben: {{ known }} von {{ LETTERS.length }} gelernt</p>
+      </section>
       <p class="message" data-test="lehrplan-message" aria-live="polite">{{ message }}</p>
 
       <h4>Diese Woche geübt</h4>
