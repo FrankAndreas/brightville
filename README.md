@@ -7,7 +7,7 @@ The town is 120 m across: a plaza in the middle where she starts, with balls to 
 
 | Building | What happens inside | Stars |
 |---|---|---|
-| 🔢 School | Five tasks: counting, a die, first sums up to 9 | +1 per task, +5 for all five |
+| 🔢 School | Five tasks at her step on two Lehrplan 21 ladders: three for Zählen (up to 10, 20, counting on and back, a quick look, tens bars up to 100) and two for Rechnen (plus up to 5, 10, minus, up to 20, tens up to 100); each ladder moves up by itself after two visits' worth of answers with at most one miss (`src/core/ladders.ts`, `backend/app/school.py`) | +1 per task, +5 for all five |
 | ✏️ Schreiben | Her own words and short sentences (from the parents), or today's two letters, each traced three times; less help for letters she knows (touch screen only) | +1 per letter, +4 for finishing |
 | 🧘 Yoga Studio | The camera checks three poses | +3 per pose held |
 | 🔍 Unterschiede | Ten differences between two pictures | +1 per difference found without the lamp |
@@ -35,7 +35,7 @@ When a parent has set a play time per day, the Arcade door shows a moon once it 
 
 **Each child has their own Stars**, kept by the game's server (`backend/`), so the laptop and the iPad show the same.
 Who is playing comes from the family hub's login; a coloured circle with the first letter next to the Star counter shows who it is.
-Parents get a gear next to the "?". It opens only when held for three seconds and then asked a multiplication (e.g. 7 × 8), so a child playing on a device logged in as a parent doesn't get in. Their page shows every child's Stars and today's numbers, and sets the daily goal, the play time per day and the Stars. Below, they keep the Cinema's list of YouTube films (a link and a name each, at most 30, the same for every child). Each child's card has a folded "Tagebuch" with the last seven days as text and the stickers earned.
+Parents get a gear next to the "?". It opens only when held for three seconds and then asked a multiplication (e.g. 7 × 8), so a child playing on a device logged in as a parent doesn't get in. Their page shows every child's Stars and today's numbers, and sets the daily goal, the play time per day and the Stars. Below, they keep the Cinema's list of YouTube films (a link and a name each, at most 30, the same for every child). Each child's card has a folded "Tagebuch" with the last seven days as text and the stickers earned, and a folded "Lehrplan 21": one number for how far she is towards the end of 2nd grade (from Zählen, Rechnen and the letters she knows in Schreiben, with a line where Kindergarten ends), the School's two steps to read and set, and this week's practice by subject and by entwicklungsorientierter Zugang (`src/core/lehrplan.ts`; codes from the template at v-fe.lehrplan.ch). The child never sees any of it.
 
 The idea behind the game is in [Learning City – Gameplay Design.md](Learning%20City%20%E2%80%93%20Gameplay%20Design.md).
 Where the project stands, what wasn't checked on real hardware and what is left to build: [docs/roadmap.md](docs/roadmap.md).
