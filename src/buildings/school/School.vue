@@ -4,14 +4,15 @@ export const FLASH_MS = 1500
 </script>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import Confetti from '@/components/Confetti.vue'
+import ProgressStars from '@/components/ProgressStars.vue'
 import { buildLadderSession, countable, dicePips, looseLayout, numberWord, seededRandom, type Task, type Thing } from '@/core/numbers'
 import { playBeat } from '@/services/sound'
-import { instruct, speak, stopSpeaking } from '@/services/tts'
+import { instruct, speak } from '@/services/tts'
 import { useSchoolStore } from '@/stores/school'
-import { onLeaveRequest } from '../leave'
 import type { BuildingResult } from '../types'
+import { useVisit } from '../visit'
 import { createSchoolFlow, type SchoolEffect } from './flow'
 import { THINGS } from './things'
 
@@ -34,6 +35,8 @@ const school = useSchoolStore()
 const steps = { zaehlen: school.ladders.zaehlen.step, rechnen: school.ladders.rechnen.step }
 // And the child who plays them: if the device changes hands meanwhile, they still count for her
 const player = school.who
+const visit = useVisit(leave)
+const { later } = visit
 const tasks = props.tasks ?? buildLadderSession(steps, things.length)
 const flow = createSchoolFlow(tasks, things)
 const view = reactive({ ...flow.state, wrong: [...flow.state.wrong] })
@@ -44,16 +47,6 @@ const focus = ref(-1)
 
 const task = computed(() => view.task)
 const thing = computed(() => things[(task.value?.kind ?? 0) % things.length])
-
-let closed = false
-const timers = new Set<ReturnType<typeof setTimeout>>()
-function later(fn: () => void, ms: number) {
-  const id = setTimeout(() => {
-    timers.delete(id)
-    if (!closed) fn()
-  }, ms)
-  timers.add(id)
-}
 
 function sync() {
   Object.assign(view, flow.state, { wrong: [...flow.state.wrong] })
@@ -91,7 +84,7 @@ function recount(_amount: number, after: Promise<void>) {
 }
 
 function touch(i: number, worth = 1) {
-  if (closed || marked.value.has(i)) return
+  if (visit.isClosed() || marked.value.has(i)) return
   const effects = flow.touch(worth)
   if (effects.length === 0) return
   marked.value = new Set([...marked.value, i])
@@ -99,7 +92,7 @@ function touch(i: number, worth = 1) {
 }
 
 function answer(choice: number) {
-  if (closed) return
+  if (visit.isClosed()) return
   const effects = flow.answer(choice)
   // An extra tap during the cheer or the count-along changes nothing
   if (effects.length === 0) return
@@ -126,22 +119,9 @@ function moveFocus(by: number) {
   void speak(numberWord(choices[i]))
 }
 
-/** Takes back this building's answer to the leave button */
-let stopLeaveRequests = () => {}
-
-function shutDown() {
-  if (closed) return
-  closed = true
-  for (const id of timers) clearTimeout(id)
-  timers.clear()
-  window.removeEventListener('keydown', onKey)
-  stopLeaveRequests()
-  stopSpeaking()
-}
-
 function leave() {
-  if (closed) return
-  shutDown()
+  if (visit.isClosed()) return
+  visit.shutDown()
   school.record(flow.state.results, steps, player)
   emit('finished', { stars: flow.state.stars })
 }
@@ -226,19 +206,14 @@ watch(() => view.index, () => {
 
 onMounted(() => {
   window.addEventListener('keydown', onKey)
-  stopLeaveRequests = onLeaveRequest(leave)
+  visit.onShutDown(() => window.removeEventListener('keydown', onKey))
   run(flow.start())
 })
-onBeforeUnmount(shutDown)
 </script>
 
 <template>
   <div class="school" :data-phase="view.phase">
-    <div class="progress" aria-hidden="true">
-      <svg v-for="n in tasks.length" :key="n" viewBox="0 0 24 24" data-test="progress-star" :data-done="n <= view.solved">
-        <path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.2 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z" />
-      </svg>
-    </div>
+    <ProgressStars :total="tasks.length" :solved="view.solved" edge="#b9d6ee" />
 
     <div class="board">
       <template v-if="task?.type === 'count'">
@@ -327,11 +302,6 @@ onBeforeUnmount(shutDown)
 }
 button { border: 0; padding: 0; background: none; font: inherit; cursor: pointer; }
 
-.progress { display: flex; gap: 14px; }
-.progress svg { width: 46px; }
-.progress path { fill: rgb(255 255 255 / 70%); stroke: #b9d6ee; stroke-width: 1.2; stroke-linejoin: round; transition: fill 0.3s ease; }
-.progress svg[data-done='true'] path { fill: #ffd93d; stroke: #e0a800; }
-.progress svg[data-done='true'] { animation: pop 0.5s ease; }
 
 .board {
   flex: 1;
@@ -464,5 +434,4 @@ button { border: 0; padding: 0; background: none; font: inherit; cursor: pointer
 .choice[data-focus='true'] { box-shadow: 0 8px 0 #e0a800, 0 0 0 8px #ffd93d; transform: translateY(-6px); }
 .choice[data-wrong='true'] { opacity: 0.3; box-shadow: none; transform: scale(0.9); }
 
-@keyframes pop { 0% { transform: scale(0.3); } 70% { transform: scale(1.3); } }
 </style>
