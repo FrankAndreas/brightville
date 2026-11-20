@@ -31,6 +31,12 @@ describe('ParentArea', () => {
     expect(card(w, 1).find('[data-test="stars-input"]').exists()).toBe(true)
   })
 
+  it('has a child\'s Lehrplan 21 section, but none for a parent', async () => {
+    const { w } = await open()
+    expect(card(w, 2).find('[data-test="lehrplan"]').exists()).toBe(true)
+    expect(card(w, 1).find('[data-test="lehrplan"]').exists()).toBe(false)
+  })
+
   it('has a child\'s words for Schreiben, but none for a parent', async () => {
     const { w } = await open()
     expect(card(w, 2).find('[data-test="writing"]').exists()).toBe(true)
