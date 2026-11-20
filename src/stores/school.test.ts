@@ -38,7 +38,7 @@ describe('school store', () => {
   })
 
   it('starts at step 1 before the server answers, then takes the server\'s steps', async () => {
-    api.school_ = { zaehlen: { step: 3, window: [] }, rechnen: { step: 2, window: [true] }, reimen: { step: 1, window: [] }, muster: { step: 1, window: [] }, zeit: { step: 1, window: [] }, raum: { step: 1, window: [] } }
+    api.school_ = { zaehlen: { step: 3, window: [] }, rechnen: { step: 2, window: [true] }, reimen: { step: 1, window: [] }, muster: { step: 1, window: [] }, zeit: { step: 1, window: [] }, raum: { step: 1, window: [] }, rhythmus: { step: 1, window: [] } }
     const school = useSchoolStore()
     school.init(api, 2, storage)
     expect(school.ladders.zaehlen.step).toBe(1)

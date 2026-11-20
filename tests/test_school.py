@@ -10,7 +10,7 @@ from app import school
 def state(browser):
     """The two ladders, without the keys the server has seen"""
     answer = browser.get("/api/school").json()
-    return {name: answer[name] for name in ("zaehlen", "rechnen", "reimen", "muster", "zeit", "raum")}
+    return {name: answer[name] for name in ("zaehlen", "rechnen", "reimen", "muster", "zeit", "raum", "rhythmus")}
 
 
 def send(browser, key, zaehlen=(1, []), rechnen=(1, [])):
@@ -46,6 +46,7 @@ def test_a_new_child_starts_at_zaehlen_1_rechnen_1(mia):
         "muster": {"step": 1, "window": []},
         "zeit": {"step": 1, "window": []},
         "raum": {"step": 1, "window": []},
+        "rhythmus": {"step": 1, "window": []},
     }
 
 
@@ -233,3 +234,13 @@ def test_a_result_with_only_raum_leaves_the_others(mia):
 
 def test_a_parent_sets_raum(papa, mia):
     assert set_step(papa, "raum", 6).json()["raum"] == {"step": 6, "window": []}
+
+
+def test_ten_rhythmus_answers_with_two_misses_move_up(mia):
+    send_only(mia, "a", rhythmus=(1, [True, False, True, True, True]))
+    answer = send_only(mia, "b", rhythmus=(1, [True, True, False, True, True])).json()
+    assert answer["rhythmus"] == {"step": 2, "window": []}
+
+
+def test_a_parent_sets_rhythmus(papa, mia):
+    assert set_step(papa, "rhythmus", 3).json()["rhythmus"] == {"step": 3, "window": []}

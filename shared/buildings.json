@@ -11,6 +11,7 @@
   { "id": "muster", "kind": "earn", "maxStars": 10, "minSecondsPerStar": 2 },
   { "id": "kalender", "kind": "earn", "maxStars": 10, "minSecondsPerStar": 2 },
   { "id": "spielwelt", "kind": "earn", "maxStars": 10, "minSecondsPerStar": 2 },
+  { "id": "trommelhaus", "kind": "earn", "maxStars": 10, "minSecondsPerStar": 3 },
   { "id": "ausmalen", "kind": "free" },
   { "id": "malen", "kind": "free" },
   { "id": "haus", "kind": "free" },

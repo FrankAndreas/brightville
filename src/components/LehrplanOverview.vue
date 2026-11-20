@@ -23,6 +23,7 @@ const SUBJECTS: { name: string; test: string; ladders: { id: Ladder; name: strin
     ],
   },
   { name: 'Deutsch', test: 'deutsch', ladders: [{ id: 'reimen', name: 'Reimen' }] },
+  { name: 'Musik', test: 'musik', ladders: [{ id: 'rhythmus', name: 'Rhythmus' }] },
 ]
 const STEPS = Array.from({ length: LAST_STEP }, (_, i) => i + 1)
 

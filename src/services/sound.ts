@@ -1,4 +1,4 @@
-export const SOUND_KINDS = ['sparkle', 'bell', 'chime', 'siren', 'piano', 'drum'] as const
+export const SOUND_KINDS = ['sparkle', 'bell', 'chime', 'siren', 'piano', 'drum', 'softDrum'] as const
 export type SoundKind = (typeof SOUND_KINDS)[number]
 
 let ctx: AudioContext | null = null
@@ -42,6 +42,8 @@ const SOUNDS: Record<SoundKind, (ac: AudioContext) => void> = {
   siren: ac => tone(ac, { type: 'square', freq: 660, to: 990, length: 0.3, volume: 0.08 }),
   piano: ac => tone(ac, { type: 'triangle', freq: 523, length: 0.4, volume: 0.35 }),
   drum: ac => tone(ac, { freq: 160, to: 50, length: 0.25, volume: 0.6 }),
+  // The small drum: higher, shorter and much quieter ("leise" in the Trommelhaus)
+  softDrum: ac => tone(ac, { freq: 260, to: 120, length: 0.15, volume: 0.15 }),
 }
 
 /** One soft note at `freq` hertz, for tunes and counting up; silent without Web Audio. */

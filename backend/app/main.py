@@ -120,6 +120,7 @@ class SchoolResultsIn(BaseModel):
     muster: LadderResultIn | None = None
     zeit: LadderResultIn | None = None
     raum: LadderResultIn | None = None
+    rhythmus: LadderResultIn | None = None
 
 
 class StepIn(BaseModel):

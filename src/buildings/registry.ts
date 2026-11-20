@@ -30,6 +30,7 @@ const reimhaus = () => import('./reimhaus/Reimhaus.vue')
 const muster = () => import('./muster/Musterwerkstatt.vue')
 const kalender = () => import('./kalender/Kalender.vue')
 const spielwelt = () => import('./spielwelt/Spielwelt.vue')
+const trommelhaus = () => import('./trommelhaus/Trommelhaus.vue')
 
 /**
  * Every building in the town, mixed along the streets of `src/city/map.ts` so every walk passes learning, playing and
@@ -135,6 +136,11 @@ export const BUILDINGS: BuildingDef[] = [
     // A wide world for position words (Lehrplan 21 MA.2, Zugang 4): what was a plain house by the playground
     id: 'spielwelt', spokenName: 'Spielwelt', icon: '🚗', kind: 'earn', needs: [], door: { x: -16, z: 35.5, side: 'front' },
     component: defineAsyncComponent(spielwelt), preload: spielwelt,
+  },
+  {
+    // Rhythm by tapping or clapping (Lehrplan 21 MU): what was a plain house on the way to the Tanzsaal
+    id: 'trommelhaus', spokenName: 'Trommelhaus', icon: '🥁', kind: 'earn', needs: [], door: { x: 24, z: -3.5, side: 'back' },
+    component: defineAsyncComponent(trommelhaus), preload: trommelhaus,
   },
 ]
 

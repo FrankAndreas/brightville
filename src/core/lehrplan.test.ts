@@ -5,10 +5,10 @@ import type { Ladders } from './ladders'
 import { FACHBEREICHE, kgMark, lettersShare, overall, practice, STEP_TEXT, subjects, TAGS, weekDays, ZUGAENGE } from './lehrplan'
 import type { Letters } from './writing/levels'
 
-const ladders = (zaehlen: number, rechnen: number, reimen = 1, muster = 1, zeit = 1, raum = 1): Ladders => ({
+const ladders = (zaehlen: number, rechnen: number, reimen = 1, muster = 1, zeit = 1, raum = 1, rhythmus = 1): Ladders => ({
   zaehlen: { step: zaehlen, window: [] }, rechnen: { step: rechnen, window: [] },
   reimen: { step: reimen, window: [] }, muster: { step: muster, window: [] }, zeit: { step: zeit, window: [] },
-  raum: { step: raum, window: [] },
+  raum: { step: raum, window: [] }, rhythmus: { step: rhythmus, window: [] },
 })
 const known = (glyphs: string): Letters =>
   Object.fromEntries([...glyphs].map(g => [g, { level: 4 as const, streak: 0, practised_at: null }]))
@@ -35,10 +35,14 @@ describe('Lehrplan 21', () => {
   })
 
   it('makes one number from the ladders and the letters', () => {
-    expect(overall(ladders(1, 1, 1, 1, 1, 1), {})).toBe(0)
+    expect(overall(ladders(1, 1, 1, 1, 1, 1, 1), {})).toBe(0)
     const all = known('ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ')
-    expect(overall(ladders(6, 6, 6, 6, 6, 6), all)).toBe(100)
-    expect(overall(ladders(3, 2, 4, 3, 2, 5), known('MIAPLENO'))).toBe(Math.round(((0.4 + 0.2 + 0.6 + 0.4 + 0.2 + 0.8 + 8 / 29) / 7) * 100))
+    expect(overall(ladders(6, 6, 6, 6, 6, 6, 6), all)).toBe(100)
+    expect(overall(ladders(3, 2, 4, 3, 2, 5, 2), known('MIAPLENO'))).toBe(Math.round(((0.4 + 0.2 + 0.6 + 0.4 + 0.2 + 0.8 + 0.2 + 8 / 29) / 8) * 100))
+  })
+
+  it('tags the Trommelhaus as Musik, Körper and Wahrnehmung', () => {
+    expect(TAGS.trommelhaus).toEqual({ codes: ['MU'], zugaenge: [1, 2] })
   })
 
   it('tags the Spielwelt as Form und Raum, Räumliche Orientierung and Wahrnehmung', () => {
@@ -63,7 +67,7 @@ describe('Lehrplan 21', () => {
   })
 
   it('marks the end of Kindergarten', () => {
-    expect(kgMark()).toBe(54)
+    expect(kgMark()).toBe(55)
   })
 
   it('takes the last seven calendar days, today first', () => {
