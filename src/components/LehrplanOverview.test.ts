@@ -20,7 +20,7 @@ describe('LehrplanOverview', () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date(2026, 10, 20, 10, 0))
     api = fakeApi()
-    api.school_ = { zaehlen: { step: 3, window: [] }, rechnen: { step: 2, window: [] }, reimen: { step: 1, window: [] }, muster: { step: 1, window: [] } }
+    api.school_ = { zaehlen: { step: 3, window: [] }, rechnen: { step: 2, window: [] }, reimen: { step: 1, window: [] }, muster: { step: 1, window: [] }, zeit: { step: 1, window: [] } }
     api.writing_.letters = { M: known, I: known, A: known }
     api.logbook_ = [
       { day: '2026-11-19', goal_reached: true, stickers: [], paintings: [], entries: [
@@ -43,10 +43,10 @@ describe('LehrplanOverview', () => {
 
   it('shows the overall number with the end of Kindergarten, the steps and the letters', async () => {
     const w = await open(api)
-    // (0.4 + 0.2 + 0 + 0 + 3/29) / 5
-    expect(w.find('[data-test="lehrplan-percent"]').text()).toBe('14 %')
-    expect(w.find('[data-test="lehrplan-bar"]').attributes('style')).toContain('width: 14%')
-    expect(w.find('[data-test="lehrplan-kg"]').attributes('style')).toContain('left: 48%')
+    // (0.4 + 0.2 + 0 + 0 + 0 + 3/29) / 6
+    expect(w.find('[data-test="lehrplan-percent"]').text()).toBe('12 %')
+    expect(w.find('[data-test="lehrplan-bar"]').attributes('style')).toContain('width: 12%')
+    expect(w.find('[data-test="lehrplan-kg"]').attributes('style')).toContain('left: 53%')
     expect(w.find('[data-test="ladder-zaehlen"]').text()).toContain('Stufe 3 von 5')
     expect(w.find('[data-test="ladder-zaehlen"]').text()).toContain('vor- und rückwärts bis 20')
     expect(w.find('[data-test="ladder-rechnen"]').text()).toContain('plus bis 10')
@@ -62,7 +62,8 @@ describe('LehrplanOverview', () => {
     expect(subjects).toContain('Bewegung und Sport: Yoga ×2')
     const zugaenge = w.findAll('[data-test="zugang"]').map(z => z.text())
     expect(zugaenge).toContain('✓ Körper, Gesundheit und Motorik (Yoga ×2)')
-    expect(zugaenge).toContain('– Zeitliche Orientierung (noch kein Haus)')
+    expect(zugaenge).toContain('– Lernen und Reflexion (noch kein Haus)')
+    expect(zugaenge).toContain('– Zeitliche Orientierung')
     expect(zugaenge).toContain('– Wahrnehmung')
   })
 
@@ -105,6 +106,17 @@ describe('LehrplanOverview', () => {
     await w.find('[data-test="step-muster"]').setValue('5')
     await flushPromises()
     expect(api.calls).toContain('setPlayerStep 2 muster 5')
+  })
+
+  it('shows Zeit under Mathematik and sets its step', async () => {
+    api.school_.zeit = { step: 4, window: [] }
+    const w = await open(api)
+    const row = w.find('[data-test="mathe"] [data-test="ladder-zeit"]')
+    expect(row.text()).toContain('Stufe 4 von 5')
+    expect(row.text()).toContain('gestern, morgen, Jahreszeiten')
+    await w.find('[data-test="step-zeit"]').setValue('2')
+    await flushPromises()
+    expect(api.calls).toContain('setPlayerStep 2 zeit 2')
   })
 
   it('shows "fertig" at the last step', async () => {

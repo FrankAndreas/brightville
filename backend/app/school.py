@@ -1,5 +1,5 @@
 """The Lehrplan 21 ladders: the School's Zählen (MA.1.A.2) and Rechnen (MA.1.A.3), the Reimhaus's Reimen (D.1.A.1)
-and the Musterwerkstatt's Muster (MA.1.B, MA.3).
+the Musterwerkstatt's Muster (MA.1.B, MA.3) and the Kalender's Zeit (MA.3).
 The names say "school" for all of them. A ladder moves up one step when, of her last answered tasks at its step (two
 visits' worth), no more than the ladder's allowed misses were wrong on the first try; it never moves down by itself.
 Step 6 is "fertig". The page keeps the same rule (src/core/ladders.ts) to go on while the server is away; the server is
@@ -14,10 +14,10 @@ from . import clock
 from .db import writing
 from .game import Refused
 
-WINDOW = {"zaehlen": 6, "rechnen": 4, "reimen": 10, "muster": 10}
+WINDOW = {"zaehlen": 6, "rechnen": 4, "reimen": 10, "muster": 10, "zeit": 10}
 FIRST_STEP = 1
 LAST_STEP = 6
-MISSES_ALLOWED = {"zaehlen": 1, "rechnen": 1, "reimen": 2, "muster": 2}
+MISSES_ALLOWED = {"zaehlen": 1, "rechnen": 1, "reimen": 2, "muster": 2, "zeit": 2}
 KEEP_KEYS_DAYS = 60
 # How many of her latest result keys are named back: more than a device keeps waiting
 SEEN_KEYS = 50

@@ -5,9 +5,9 @@ import type { Ladders } from './ladders'
 import { FACHBEREICHE, kgMark, lettersShare, overall, practice, STEP_TEXT, subjects, TAGS, weekDays, ZUGAENGE } from './lehrplan'
 import type { Letters } from './writing/levels'
 
-const ladders = (zaehlen: number, rechnen: number, reimen = 1, muster = 1): Ladders => ({
+const ladders = (zaehlen: number, rechnen: number, reimen = 1, muster = 1, zeit = 1): Ladders => ({
   zaehlen: { step: zaehlen, window: [] }, rechnen: { step: rechnen, window: [] },
-  reimen: { step: reimen, window: [] }, muster: { step: muster, window: [] },
+  reimen: { step: reimen, window: [] }, muster: { step: muster, window: [] }, zeit: { step: zeit, window: [] },
 })
 const known = (glyphs: string): Letters =>
   Object.fromEntries([...glyphs].map(g => [g, { level: 4 as const, streak: 0, practised_at: null }]))
@@ -33,11 +33,15 @@ describe('Lehrplan 21', () => {
     expect(STEP_TEXT.muster).toHaveLength(6)
   })
 
-  it('makes one number from the five ladders', () => {
-    expect(overall(ladders(1, 1, 1, 1), {})).toBe(0)
+  it('makes one number from the ladders and the letters', () => {
+    expect(overall(ladders(1, 1, 1, 1, 1), {})).toBe(0)
     const all = known('ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ')
-    expect(overall(ladders(6, 6, 6, 6), all)).toBe(100)
-    expect(overall(ladders(3, 2, 4, 3), known('MIAPLENO'))).toBe(Math.round(((0.4 + 0.2 + 0.6 + 0.4 + 8 / 29) / 5) * 100))
+    expect(overall(ladders(6, 6, 6, 6, 6), all)).toBe(100)
+    expect(overall(ladders(3, 2, 4, 3, 2), known('MIAPLENO'))).toBe(Math.round(((0.4 + 0.2 + 0.6 + 0.4 + 0.2 + 8 / 29) / 6) * 100))
+  })
+
+  it('tags the Kalender as Mathematik, Zeitliche Orientierung and Sprache', () => {
+    expect(TAGS.kalender).toEqual({ codes: ['MA.3'], zugaenge: [3, 8] })
   })
 
   it('tags the Musterwerkstatt as Mathematik, Zusammenhänge and Wahrnehmung', () => {
@@ -54,7 +58,7 @@ describe('Lehrplan 21', () => {
   })
 
   it('marks the end of Kindergarten', () => {
-    expect(kgMark()).toBe(48)
+    expect(kgMark()).toBe(53)
   })
 
   it('takes the last seven calendar days, today first', () => {
@@ -67,7 +71,9 @@ describe('Lehrplan 21', () => {
     const rows = practice(days, TODAY)
     expect(rows.map(r => r.zugang)).toEqual([1, 2, 3, 5, 6, 7, 8])
     expect(rows.find(r => r.zugang === 1)?.visits).toEqual([{ building: 'yoga', times: 1 }])
-    expect(rows.find(r => r.zugang === 3)).toMatchObject({ visits: [], hasBuilding: false })
+    // Lernen und Reflexion has no house yet; Zeitliche Orientierung has the Kalender
+    expect(rows.find(r => r.zugang === 7)).toMatchObject({ visits: [], hasBuilding: false })
+    expect(rows.find(r => r.zugang === 3)).toMatchObject({ visits: [], hasBuilding: true })
     expect(rows.find(r => r.zugang === 2)).toMatchObject({ visits: [], hasBuilding: true })
   })
 

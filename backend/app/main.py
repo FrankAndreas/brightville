@@ -111,13 +111,14 @@ class LadderResultIn(BaseModel):
 
 
 class SchoolResultsIn(BaseModel):
-    """A visit's answers: the School sends Zählen and Rechnen, the Reimhaus only Reimen, the Musterwerkstatt Muster"""
+    """A visit's answers: the School sends Zählen and Rechnen; the Reimhaus, Musterwerkstatt and Kalender one each"""
 
     key: str = Field(min_length=1, max_length=64)
     zaehlen: LadderResultIn | None = None
     rechnen: LadderResultIn | None = None
     reimen: LadderResultIn | None = None
     muster: LadderResultIn | None = None
+    zeit: LadderResultIn | None = None
 
 
 class StepIn(BaseModel):

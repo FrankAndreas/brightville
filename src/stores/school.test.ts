@@ -38,7 +38,7 @@ describe('school store', () => {
   })
 
   it('starts at step 1 before the server answers, then takes the server\'s steps', async () => {
-    api.school_ = { zaehlen: { step: 3, window: [] }, rechnen: { step: 2, window: [true] }, reimen: { step: 1, window: [] }, muster: { step: 1, window: [] } }
+    api.school_ = { zaehlen: { step: 3, window: [] }, rechnen: { step: 2, window: [true] }, reimen: { step: 1, window: [] }, muster: { step: 1, window: [] }, zeit: { step: 1, window: [] } }
     const school = useSchoolStore()
     school.init(api, 2, storage)
     expect(school.ladders.zaehlen.step).toBe(1)
@@ -223,6 +223,17 @@ describe('school store', () => {
     await school.load()
     expect(school.ladders.reimen.step).toBe(3)
     expect(school.ladders.muster).toEqual({ step: 1, window: [] })
+  })
+
+  it('sends a Kalender visit with only Zeit, and starts Zeit at 1 from cached steps before it', async () => {
+    storage.setItem('brightville.school.2.ladders', JSON.stringify({ zaehlen: { step: 3, window: [] }, rechnen: { step: 2, window: [] } }))
+    api.offline = true
+    const school = await open()
+    expect(school.ladders.zeit).toEqual({ step: 1, window: [] })
+    api.offline = false
+    school.record(Array(5).fill({ ladder: 'zeit', firstTry: true }), { zeit: 1 })
+    await flushPromises()
+    expect(api.school_.zeit.window).toHaveLength(5)
   })
 
   it('starts from the steps last known on this device', async () => {
