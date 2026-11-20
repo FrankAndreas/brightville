@@ -3,7 +3,8 @@ import { mount, type VueWrapper } from '@vue/test-utils'
 import { playBeat } from '@/services/sound'
 import { speak } from '@/services/tts'
 import { requestLeave } from '../leave'
-import School from './School.vue'
+import School, { FLASH_MS } from './School.vue'
+import type { Task } from '@/core/numbers'
 import { TEST_TASKS, TEST_THINGS } from './testTasks'
 
 vi.mock('@/services/sound', () => ({ playBeat: vi.fn(), unlockAudio: vi.fn() }))
@@ -282,4 +283,69 @@ describe('School', () => {
     w.unmount()
     expect(vi.getTimerCount()).toBe(0)
   })
+
+  describe('the ladders\' tasks', () => {
+    const openWith = async (tasks: Task[]) => {
+      const w = mount(School, { props: { tasks, things: TEST_THINGS }, attachTo: document.body })
+      await run(10)
+      return w
+    }
+
+    it('shows a quick look\'s dots, then hides them', async () => {
+      const w = await openWith([{ type: 'flash', ladder: 'zaehlen', kind: 0, amount: 4, answer: 4, choices: [3, 4, 5] }])
+      expect(w.findAll('[data-test="flash-dot"]')).toHaveLength(4)
+      await run(FLASH_MS + 10)
+      expect(w.findAll('[data-test="flash-dot"]')).toHaveLength(0)
+      expect(w.find('[data-test="flash-cover"]').exists()).toBe(true)
+    })
+
+    it('shows the dots again when counting along after a wrong answer', async () => {
+      const w = await openWith([{ type: 'flash', ladder: 'zaehlen', kind: 0, amount: 4, answer: 4, choices: [3, 4, 5] }])
+      await run(FLASH_MS + 10)
+      await choice(w, 3).trigger('pointerdown')
+      await run(10)
+      expect(w.findAll('[data-test="flash-dot"]')).toHaveLength(4)
+    })
+
+    it('shows tens bars and ones', async () => {
+      const w = await openWith([{ type: 'bars', ladder: 'zaehlen', kind: 0, amount: 34, answer: 34, choices: [33, 34, 35] }])
+      expect(w.findAll('[data-test="bar"]')).toHaveLength(3)
+      expect(w.findAll('[data-test="one"]')).toHaveLength(4)
+      await w.findAll('[data-test="bar"]')[0].trigger('pointerdown')
+      expect(said()).toContain('zehn')
+    })
+
+    it('crosses out what goes away', async () => {
+      const w = await openWith([{ type: 'minus', ladder: 'rechnen', kind: 0, a: 5, b: 2, answer: 3, choices: [2, 3, 4] }])
+      expect(w.findAll('[data-test="thing"]')).toHaveLength(5)
+      expect(w.findAll('[data-test="thing"][data-gone="true"]')).toHaveLength(2)
+    })
+
+    it('shows tens sums as bars', async () => {
+      const w = await openWith([{ type: 'plus', ladder: 'rechnen', kind: 0, a: 32, b: 15, bars: true, answer: 47, choices: [46, 47, 48] }])
+      expect(w.findAll('[data-test="bar"]')).toHaveLength(4)
+      expect(w.findAll('[data-test="one"]')).toHaveLength(7)
+    })
+
+    it('shows the numbers said when counting on', async () => {
+      const w = await openWith([{ type: 'next', ladder: 'zaehlen', kind: 0, from: 2, by: 1, shown: [2, 3, 4], answer: 5, choices: [4, 5, 6] }])
+      expect(said()).toEqual(['Zähl weiter: zwei, drei, vier … und dann?'])
+      expect(w.findAll('[data-test="said"]').map(n => n.text())).toEqual(['2', '3', '4'])
+    })
+
+    it('lays out twenty things to count', async () => {
+      const w = await openWith([{ type: 'count', ladder: 'zaehlen', kind: 0, amount: 20, answer: 20, choices: [19, 20, 18] }])
+      expect(w.findAll('[data-test="thing"]')).toHaveLength(20)
+    })
+
+    it('answers a big number with the arrow keys and Enter', async () => {
+      const w = await openWith([{ type: 'bars', ladder: 'zaehlen', kind: 0, amount: 45, answer: 45, choices: [44, 45, 46] }])
+      press('ArrowRight')
+      press('ArrowRight')
+      press('Enter')
+      await run(10)
+      expect(w.find('[data-test="progress-star"][data-done="true"]').exists()).toBe(true)
+    })
+  })
 })
+

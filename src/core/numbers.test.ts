@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  answerChoices, buildLadderSession, stepRange, cheerText, dicePips, looseLayout, numberWord, questionText, seededRandom,
+  answerChoices, buildLadderSession, countable, stepRange, cheerText, dicePips, looseLayout, numberWord, questionText, seededRandom,
   type Task,
 } from './numbers'
 
@@ -55,6 +55,18 @@ describe('looseLayout', () => {
       for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
         expect(Math.max(Math.abs(spots[i].x - spots[j].x) * 4, Math.abs(spots[i].y - spots[j].y) * 3)).toBeGreaterThan(0.6)
       }
+    }
+  })
+})
+
+describe('looseLayout up to 20', () => {
+  it('places up to 20 objects inside the field, each in its own cell', () => {
+    for (let n = 11; n <= 20; n++) {
+      const spots = looseLayout(n, seededRandom(n))
+      expect(spots).toHaveLength(n)
+      for (const s of spots) expect(s.x > 0 && s.x < 1 && s.y > 0 && s.y < 1).toBe(true)
+      const cells = new Set(spots.map(s => `${Math.floor(s.x * 5)},${Math.floor(s.y * 4)}`))
+      expect(cells.size).toBe(n)
     }
   })
 })
@@ -149,5 +161,7 @@ describe('buildLadderSession', () => {
     expect(questionText(next, apple)).toContain('sieben, sechs, fünf')
     const minus: Task = { type: 'minus', ladder: 'rechnen', kind: 0, a: 5, b: 2, answer: 3, choices: [2, 3, 4] }
     expect(questionText(minus, apple)).toContain('weg')
+    // What is left is counted: the ones gone away are not
+    expect(countable(minus)).toBe(3)
   })
 })

@@ -12,6 +12,9 @@ const WORDS = [
 export const MAX_AMOUNT = 9
 const LOOSE_COLS = 4
 const LOOSE_ROWS = 3
+/** Up to 20 objects: a finer grid */
+const BIG_COLS = 5
+const BIG_ROWS = 4
 const JITTER = 0.15 // of a cell, so neighbours never overlap
 const ZERO_CHANCE = 0.1 // how often a count asks for "keine"
 
@@ -53,14 +56,17 @@ export function answerChoices(answer: number, max: number, random: () => number 
   return shuffle([answer, ...shuffle(near, random).slice(0, 2)], random)
 }
 
-/** Centre points (fractions 0..1) for up to 10 objects: one per cell of a 4×3 grid, jittered. */
+/** Centre points (fractions 0..1) for up to 20 objects: one per cell of a 4×3 grid (5×4 above 12), jittered. */
 export function looseLayout(n: number, random: () => number = Math.random): { x: number; y: number }[] {
+  const big = n > LOOSE_COLS * LOOSE_ROWS
+  const cols = big ? BIG_COLS : LOOSE_COLS
+  const rows = big ? BIG_ROWS : LOOSE_ROWS
   const cells: { col: number; row: number }[] = []
-  for (let row = 0; row < LOOSE_ROWS; row++) for (let col = 0; col < LOOSE_COLS; col++) cells.push({ col, row })
+  for (let row = 0; row < rows; row++) for (let col = 0; col < cols; col++) cells.push({ col, row })
   const jitter = () => (random() * 2 - 1) * JITTER
   return shuffle(cells, random).slice(0, n).map(({ col, row }) => ({
-    x: (col + 0.5 + jitter()) / LOOSE_COLS,
-    y: (row + 0.5 + jitter()) / LOOSE_ROWS,
+    x: (col + 0.5 + jitter()) / cols,
+    y: (row + 0.5 + jitter()) / rows,
   }))
 }
 
@@ -269,8 +275,8 @@ export function cheerText(answer: number): string {
 export function countable(task: Task): number {
   switch (task.type) {
     case 'plus': return task.a + task.b
-    // What is there before some go away: the crossed-out ones count too
-    case 'minus': return task.a
+    // What is left: the crossed-out ones can't be pointed at
+    case 'minus': return task.a - task.b
     // Nothing to point at: the numbers are only said
     case 'next': return 0
     default: return task.answer

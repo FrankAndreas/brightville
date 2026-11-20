@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { SET_BONUS, STARS_PER_TASK, createSchoolFlow, type SchoolFlow } from './flow'
+import type { Task } from '@/core/numbers'
 import { TEST_TASKS, TEST_THINGS } from './testTasks'
 
 const start = (): SchoolFlow => {
@@ -105,5 +106,50 @@ describe('school flow', () => {
     expect(flow.state.stars).toBe(10)
     expect(flow.answer(4)).toEqual([])
     expect(flow.next()).toEqual([])
+  })
+})
+
+describe('school flow: ladder results', () => {
+  it('keeps for each solved task its ladder and whether it was right on the first try', () => {
+    const flow = start()
+    solve(flow)
+    flow.answer(5)
+    flow.recountDone()
+    flow.answer(4)
+    flow.next()
+    expect(flow.state.results).toEqual([
+      { ladder: 'zaehlen', firstTry: true },
+      { ladder: 'zaehlen', firstTry: false },
+    ])
+  })
+
+  it('adds nothing for a task left unsolved', () => {
+    const flow = start()
+    flow.answer(2)
+    expect(flow.state.results).toEqual([])
+  })
+
+  it('counts big amounts along by tens, then ones', () => {
+    const tasks: Task[] = [{ type: 'bars', ladder: 'zaehlen', kind: 0, amount: 34, answer: 34, choices: [33, 34, 35] }]
+    const flow = createSchoolFlow(tasks, TEST_THINGS)
+    flow.start()
+    expect(flow.touch(10)).toEqual([{ type: 'speak', text: 'zehn' }])
+    expect(flow.touch(10)).toEqual([{ type: 'speak', text: 'zwanzig' }])
+    expect(flow.touch()).toEqual([{ type: 'speak', text: 'einundzwanzig' }])
+    expect(flow.answer(33)).toEqual([
+      { type: 'speak', text: 'Hmm, zähl nochmal mit mir' }, { type: 'recount', amount: 34, tens: true },
+    ])
+  })
+
+  it('says the numbers again when counting on goes wrong', () => {
+    const tasks: Task[] = [{ type: 'next', ladder: 'zaehlen', kind: 0, from: 2, by: 1, shown: [2, 3, 4], answer: 5, choices: [4, 5, 6] }]
+    const flow = createSchoolFlow(tasks, TEST_THINGS)
+    flow.start()
+    expect(flow.answer(6)).toEqual([
+      { type: 'speak', text: 'Hör nochmal gut zu' },
+      { type: 'speak', text: 'Zähl weiter: zwei, drei, vier … und dann?', ask: true },
+    ])
+    expect(flow.state.phase).toBe('asking')
+    expect(flow.state.wrong).toEqual([6])
   })
 })
