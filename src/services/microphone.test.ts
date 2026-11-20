@@ -20,6 +20,7 @@ describe('the microphone', () => {
     const getUserMedia = vi.fn(() => Promise.reject(new Error('no')))
     vi.stubGlobal('navigator', { mediaDevices: { getUserMedia } })
     await openMicrophone()
-    expect(getUserMedia).toHaveBeenCalledWith({ audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false }, video: false })
+    // No echo filter: the house never plays while it listens, and on iPads it quiets the speaker
+    expect(getUserMedia).toHaveBeenCalledWith({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }, video: false })
   })
 })

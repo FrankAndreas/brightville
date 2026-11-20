@@ -50,6 +50,8 @@ export interface RhythmFlow {
   choose(mode: Mode): RhythmEffect[]
   /** She chose clapping, but the microphone said no: tapping */
   micFailed(): RhythmEffect[]
+  /** The microphone hears nothing at all (no room noise either): tapping at once, no try counted */
+  micDead(): RhythmEffect[]
   /** The example was shown: her first turn */
   exampleDone(): RhythmEffect[]
   /** Her answer to a turn */
@@ -117,6 +119,14 @@ export function createRhythmFlow(tasks: RhythmTask[], example: boolean): RhythmF
       return [{ type: 'speak', text: SAY_NO_MIC }, ...begin()]
     },
 
+    micDead() {
+      const task = state.task
+      if (state.phase !== 'turn' || !task || state.mode !== 'clap') return []
+      state.mode = 'tap'
+      state.deaf = 0
+      return [{ type: 'speak', text: SAY_DEAF }, ...ask(task)]
+    },
+
     exampleDone() {
       if (state.phase !== 'example' || !state.task) return []
       state.phase = 'turn'
@@ -145,7 +155,7 @@ export function createRhythmFlow(tasks: RhythmTask[], example: boolean): RhythmF
         if (state.deaf >= DEAF_TASKS) {
           state.mode = 'tap'
           state.deaf = 0
-          return [{ type: 'speak', text: SAY_DEAF }, turn(task)]
+          return [{ type: 'speak', text: SAY_DEAF }, ...ask(task)]
         }
       }
       const effects = missed(task)

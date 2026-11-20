@@ -4,8 +4,9 @@ import { createPinia, setActivePinia } from 'pinia'
 import { beatTimes, LEAD_IN, type RhythmTask } from '@/core/rhythm'
 import type { Level, Microphone } from '@/services/microphone'
 import { playBeat } from '@/services/sound'
-import { speak } from '@/services/tts'
+import { instruction, speak } from '@/services/tts'
 import { useSchoolStore } from '@/stores/school'
+import { askedAgain } from '@/services/sayAgain'
 import { requestLeave } from '../leave'
 import Trommelhaus from './Trommelhaus.vue'
 
@@ -27,20 +28,21 @@ const said = () => vi.mocked(speak).mock.calls.map(x => x[0])
 function fakeMic() {
   let each: ((l: Level) => void) | null = null
   const listenedAt: number[] = []
+  let flat = false
   const mic: Microphone & { listenedAt: number[]; closed: boolean } = {
     listenedAt, closed: false,
-    listen(cb) { each = cb; listenedAt.push(Date.now()); return () => { each = null } },
+    listen(cb) { each = cb; listenedAt.push(performance.now()); return () => { each = null } },
     close() { mic.closed = true },
   }
   /** Room noise for `ms`, with claps at the given times (ms from now) */
   const room = async (ms: number, claps: number[] = []) => {
-    const start = Date.now()
     for (let t = 0; t < ms; t += 10) {
-      each?.({ t: start + t, level: claps.some(c => t >= c && t < c + 30) ? 0.5 : 0.01 })
+      const level = flat ? 0 : claps.some(c => t >= c && t < c + 30) ? 0.5 : 0.01
+      each?.({ t: performance.now(), level })
       await run(10)
     }
   }
-  return { mic, room }
+  return { mic, room, dead: () => { flat = true } }
 }
 
 async function open(tasks: RhythmTask[], props: Record<string, unknown> = {}): Promise<VueWrapper> {
@@ -52,7 +54,7 @@ async function open(tasks: RhythmTask[], props: Record<string, unknown> = {}): P
 describe('Trommelhaus', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
-    vi.useFakeTimers()
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date', 'performance'] })
     vi.mocked(speak).mockClear()
     vi.mocked(playBeat).mockClear()
   })
@@ -105,15 +107,94 @@ describe('Trommelhaus', () => {
   it('hears claps, and only listens after the house has stopped playing', async () => {
     const { mic, room } = fakeMic()
     const w = await open([COPY, COPY], { openMic: () => Promise.resolve(mic) })
-    const chose = Date.now()
+    const chose = performance.now()
     await w.find('[data-test="choose-clap"]').trigger('pointerdown')
     await run(1500)
     const lastBeat = chose + beatTimes(COPY).at(-1)!
-    expect(mic.listenedAt[0]).toBeGreaterThan(lastBeat)
+    // Not before the last drum has died away
+    expect(mic.listenedAt[0]).toBeGreaterThanOrEqual(lastBeat + 300)
     await room(3500, [200, 700, 1200])
     expect(said()).toContain('Super!')
     w.unmount()
     expect(mic.closed).toBe(true)
+  })
+
+  it('takes claps that keep the beat', async () => {
+    const { mic, room } = fakeMic()
+    const w = await open([KEEP, COPY], { openMic: () => Promise.resolve(mic) })
+    await w.find('[data-test="choose-clap"]').trigger('pointerdown')
+    const times = beatTimes(KEEP)
+    const beat = times[1] - times[0]
+    // Run up to the moment it listens, then clap on each of the eight beats
+    await run(times[LEAD_IN - 1] + 350)
+    const toFirst = times[LEAD_IN] - times[LEAD_IN - 1] - 350
+    await room(toFirst + 8 * beat + 600, Array.from({ length: 8 }, (_, k) => toFirst + k * beat))
+    await run(1000)
+    expect(said()).toContain('Super!')
+    w.unmount()
+  })
+
+  it('goes on after 🔊 is tapped while the house plays', async () => {
+    const w = await open([COPY, COPY])
+    await w.find('[data-test="choose-tap"]').trigger('pointerdown')
+    await run(300)
+    askedAgain.value++
+    await run(2000)
+    const drum = w.find('[data-test="drum-big"]')
+    await drum.trigger('pointerdown'); await run(500)
+    await drum.trigger('pointerdown'); await run(500)
+    await drum.trigger('pointerdown'); await run(2500)
+    expect(said()).toContain('Super!')
+    w.unmount()
+  })
+
+  it('keeps 🔊 quiet while the microphone listens', async () => {
+    const { mic, room } = fakeMic()
+    const w = await open([COPY], { openMic: () => Promise.resolve(mic) })
+    await w.find('[data-test="choose-clap"]').trigger('pointerdown')
+    await run(1500)
+    expect(instruction.value).toBeNull()
+    await room(100)
+    w.unmount()
+  })
+
+  it('switches to tapping at once when the microphone hears nothing at all, and closes it', async () => {
+    const { mic, room, dead } = fakeMic()
+    dead()
+    const w = await open([COPY], { openMic: () => Promise.resolve(mic) })
+    await w.find('[data-test="choose-clap"]').trigger('pointerdown')
+    await run(1500)
+    await room(6500)
+    expect(said()).toContain('Ich höre dich nicht. Tipp einfach auf die Trommel!')
+    expect(mic.closed).toBe(true)
+    expect(instruction.value).toBe('Hör zu und mach es nach!')
+    expect(w.find('[data-test="drum-big"]').exists()).toBe(true)
+    w.unmount()
+  })
+
+  it('opens the microphone once however often 👏 is tapped', async () => {
+    const { mic } = fakeMic()
+    const openMic = vi.fn(() => Promise.resolve(mic))
+    const w = await open([COPY], { openMic })
+    // Three quick taps before the iPad has answered
+    const tap = (test: string) => w.find(`[data-test="${test}"]`).element.dispatchEvent(new PointerEvent('pointerdown'))
+    tap('choose-clap')
+    tap('choose-clap')
+    tap('choose-tap')
+    await run(10)
+    expect(openMic).toHaveBeenCalledTimes(1)
+    expect(w.find('[data-test="trommelhaus"]').attributes('data-mode')).toBe('clap')
+    w.unmount()
+  })
+
+  it('stops drumming when she leaves during the first beats', async () => {
+    const w = await open([KEEP], { micAvailable: false })
+    await run(200)
+    requestLeave()
+    vi.mocked(playBeat).mockClear()
+    await run(5000)
+    expect(playBeat).not.toHaveBeenCalled()
+    w.unmount()
   })
 
   it('claps without the house drumming along once the beat has started', async () => {

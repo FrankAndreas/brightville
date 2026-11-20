@@ -71,8 +71,17 @@ describe('the Trommelhaus flow', () => {
     flow.silent()
     const switched = flow.silent()
     expect(flow.state.mode).toBe('tap')
-    expect(said(switched)).toContain('Ich höre dich nicht. Tipp einfach auf die Trommel!')
+    expect(said(switched)).toEqual(['Ich höre dich nicht. Tipp einfach auf die Trommel!', 'Hör zu und mach es nach!'])
     expect(switched.at(-1)).toEqual({ type: 'turn', task: COPY, mode: 'tap' })
+  })
+
+  it('switches to tapping at once when the microphone is dead, without counting a try', () => {
+    const flow = createRhythmFlow([COPY], false)
+    flow.start(); flow.choose('clap')
+    const effects = flow.micDead()
+    expect(flow.state).toMatchObject({ mode: 'tap', tries: 0 })
+    expect(said(effects)).toEqual(['Ich höre dich nicht. Tipp einfach auf die Trommel!', 'Hör zu und mach es nach!'])
+    expect(effects.at(-1)).toEqual({ type: 'turn', task: COPY, mode: 'tap' })
   })
 
   it('takes nothing while choosing, during the example or the cheer', () => {

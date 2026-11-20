@@ -122,7 +122,8 @@ export function judge(task: RhythmTask, hits: Hit[], mode: Mode): boolean {
   }
   if (task.type === 'copy') {
     if (hits.length !== task.gaps.length + 1) return false
-    return task.gaps.every((g, i) => Math.abs((hits[i + 1].t - hits[i].t) / g - 1) <= GAP_SLACK)
+    // In ms, not as a ratio: exactly a third more or less counts both ways
+    return task.gaps.every((g, i) => Math.abs(hits[i + 1].t - hits[i].t - g) <= g * GAP_SLACK + 1e-9)
   }
   if (hits.length !== task.order.length) return false
   if (mode === 'tap') return task.order.every((d, i) => hits[i].big === (d === 'laut'))

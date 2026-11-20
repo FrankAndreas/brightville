@@ -69,6 +69,9 @@ describe('judging', () => {
     const copy: RhythmTask = { type: 'copy', gaps: [500, 250, 500] }
     expect(judge(copy, hitsAt([1000, 1500, 1750, 2250]), 'clap')).toBe(true)
     expect(judge(copy, hitsAt([0, 670, 900, 1550]), 'clap')).toBe(true)
+    // Exactly a third more or less is still right, both ways
+    expect(judge(copy, hitsAt([0, 675, 912.5, 1587.5]), 'clap')).toBe(true)
+    expect(judge(copy, hitsAt([0, 325, 487.5, 812.5]), 'clap')).toBe(true)
     expect(judge(copy, hitsAt([0, 500, 1000, 1500]), 'clap')).toBe(false)
     expect(judge(copy, hitsAt([0, 500, 750]), 'clap')).toBe(false)
   })

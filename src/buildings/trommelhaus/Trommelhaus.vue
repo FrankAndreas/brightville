@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import Confetti from '@/components/Confetti.vue'
 import {
   beatTimes, buildRhythmSession, exampleFor, findOnsets, LEAD_IN, type Hit, type Mode, type RhythmTask,
 } from '@/core/rhythm'
 import { hasMicrophone, openMicrophone, type Level, type Microphone } from '@/services/microphone'
-import { askedAgain } from '@/services/sayAgain'
 import { playBeat, unlockAudio } from '@/services/sound'
 import { forgetInstruction, instruct, instruction, speak, stopSpeaking } from '@/services/tts'
 import { useSchoolStore } from '@/stores/school'
@@ -36,8 +35,11 @@ const START_MS = 6000
 /** After her last beat, the answer is over */
 const DONE_AFTER_MS = 1800
 const PULSE_MS = 140
-/** The room's noise is measured in the first readings */
+/** The room's noise is measured in the first readings, but never taken as louder than this (she may clap at once) */
 const FLOOR_READINGS = 5
+const FLOOR_AT_MOST = 0.02
+/** Readings that never rise above this, or never change, come from a microphone that hears nothing */
+const DEAD_LEVEL = 0.002
 
 const school = useSchoolStore()
 const step = school.ladders.rhythmus.step
@@ -67,7 +69,8 @@ function later(fn: () => void, ms: number) {
   timers.add(id)
 }
 const pause = (ms: number) => new Promise<void>(resolve => later(resolve, ms))
-const now = () => Date.now()
+/** One clock for the house's beats, her taps and the microphone's readings */
+const now = () => performance.now()
 
 function sync() {
   Object.assign(view, flow.state)
@@ -142,7 +145,11 @@ async function turn(task: RhythmTask, mode: Mode, live: () => boolean) {
   }
   t0 = task.type === 'keep' ? judgedFrom : now()
   listening.value = true
-  if (mode === 'clap' && mic) stopLevels = mic.listen(l => { levels.push(l) })
+  if (mode === 'clap' && mic) {
+    // 🔊 would be heard as claps: it hides while the microphone listens
+    forgetInstruction()
+    stopLevels = mic.listen(l => { levels.push(l) })
+  }
   const answer = await new Promise<'answered' | 'silent'>(resolve => {
     finishTurn = () => resolve(hits.length > 0 || levels.length > 0 ? 'answered' : 'silent')
     if (task.type === 'keep') later(() => finishTurn?.(), Math.max(0, endsAt - now()))
@@ -157,13 +164,32 @@ async function turn(task: RhythmTask, mode: Mode, live: () => boolean) {
   endTimer = null
   if (!live()) return
   const heard = mode === 'clap' ? claps() : hits
+  if (mode === 'clap' && heard.length === 0 && micIsDead()) {
+    closeMic()
+    carryOn(flow.micDead())
+    return
+  }
   carryOn(answer === 'silent' || heard.length === 0 ? flow.silent() : flow.answered(heard))
+}
+
+/** Nothing at all came in, not even the room: the microphone isn't working */
+function micIsDead(): boolean {
+  if (levels.length === 0) return true
+  const all = levels.map(l => l.level)
+  return Math.max(...all) < DEAD_LEVEL || Math.max(...all) - Math.min(...all) < 1e-6
+}
+
+function closeMic() {
+  stopLevels()
+  stopLevels = () => {}
+  mic?.close()
+  mic = null
 }
 
 /** Her claps so far, timed from the start of her answer */
 function claps(): Hit[] {
   if (levels.length === 0) return []
-  const floor = Math.min(...levels.slice(0, FLOOR_READINGS).map(l => l.level))
+  const floor = Math.min(FLOOR_AT_MOST, ...levels.slice(0, FLOOR_READINGS).map(l => l.level))
   return findOnsets(levels, floor).map(h => ({ ...h, t: h.t - t0 }))
 }
 
@@ -213,6 +239,8 @@ function run(effects: RhythmEffect[]): Promise<boolean> {
       chain = chain.then(() => { if (live()) void turn(effect.task, effect.mode, live) })
     }
   }
+  // Solved, or shown after three tries: 🔊 has nothing to ask until the next task
+  if (flow.state.phase === 'cheering') forgetInstruction()
   return chain.then(() => live() && !effects.some(e => e.type === 'turn'))
 }
 
@@ -226,15 +254,20 @@ function carryOn(effects: RhythmEffect[]) {
   })
 }
 
+/** While the microphone is being asked for, further taps on the door's buttons do nothing */
+let opening = false
+
 async function choose(mode: Mode) {
-  if (closed || view.phase !== 'choosing') return
+  if (closed || opening || view.phase !== 'choosing') return
   unlockAudio()
   if (mode === 'tap') {
     carryOn(flow.choose('tap'))
     return
   }
   // The tap on 👏 is the gesture the iPad wants before it asks for the microphone
+  opening = true
   mic = await (props.openMic ?? openMicrophone)()
+  opening = false
   if (closed) {
     mic?.close()
     return
@@ -252,9 +285,7 @@ function shutDown() {
   for (const id of timers) clearTimeout(id)
   timers.clear()
   if (endTimer) clearTimeout(endTimer)
-  stopLevels()
-  mic?.close()
-  mic = null
+  closeMic()
   stopLeaveRequests()
   stopSpeaking()
 }
@@ -266,10 +297,8 @@ function leave() {
   emit('finished', { stars: flow.state.stars })
 }
 
-watch(askedAgain, () => {
-  if (closed || listening.value) return
-  current++
-})
+// 🔊 just says the instruction again (SayAgain.vue): nothing here stops for it, so a visit can't stall on it; while
+// the microphone listens there is no instruction to say (see turn)
 
 onMounted(() => {
   stopLeaveRequests = onLeaveRequest(leave)
