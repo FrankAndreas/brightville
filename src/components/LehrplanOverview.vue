@@ -19,7 +19,7 @@ const SUBJECTS: { name: string; test: string; ladders: { id: Ladder; name: strin
     name: 'Mathematik', test: 'mathe',
     ladders: [
       { id: 'zaehlen', name: 'Zählen' }, { id: 'rechnen', name: 'Rechnen' }, { id: 'muster', name: 'Muster' },
-      { id: 'zeit', name: 'Zeit' },
+      { id: 'zeit', name: 'Zeit' }, { id: 'raum', name: 'Raum' },
     ],
   },
   { name: 'Deutsch', test: 'deutsch', ladders: [{ id: 'reimen', name: 'Reimen' }] },

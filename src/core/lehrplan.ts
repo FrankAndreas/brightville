@@ -1,5 +1,5 @@
 // The Lehrplan 21 (Zyklus 1) behind the game, for the parents' page: what each building practises, how far the
-// six measured parts are, and what was practised this week. Codes are the template's (v-fe.lehrplan.ch).
+// seven measured parts are, and what was practised this week. Codes are the template's (v-fe.lehrplan.ch).
 // The child never sees any of it.
 
 import type { LogDay } from './diary'
@@ -19,8 +19,8 @@ export const ZUGAENGE: Record<number, string> = {
   8: 'Sprache und Kommunikation',
   9: 'Eigenständigkeit und soziales Handeln',
 }
-/** Walking the town (4), Mein Haus and the shops (9) aren't logged as visits: they can't show as practised */
-const NOT_LOGGED = [4, 9]
+/** Mein Haus and the shops (9) aren't logged as visits: they can't show as practised */
+const NOT_LOGGED = [9]
 
 /** The subjects, in the order shown */
 export const FACHBEREICHE: Record<string, string> = {
@@ -56,6 +56,7 @@ export const TAGS: Record<string, Tag> = {
   reimhaus: { codes: ['D.1.A.1'], zugaenge: [8, 2] },
   muster: { codes: ['MA.1.B', 'MA.3'], zugaenge: [5, 2] },
   kalender: { codes: ['MA.3'], zugaenge: [3, 8] },
+  spielwelt: { codes: ['MA.2'], zugaenge: [4, 2] },
   kino: { codes: [], zugaenge: [] },
   haus: { codes: [], zugaenge: [9] },
   laden: { codes: [], zugaenge: [9] },
@@ -104,15 +105,24 @@ export const STEP_TEXT: Record<Ladder, string[]> = {
     'volle und halbe Stunden',
     'fertig (Ende 2. Klasse)',
   ],
+  raum: [
+    'auf, unter, in',
+    'neben, vor, hinter',
+    'zwischen',
+    'links, rechts',
+    'zwei Angaben zusammen',
+    'fertig (Ende 2. Klasse)',
+  ],
 }
 
 /**
  * Where Kindergarten typically ends on each ladder: Zählen and Rechnen step 3 reached, Reimen done (hearing rhymes,
  * first sounds and syllables is a Kindergarten goal), Muster step 4 reached (rows yes; gaps and two features are 1st
- * grade), Zeit step 5 reached (the day, the week, yesterday and tomorrow, the seasons; the clock is 1st grade), writing
+ * grade), Zeit step 5 reached (the day, the week, yesterday and tomorrow, the seasons; the clock is 1st grade), Raum step 4
+ * reached (auf to zwischen; links and rechts are 1st grade), writing
  * starts in 1st grade
  */
-export const KG_TARGETS: Record<Ladder | 'letters', number> = { zaehlen: 0.4, rechnen: 0.4, reimen: 1, muster: 0.6, zeit: 0.8, letters: 0 }
+export const KG_TARGETS: Record<Ladder | 'letters', number> = { zaehlen: 0.4, rechnen: 0.4, reimen: 1, muster: 0.6, zeit: 0.8, raum: 0.6, letters: 0 }
 const PARTS = Object.keys(KG_TARGETS).length
 const KNOWN = 4
 
