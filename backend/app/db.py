@@ -158,6 +158,22 @@ CREATE TABLE writing_keys (
 ALTER TABLE writing_keys ADD COLUMN day TEXT NOT NULL DEFAULT '';
 UPDATE writing_keys SET day = date('now', 'localtime');
 """,
+    # The School's Lehrplan 21 ladders (Zählen, Rechnen): her step, her latest first-try answers, the results counted
+    """
+CREATE TABLE school_ladders (
+    person_id INTEGER NOT NULL,
+    ladder TEXT NOT NULL,
+    step INTEGER NOT NULL,
+    recent TEXT NOT NULL DEFAULT '[]',
+    PRIMARY KEY (person_id, ladder)
+);
+CREATE TABLE school_keys (
+    person_id INTEGER NOT NULL,
+    key TEXT NOT NULL,
+    day TEXT NOT NULL,
+    PRIMARY KEY (person_id, key)
+);
+""",
 ]
 VERSION = len(MIGRATIONS)
 
