@@ -113,3 +113,14 @@ Not planned as stages yet. Roughly by how much they would add for a five-year-ol
 6. **Polish:** day and night in the town, background music; in the town, carrying things (Q), a map (M), a quest board.
 
 Suggested order: let the child play stage 6 first (especially the camera buildings with the new camera), fix what that turns up, then the character's outfits.
+
+## Architecture review (Nov 20, 2026)
+
+A second architecture review after the Lehrplan work. Fixed so far:
+
+- The ladder rules (window, misses) live in `shared/ladders.json`, read by the server and the page alike (#50).
+- Building colours and house shapes are looked up by building id, not by the position in the registry (#51).
+- One ladder table (`LADDER_DEFS` in `src/core/lehrplan.ts`): name, subject, step texts and where Kindergarten ends. The parents' page shows **one bar per subject** instead of a single overall number (the parent's choice), so a new ladder no longer moves every child's number. The server's results model is made from the shared file and refuses an unknown ladder (a newer page's results wait instead of being lost).
+
+Still to do: the visit lifecycle shared by the learning buildings (one building per PR), and small things (stale comments, the TS store's name, copied random helpers, seeded screen tests). Left for later: the two offline queues (merge when a third is needed), a growth plan for the town (no free lots), the Spielwelt's triple drawing (measure on the iPad first). The cool-down guesses for the new buildings: Reimhaus, Musterwerkstatt, Kalender and Spielwelt 2 s per Star, Trommelhaus 3.
+

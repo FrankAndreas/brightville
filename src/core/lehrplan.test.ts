@@ -1,15 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { BUILDINGS } from '@/buildings/registry'
 import type { LogDay, LogEntry } from './diary'
-import type { Ladders } from './ladders'
-import { FACHBEREICHE, kgMark, lettersShare, overall, practice, STEP_TEXT, subjects, TAGS, weekDays, ZUGAENGE } from './lehrplan'
+import { LADDERS } from './ladders'
+import { laddersAt } from './ladders.fixture'
+import { FACHBEREICHE, LADDER_DEFS, lettersShare, practice, STEP_TEXT, subjectProgress, subjects, TAGS, weekDays, ZUGAENGE } from './lehrplan'
 import type { Letters } from './writing/levels'
 
-const ladders = (zaehlen: number, rechnen: number, reimen = 1, muster = 1, zeit = 1, raum = 1, rhythmus = 1): Ladders => ({
-  zaehlen: { step: zaehlen, window: [] }, rechnen: { step: rechnen, window: [] },
-  reimen: { step: reimen, window: [] }, muster: { step: muster, window: [] }, zeit: { step: zeit, window: [] },
-  raum: { step: raum, window: [] }, rhythmus: { step: rhythmus, window: [] },
-})
 const known = (glyphs: string): Letters =>
   Object.fromEntries([...glyphs].map(g => [g, { level: 4 as const, streak: 0, practised_at: null }]))
 const entry = (building: string, kind: LogEntry['kind'] = 'visit'): LogEntry => ({ building, kind, stars: 3, at: '10:00' })
@@ -27,18 +23,33 @@ describe('Lehrplan 21', () => {
     expect(Object.keys(ZUGAENGE)).toHaveLength(9)
   })
 
-  it('has a text for every step', () => {
-    expect(STEP_TEXT.zaehlen).toHaveLength(6)
-    expect(STEP_TEXT.rechnen).toHaveLength(6)
-    expect(STEP_TEXT.reimen).toHaveLength(6)
-    expect(STEP_TEXT.muster).toHaveLength(6)
+  it('describes every ladder once: its name, its subject, six step texts and where Kindergarten ends', () => {
+    expect(Object.keys(LADDER_DEFS).sort()).toEqual([...LADDERS].sort())
+    for (const l of LADDERS) {
+      expect(STEP_TEXT[l], l).toHaveLength(6)
+      expect(FACHBEREICHE[LADDER_DEFS[l].subject], l).toBeDefined()
+      expect(LADDER_DEFS[l].kgStep, l).toBeGreaterThanOrEqual(1)
+      expect(LADDER_DEFS[l].kgStep, l).toBeLessThanOrEqual(6)
+    }
   })
 
-  it('makes one number from the ladders and the letters', () => {
-    expect(overall(ladders(1, 1, 1, 1, 1, 1, 1), {})).toBe(0)
+  it('shows how far she is per subject, each with where Kindergarten ends', () => {
+    const at = subjectProgress(laddersAt({ zaehlen: 3, rechnen: 2, muster: 3, zeit: 2, raum: 5, reimen: 4, rhythmus: 2 }), known('MIAPLENO'))
+    expect(at.map(s => s.code)).toEqual(['MA', 'D', 'MU'])
+    const [ma, d, mu] = at
+    expect(ma).toMatchObject({ name: 'Mathematik', ladders: ['zaehlen', 'rechnen', 'muster', 'zeit', 'raum'] })
+    expect(ma.percent).toBe(Math.round(((0.4 + 0.2 + 0.4 + 0.2 + 0.8) / 5) * 100))
+    expect(ma.kg).toBe(56)
+    // Deutsch: Reimen and the letters she knows
+    expect(d).toMatchObject({ ladders: ['reimen'], letters: true, kg: 50 })
+    expect(d.percent).toBe(Math.round(((0.6 + 8 / 29) / 2) * 100))
+    expect(mu).toMatchObject({ ladders: ['rhythmus'], percent: 20, kg: 60 })
+  })
+
+  it('reaches 100 % in every subject at the end of 2nd grade', () => {
     const all = known('ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ')
-    expect(overall(ladders(6, 6, 6, 6, 6, 6, 6), all)).toBe(100)
-    expect(overall(ladders(3, 2, 4, 3, 2, 5, 2), known('MIAPLENO'))).toBe(Math.round(((0.4 + 0.2 + 0.6 + 0.4 + 0.2 + 0.8 + 0.2 + 8 / 29) / 8) * 100))
+    expect(subjectProgress(laddersAt(Object.fromEntries(LADDERS.map(l => [l, 6]))), all).map(s => s.percent)).toEqual([100, 100, 100])
+    expect(subjectProgress(laddersAt(), {}).map(s => s.percent)).toEqual([0, 0, 0])
   })
 
   it('tags the Trommelhaus as Musik, Körper and Wahrnehmung', () => {
@@ -64,10 +75,6 @@ describe('Lehrplan 21', () => {
   it('counts only letters she knows, not digits or letters still practised', () => {
     const letters: Letters = { ...known('AB12'), C: { level: 3, streak: 0, practised_at: null } }
     expect(lettersShare(letters)).toBeCloseTo(2 / 29)
-  })
-
-  it('marks the end of Kindergarten', () => {
-    expect(kgMark()).toBe(55)
   })
 
   it('takes the last seven calendar days, today first', () => {

@@ -11,7 +11,7 @@ import shared from '../../shared/ladders.json'
 const RULES = shared as { id: Ladder; window: number; misses: number }[]
 export const LADDERS: Ladder[] = RULES.map(l => l.id)
 /** The two the School asks */
-export type SchoolLadder = Exclude<Ladder, 'reimen' | 'muster' | 'zeit' | 'raum' | 'rhythmus'>
+export type SchoolLadder = 'zaehlen' | 'rechnen'
 export interface LadderState {
   /** 1–5, 6 = "fertig" (asks step 5) */
   step: number

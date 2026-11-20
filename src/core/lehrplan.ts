@@ -1,5 +1,6 @@
-// The Lehrplan 21 (Zyklus 1) behind the game, for the parents' page: what each building practises, how far the
-// eight measured parts are, and what was practised this week. Codes are the template's (v-fe.lehrplan.ch).
+// The Lehrplan 21 (Zyklus 1) behind the game, for the parents' page: what each building practises, how far each
+// subject is along (one bar each, from its ladders), and what was practised this week. Codes are the template's
+// (v-fe.lehrplan.ch).
 // The child never sees any of it.
 
 import type { LogDay } from './diary'
@@ -64,92 +65,138 @@ export const TAGS: Record<string, Tag> = {
   moebel: { codes: [], zugaenge: [9] },
 }
 
-/** What each step asks, steps 1–5 and "fertig" */
-export const STEP_TEXT: Record<Ladder, string[]> = {
-  zaehlen: [
-    'bis 10 zählen, Würfel',
-    'bis 20 zählen, was kommt danach',
-    'vor- und rückwärts bis 20, in 2er-Schritten, Blitzblick',
-    'bis 100 in 1er-, 2er-, 5er- und 10er-Schritten',
-    'vor- und rückwärts bis 100',
-    'fertig (Ende 2. Klasse)',
-  ],
-  rechnen: [
-    'plus bis 5',
-    'plus bis 10',
-    'plus und minus bis 10, verdoppeln',
-    'plus und minus bis 20',
-    'Zehner bis 100 ohne Übertrag',
-    'fertig (Ende 2. Klasse)',
-  ],
-  reimen: [
-    'reimt sich? aus zwei Bildern',
-    'reimt sich? aus drei Bildern',
-    'Anlaute: was fängt gleich an',
-    'Silben klatschen bis 3',
-    'Silben bis 4 und Anlaute gemischt',
-    'fertig (Ende Kindergarten)',
-  ],
-  muster: [
-    'Reihen mit zwei Farben',
-    'Reihen mit drei Farben',
-    'Reihen mit Formen und Grössen',
-    'Sortieren nach Farbe und Art',
-    'Lücken, Grösse, zwei Merkmale',
-    'fertig (Ende 2. Klasse)',
-  ],
-  zeit: [
-    'Tagesablauf ordnen',
-    'Morgen, Mittag, Abend, Nacht',
-    'Wochentage',
-    'gestern, morgen, Jahreszeiten',
-    'volle und halbe Stunden',
-    'fertig (Ende 2. Klasse)',
-  ],
-  raum: [
-    'auf, unter, in',
-    'neben, vor, hinter',
-    'zwischen',
-    'links, rechts',
-    'zwei Angaben zusammen',
-    'fertig (Ende 2. Klasse)',
-  ],
-  rhythmus: [
-    'Takt halten',
-    'schnell und langsam',
-    'laut und leise',
-    'Rhythmen nachklatschen',
-    'längere Rhythmen',
-    'fertig (Ende 2. Klasse)',
-  ],
+/** A ladder as the parents' page shows it */
+export interface LadderDef {
+  name: string
+  /** The subject it counts for (a key of FACHBEREICHE) */
+  subject: string
+  /** What each step asks, steps 1–5 and "fertig" */
+  steps: string[]
+  /** The step a child typically has reached at the end of Kindergarten (1–6) */
+  kgStep: number
 }
 
 /**
- * Where Kindergarten typically ends on each ladder: Zählen and Rechnen step 3 reached, Reimen done (hearing rhymes,
- * first sounds and syllables is a Kindergarten goal), Muster step 4 reached (rows yes; gaps and two features are 1st
- * grade), Zeit step 5 reached (the day, the week, yesterday and tomorrow, the seasons; the clock is 1st grade), Raum step 4
- * reached (auf to zwischen; links and rechts are 1st grade), Rhythmus step 4 reached (copying rhythms is 1st grade),
- * writing
- * starts in 1st grade
+ * Every ladder once: its name, its subject, its steps and where Kindergarten ends. The step texts, the subjects'
+ * bars and their Kindergarten lines are all made from this table (the rules live in shared/ladders.json).
  */
-export const KG_TARGETS: Record<Ladder | 'letters', number> = { zaehlen: 0.4, rechnen: 0.4, reimen: 1, muster: 0.6, zeit: 0.8, raum: 0.6, rhythmus: 0.6, letters: 0 }
-const PARTS = Object.keys(KG_TARGETS).length
-const KNOWN = 4
-
-/** The end of Kindergarten on the overall bar, in percent */
-export function kgMark(): number {
-  return Math.round((Object.values(KG_TARGETS).reduce((a, b) => a + b, 0) / PARTS) * 100)
+export const LADDER_DEFS: Record<Ladder, LadderDef> = {
+  zaehlen: {
+    name: 'Zählen', subject: 'MA', kgStep: 3, // step 3 reached
+    steps: [
+      'bis 10 zählen, Würfel',
+      'bis 20 zählen, was kommt danach',
+      'vor- und rückwärts bis 20, in 2er-Schritten, Blitzblick',
+      'bis 100 in 1er-, 2er-, 5er- und 10er-Schritten',
+      'vor- und rückwärts bis 100',
+      'fertig (Ende 2. Klasse)',
+    ],
+  },
+  rechnen: {
+    name: 'Rechnen', subject: 'MA', kgStep: 3, // step 3 reached
+    steps: [
+      'plus bis 5',
+      'plus bis 10',
+      'plus und minus bis 10, verdoppeln',
+      'plus und minus bis 20',
+      'Zehner bis 100 ohne Übertrag',
+      'fertig (Ende 2. Klasse)',
+    ],
+  },
+  muster: {
+    name: 'Muster', subject: 'MA', kgStep: 4, // rows yes; gaps and two features are 1st grade
+    steps: [
+      'Reihen mit zwei Farben',
+      'Reihen mit drei Farben',
+      'Reihen mit Formen und Grössen',
+      'Sortieren nach Farbe und Art',
+      'Lücken, Grösse, zwei Merkmale',
+      'fertig (Ende 2. Klasse)',
+    ],
+  },
+  zeit: {
+    name: 'Zeit', subject: 'MA', kgStep: 5, // the day, the week, yesterday and tomorrow, the seasons; the clock is 1st grade
+    steps: [
+      'Tagesablauf ordnen',
+      'Morgen, Mittag, Abend, Nacht',
+      'Wochentage',
+      'gestern, morgen, Jahreszeiten',
+      'volle und halbe Stunden',
+      'fertig (Ende 2. Klasse)',
+    ],
+  },
+  raum: {
+    name: 'Raum', subject: 'MA', kgStep: 4, // auf to zwischen; links and rechts are 1st grade
+    steps: [
+      'auf, unter, in',
+      'neben, vor, hinter',
+      'zwischen',
+      'links, rechts',
+      'zwei Angaben zusammen',
+      'fertig (Ende 2. Klasse)',
+    ],
+  },
+  reimen: {
+    name: 'Reimen', subject: 'D', kgStep: 6, // done: hearing rhymes, first sounds and syllables is a Kindergarten goal
+    steps: [
+      'reimt sich? aus zwei Bildern',
+      'reimt sich? aus drei Bildern',
+      'Anlaute: was fängt gleich an',
+      'Silben klatschen bis 3',
+      'Silben bis 4 und Anlaute gemischt',
+      'fertig (Ende Kindergarten)',
+    ],
+  },
+  rhythmus: {
+    name: 'Rhythmus', subject: 'MU', kgStep: 4, // copying rhythms is 1st grade
+    steps: [
+      'Takt halten',
+      'schnell und langsam',
+      'laut und leise',
+      'Rhythmen nachklatschen',
+      'längere Rhythmen',
+      'fertig (Ende 2. Klasse)',
+    ],
+  },
 }
+
+/** What each step asks, per ladder */
+export const STEP_TEXT = Object.fromEntries(LADDERS.map(l => [l, LADDER_DEFS[l].steps])) as Record<Ladder, string[]>
+
+const KNOWN = 4
 
 /** The letters (not digits) she knows, as a share of all 29 */
 export function lettersShare(letters: Letters): number {
   return LETTERS.filter(g => letters[g]?.level === KNOWN).length / LETTERS.length
 }
 
-/** One number: the ladders' and the letters' average share, in whole percent; 100 is the end of Zyklus 1 */
-export function overall(ladders: Ladders, letters: Letters): number {
-  const shares = LADDERS.reduce((sum, l) => sum + share(ladders[l].step), 0) + lettersShare(letters)
-  return Math.round((shares / PARTS) * 100)
+/** How far she is in one subject: the average of its ladders (and, for Deutsch, the letters), in whole percent */
+export interface SubjectProgress {
+  code: string
+  name: string
+  /** 100 is the end of Zyklus 1 (end of 2nd grade) */
+  percent: number
+  /** Where Kindergarten typically ends, in percent */
+  kg: number
+  ladders: Ladder[]
+  /** Schreiben's letters count here (Deutsch) */
+  letters: boolean
+}
+
+/** Schreiben's letters count for Deutsch; writing starts in 1st grade, so their Kindergarten target is 0 */
+const LETTERS_SUBJECT = 'D'
+
+/** One bar per subject that has a ladder, in the subjects' order: no single number that every new ladder would move */
+export function subjectProgress(ladders: Ladders, letters: Letters): SubjectProgress[] {
+  return Object.entries(FACHBEREICHE).flatMap(([code, name]) => {
+    const own = LADDERS.filter(l => LADDER_DEFS[l].subject === code)
+    if (own.length === 0) return []
+    const withLetters = code === LETTERS_SUBJECT
+    const shares = [...own.map(l => share(ladders[l].step)), ...(withLetters ? [lettersShare(letters)] : [])]
+    const targets = [...own.map(l => share(LADDER_DEFS[l].kgStep)), ...(withLetters ? [0] : [])]
+    const mean = (xs: number[]) => Math.round((xs.reduce((a, b) => a + b, 0) / xs.length) * 100)
+    return [{ code, name, percent: mean(shares), kg: mean(targets), ladders: own, letters: withLetters }]
+  })
 }
 
 /** Today and the six days before, as "YYYY-MM-DD", today first */

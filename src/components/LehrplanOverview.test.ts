@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
+import { laddersAt } from '@/core/ladders.fixture'
 import { fakeApi, type FakeApi } from '@/services/fakeApi'
 import LehrplanOverview from './LehrplanOverview.vue'
 
@@ -20,7 +21,7 @@ describe('LehrplanOverview', () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date(2026, 10, 20, 10, 0))
     api = fakeApi()
-    api.school_ = { zaehlen: { step: 3, window: [] }, rechnen: { step: 2, window: [] }, reimen: { step: 1, window: [] }, muster: { step: 1, window: [] }, zeit: { step: 1, window: [] }, raum: { step: 1, window: [] }, rhythmus: { step: 1, window: [] } }
+    api.school_ = laddersAt({ zaehlen: 3, rechnen: 2 })
     api.writing_.letters = { M: known, I: known, A: known }
     api.logbook_ = [
       { day: '2026-11-19', goal_reached: true, stickers: [], paintings: [], entries: [
@@ -41,12 +42,17 @@ describe('LehrplanOverview', () => {
     expect(api.calls.sort()).toEqual(['diary 2', 'playerSchool 2', 'playerWriting 2'])
   })
 
-  it('shows the overall number with the end of Kindergarten, the steps and the letters', async () => {
+  it('shows a bar per subject with the end of Kindergarten, then the steps and the letters', async () => {
     const w = await open(api)
-    // (0.4 + 0.2 + 0 + 0 + 0 + 0 + 0 + 3/29) / 8
-    expect(w.find('[data-test="lehrplan-percent"]').text()).toBe('9 %')
-    expect(w.find('[data-test="lehrplan-bar"]').attributes('style')).toContain('width: 9%')
-    expect(w.find('[data-test="lehrplan-kg"]').attributes('style')).toContain('left: 55%')
+    // Mathematik: Zählen 3, Rechnen 2, the rest at 1: (0.4 + 0.2) / 5
+    expect(w.find('[data-test="percent-MA"]').text()).toBe('12 %')
+    expect(w.find('[data-test="bar-MA"]').attributes('style')).toContain('width: 12%')
+    expect(w.find('[data-test="kg-MA"]').attributes('style')).toContain('left: 56%')
+    // Deutsch: Reimen 1 and 3 of 29 letters: (0 + 3/29) / 2
+    expect(w.find('[data-test="percent-D"]').text()).toBe('5 %')
+    expect(w.find('[data-test="kg-D"]').attributes('style')).toContain('left: 50%')
+    expect(w.find('[data-test="percent-MU"]').text()).toBe('0 %')
+    expect(w.find('[data-test="lehrplan-percent"]').exists()).toBe(false)
     expect(w.find('[data-test="ladder-zaehlen"]').text()).toContain('Stufe 3 von 5')
     expect(w.find('[data-test="ladder-zaehlen"]').text()).toContain('vor- und rückwärts bis 20')
     expect(w.find('[data-test="ladder-rechnen"]').text()).toContain('plus bis 10')
