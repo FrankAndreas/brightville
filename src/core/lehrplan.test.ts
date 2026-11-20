@@ -5,8 +5,8 @@ import type { Ladders } from './ladders'
 import { FACHBEREICHE, kgMark, lettersShare, overall, practice, STEP_TEXT, subjects, TAGS, weekDays, ZUGAENGE } from './lehrplan'
 import type { Letters } from './writing/levels'
 
-const ladders = (zaehlen: number, rechnen: number): Ladders => ({
-  zaehlen: { step: zaehlen, window: [] }, rechnen: { step: rechnen, window: [] },
+const ladders = (zaehlen: number, rechnen: number, reimen = 1): Ladders => ({
+  zaehlen: { step: zaehlen, window: [] }, rechnen: { step: rechnen, window: [] }, reimen: { step: reimen, window: [] },
 })
 const known = (glyphs: string): Letters =>
   Object.fromEntries([...glyphs].map(g => [g, { level: 4 as const, streak: 0, practised_at: null }]))

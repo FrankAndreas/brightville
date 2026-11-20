@@ -20,9 +20,18 @@ describe('ladders', () => {
   })
 
   it('Rechnen needs four', () => {
-    expect(WINDOW).toEqual({ zaehlen: 6, rechnen: 4 })
+    expect(WINDOW).toEqual({ zaehlen: 6, rechnen: 4, reimen: 10 })
     expect(applyResults(at(1), [true, true], 'rechnen').step).toBe(1)
     expect(applyResults(at(1, [true, true]), [true, false], 'rechnen')).toEqual(at(2))
+  })
+
+  it('moves Reimen up after ten answers with two misses', () => {
+    const s = applyResults(at(1), [true, false, true, true, true, true, true, false, true, true], 'reimen')
+    expect(s).toEqual(at(2))
+  })
+
+  it('keeps Reimen with three misses in ten', () => {
+    expect(applyResults(at(1), [false, false, false, true, true, true, true, true, true, true], 'reimen').step).toBe(1)
   })
 
   it('step 6 is the last', () => {
@@ -36,8 +45,8 @@ describe('ladders', () => {
   })
 
   it('starts like the server', () => {
-    expect(startLadders(false)).toEqual({ zaehlen: at(1), rechnen: at(1) })
-    expect(startLadders(true)).toEqual({ zaehlen: at(1), rechnen: at(2) })
+    expect(startLadders(false)).toEqual({ zaehlen: at(1), rechnen: at(1), reimen: at(1) })
+    expect(startLadders(true)).toEqual({ zaehlen: at(1), rechnen: at(2), reimen: at(1) })
   })
 
   it('a step is a share of the way to the end of Zyklus 1', () => {

@@ -3,7 +3,7 @@ import buildings from '../../shared/buildings.json'
 import { DEFAULT_LOOK } from '@/core/look'
 import { furnitureDef, furnitureShelfOpen, type Spot } from '@/core/furniture'
 import { outfitDef, pay, shelfOpen, type Place } from '@/core/outfits'
-import { applyResults, LAST_STEP, startLadders, type Ladder, type Ladders } from '@/core/ladders'
+import { applyResults, LADDERS, LAST_STEP, startLadders, type Ladders } from '@/core/ladders'
 import { GLYPHS } from '@/core/writing/letters'
 import { applyWrite, checkText, normalizeText, type Letters } from '@/core/writing/levels'
 import {
@@ -246,15 +246,16 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
     schoolResults: r => run(`schoolResults ${r.key}`, () => {
       if (schoolKeys.has(r.key)) return schoolCopy()
       schoolKeys.add(r.key)
-      for (const ladder of ['zaehlen', 'rechnen'] as Ladder[]) {
+      for (const ladder of LADDERS) {
         const now = api.school_[ladder]
-        if (r[ladder].results.length && r[ladder].step === now.step) api.school_[ladder] = applyResults(now, r[ladder].results, ladder)
+        const got = r[ladder]
+        if (got?.results.length && got.step === now.step) api.school_[ladder] = applyResults(now, got.results, ladder)
       }
       return schoolCopy()
     }),
     playerSchool: id => run(`playerSchool ${id}`, () => schoolCopy()),
     setPlayerStep: (id, ladder, step) => run(`setPlayerStep ${id} ${ladder} ${step}`, () => {
-      if (ladder !== 'zaehlen' && ladder !== 'rechnen') throw new ApiError(422, 'unknown')
+      if (!LADDERS.includes(ladder)) throw new ApiError(422, 'unknown')
       if (step < 1 || step > LAST_STEP) throw new ApiError(422, 'bad_step')
       api.school_[ladder] = { step, window: [] }
       return schoolCopy()

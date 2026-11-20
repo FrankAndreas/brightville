@@ -77,6 +77,14 @@ export const STEP_TEXT: Record<Ladder, string[]> = {
     'Zehner bis 100 ohne Übertrag',
     'fertig (Ende 2. Klasse)',
   ],
+  reimen: [
+    'reimt sich? aus zwei Bildern',
+    'reimt sich? aus drei Bildern',
+    'Anlaute: was fängt gleich an',
+    'Silben klatschen bis 3',
+    'Silben bis 4 und Anlaute gemischt',
+    'fertig (Ende Kindergarten)',
+  ],
 }
 
 /** Where Kindergarten typically ends on each ladder: Zählen and Rechnen step 3 reached, writing starts in 1st grade */

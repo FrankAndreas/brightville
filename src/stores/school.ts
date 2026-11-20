@@ -1,9 +1,7 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
-import { applyResults, startLadders, type Ladder, type LadderState, type Ladders } from '@/core/ladders'
+import { applyResults, LADDERS, startLadders, type Ladder, type LadderState, type Ladders } from '@/core/ladders'
 import { ApiError, type Api, type SchoolResultsIn, type SchoolState } from '@/services/api'
-
-const LADDERS: Ladder[] = ['zaehlen', 'rechnen']
 
 const newKey = () =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -18,13 +16,13 @@ function lay(ladders: Ladders, item: SchoolResultsIn): Ladders {
   const next = { ...ladders }
   for (const ladder of LADDERS) {
     const r = item[ladder]
-    if (r.results.length && r.step === next[ladder].step) next[ladder] = applyResults(next[ladder], r.results, ladder)
+    if (r?.results.length && r.step === next[ladder].step) next[ladder] = applyResults(next[ladder], r.results, ladder)
   }
   return next
 }
 
 /**
- * The School's two Lehrplan 21 ladders for the child playing. The server keeps them (backend/app/school.py); a visit's
+ * The Lehrplan 21 ladders for the child playing: the School's Zählen and Rechnen, the Reimhaus's Reimen. The server keeps them (backend/app/school.py); a visit's
  * answers move her steps here at once, wait on the device until the server has them, and are sent again with the next
  * load if they were lost.
  */
@@ -62,8 +60,10 @@ export const useSchoolStore = defineStore('school', () => {
       const raw: unknown = JSON.parse(store().getItem(`${key}.ladders`) ?? 'null')
       const ok = (x: unknown): x is LadderState => typeof x === 'object' && x !== null
         && typeof (x as LadderState).step === 'number' && Array.isArray((x as LadderState).window)
-      const r = raw as Ladders | null
-      return r && ok(r.zaehlen) && ok(r.rechnen) ? { zaehlen: r.zaehlen, rechnen: r.rechnen } : null
+      const r = raw as Partial<Ladders> | null
+      if (!r || !ok(r.zaehlen) || !ok(r.rechnen)) return null
+      // Steps kept before Reimen came: it starts at step 1
+      return { zaehlen: r.zaehlen, rechnen: r.rechnen, reimen: ok(r.reimen) ? r.reimen : startLadders(false).reimen }
     } catch {
       return null
     }
@@ -82,10 +82,13 @@ export const useSchoolStore = defineStore('school', () => {
     try {
       const raw: unknown = JSON.parse(store().getItem(at) ?? '[]')
       // Anything broken by hand or by an older page is left out, so it can't stop the rest
+      const valid = (r: unknown) => typeof r === 'object' && r !== null
+        && typeof (r as { step: unknown }).step === 'number' && Array.isArray((r as { results: unknown }).results)
+        && (r as { results: unknown[] }).results.every(b => typeof b === 'boolean')
+      // A visit names one ladder or more (the School two, the Reimhaus one); each it names must be whole
       return (Array.isArray(raw) ? raw : []).filter((x): x is SchoolResultsIn =>
         typeof x === 'object' && x !== null && typeof x.key === 'string'
-        && LADDERS.every(l => typeof x[l] === 'object' && x[l] !== null && typeof x[l].step === 'number'
-          && Array.isArray(x[l].results) && x[l].results.every((r: unknown) => typeof r === 'boolean')))
+        && LADDERS.some(l => l in x) && LADDERS.every(l => !(l in x) || valid(x[l])))
     } catch {
       return []
     }
@@ -111,7 +114,7 @@ export const useSchoolStore = defineStore('school', () => {
     const waiting = readWaiting(key)
     const left = waiting.filter(x => !seen.has(x.key))
     if (left.length !== waiting.length) writeWaiting(key, left)
-    show(left.reduce(lay, { zaehlen: state.zaehlen, rechnen: state.rechnen }))
+    show(left.reduce(lay, { zaehlen: state.zaehlen, rechnen: state.rechnen, reimen: state.reimen }))
   }
 
   const refused = (e: unknown) => e instanceof ApiError && e.status >= 400 && e.status < 500 && e.status !== 401 && e.status !== 403
@@ -153,15 +156,16 @@ export const useSchoolStore = defineStore('school', () => {
   }
 
   /**
-   * A visit is over: its answers move her steps at once and go to the server (or wait here until it is back). `personId`:
-   * the child who started the visit; if someone else plays now, the answers wait for her.
+   * A visit is over: its answers move her steps at once and go to the server (or wait here until it is back). `steps`:
+   * the ladders the building asks, at the steps the visit started with. `personId`: the child who started the visit; if
+   * someone else plays now, the answers wait for her.
    */
-  function record(results: VisitResults, steps: Record<Ladder, number>, personId: number | null = who.value) {
+  function record(results: VisitResults, steps: Partial<Record<Ladder, number>>, personId: number | null = who.value) {
     if (results.length === 0) return
-    const item: SchoolResultsIn = {
-      key: newKey(),
-      zaehlen: { step: steps.zaehlen, results: results.filter(r => r.ladder === 'zaehlen').map(r => r.firstTry) },
-      rechnen: { step: steps.rechnen, results: results.filter(r => r.ladder === 'rechnen').map(r => r.firstTry) },
+    const item: SchoolResultsIn = { key: newKey() }
+    for (const ladder of LADDERS) {
+      const step = steps[ladder]
+      if (step !== undefined) item[ladder] = { step, results: results.filter(r => r.ladder === ladder).map(r => r.firstTry) }
     }
     const owner = personId === null ? key : `brightville.school.${personId}`
     writeWaiting(owner, [...readWaiting(owner), item])
