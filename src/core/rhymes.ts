@@ -2,6 +2,7 @@
 // is spoken; each word has a picture with one obvious Standard German name. The ladder's steps are the design's table
 // (docs/superpowers/specs/2026-11-20-brightville-reimhaus-design.md).
 
+import { WINDOW } from './ladders'
 export interface Word {
   id: string
   /** What the voice says */
@@ -33,8 +34,6 @@ export interface Example {
 }
 
 export const TASKS_PER_VISIT = 5
-/** Two visits' worth of answers at a step: until then each visit starts with an example */
-const EXAMPLE_UNTIL = 10
 const LAST_STEP = 6
 
 /** [say, emoji, syllables joined by '-', rhyme] */
@@ -179,7 +178,7 @@ const syllableExample = (id: string, count: string): Example => {
 
 /** The example before the first task: at steps 1–5 while her answers at the step are fewer than two visits' worth */
 export function exampleFor(step: number, windowLength: number): Example | null {
-  if (step >= LAST_STEP || windowLength >= EXAMPLE_UNTIL) return null
+  if (step >= LAST_STEP || windowLength >= WINDOW.reimen) return null
   if (step <= 2) {
     return {
       kind: 'rhyme', words: [byId('maus'), byId('haus')],

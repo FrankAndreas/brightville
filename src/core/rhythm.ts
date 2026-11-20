@@ -2,6 +2,7 @@
 // judging her taps or claps, and finding claps in the microphone's loudness (Lehrplan 21 MU, Zugänge 1 and 2).
 // docs/superpowers/specs/2026-11-20-brightville-trommelhaus-design.md
 
+import { WINDOW } from './ladders'
 export type Mode = 'tap' | 'clap'
 export type Dyn = 'laut' | 'leise'
 
@@ -28,7 +29,6 @@ const GAP_SLACK = 0.35
 const LOUDER = 1.5
 const DYNAMICS_GAP_MS = 600
 const LAST_STEP = 6
-const EXAMPLE_UNTIL = 10
 
 /** When the house drums each beat, ms from the start of playing */
 export function beatTimes(task: RhythmTask): number[] {
@@ -156,4 +156,4 @@ export function findOnsets(levels: { t: number; level: number }[], floor: number
 }
 
 /** Whether to show a task once before she answers: at steps 1–5 while she is new to the step */
-export const exampleFor = (step: number, windowLength: number) => step < LAST_STEP && windowLength < EXAMPLE_UNTIL
+export const exampleFor = (step: number, windowLength: number) => step < LAST_STEP && windowLength < WINDOW.rhythmus

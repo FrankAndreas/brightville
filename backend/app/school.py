@@ -7,18 +7,25 @@ Step 6 is "fertig". The page keeps the same rule (src/core/ladders.ts) to go on 
 the truth."""
 
 import json
+import os
 import sqlite3
 from datetime import date, timedelta
+from pathlib import Path
 from typing import TypedDict
 
 from . import clock
 from .db import writing
 from .game import Refused
 
-WINDOW = {"zaehlen": 6, "rechnen": 4, "reimen": 10, "muster": 10, "zeit": 10, "raum": 10, "rhythmus": 10}
+# Each ladder's window (two visits' worth of answers) and the misses allowed in it: the same file the page reads
+# (shared/ladders.json), so the device and the server never move her differently
+_FILE = Path(__file__).resolve().parents[2] / "shared" / "ladders.json"
+with open(os.getenv("LADDERS_FILE") or _FILE, encoding="utf-8") as _file:
+    _LADDERS = json.load(_file)
+WINDOW: dict[str, int] = {ladder["id"]: int(ladder["window"]) for ladder in _LADDERS}
 FIRST_STEP = 1
 LAST_STEP = 6
-MISSES_ALLOWED = {"zaehlen": 1, "rechnen": 1, "reimen": 2, "muster": 2, "zeit": 2, "raum": 2, "rhythmus": 2}
+MISSES_ALLOWED: dict[str, int] = {ladder["id"]: int(ladder["misses"]) for ladder in _LADDERS}
 KEEP_KEYS_DAYS = 60
 # How many of her latest result keys are named back: more than a device keeps waiting
 SEEN_KEYS = 50

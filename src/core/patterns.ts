@@ -2,6 +2,7 @@
 // aloud; the pieces are drawn shapes, the things to sort pictures with one obvious name. The ladder's steps are the
 // design's table (docs/superpowers/specs/2026-11-20-brightville-musterwerkstatt-design.md).
 
+import { WINDOW } from './ladders'
 export type Colour = 'rot' | 'blau' | 'gelb' | 'gruen'
 export type Shape = 'kreis' | 'dreieck' | 'quadrat'
 export interface Piece { colour: Colour; shape: Shape; big: boolean }
@@ -32,8 +33,6 @@ export type MusterTask =
 export interface MusterExample { kind: 'row' | 'gap' | 'sort'; task: MusterTask }
 
 export const TASKS_PER_VISIT = 5
-/** Two visits' worth of answers at a step: until then each visit starts with an example */
-const EXAMPLE_UNTIL = 10
 const LAST_STEP = 6
 
 const COLOURS: Colour[] = ['rot', 'blau', 'gelb', 'gruen']
@@ -194,7 +193,7 @@ const colourPiece = (colour: Colour): Piece => ({ colour, shape: 'kreis', big: t
 
 /** The example before the first task: at steps 1–5 while her answers at the step are fewer than two visits' worth */
 export function exampleFor(step: number, windowLength: number): MusterExample | null {
-  if (step >= LAST_STEP || windowLength >= EXAMPLE_UNTIL) return null
+  if (step >= LAST_STEP || windowLength >= WINDOW.muster) return null
   if (step === 1) return { kind: 'row', task: fixedRow('colour', [colourPiece('rot'), colourPiece('blau')], [0, 1], 5, 4) }
   if (step === 2) {
     return { kind: 'row', task: fixedRow('colour', ['rot', 'gelb', 'blau'].map(c => colourPiece(c as Colour)), [0, 1, 2], 6, 5) }

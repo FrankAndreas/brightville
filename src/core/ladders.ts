@@ -5,7 +5,11 @@
 // the server is away.
 
 export type Ladder = 'zaehlen' | 'rechnen' | 'reimen' | 'muster' | 'zeit' | 'raum' | 'rhythmus'
-export const LADDERS: Ladder[] = ['zaehlen', 'rechnen', 'reimen', 'muster', 'zeit', 'raum', 'rhythmus']
+import shared from '../../shared/ladders.json'
+
+/** The ladders and their rules: the same file the server reads (shared/ladders.json) */
+const RULES = shared as { id: Ladder; window: number; misses: number }[]
+export const LADDERS: Ladder[] = RULES.map(l => l.id)
 /** The two the School asks */
 export type SchoolLadder = Exclude<Ladder, 'reimen' | 'muster' | 'zeit' | 'raum' | 'rhythmus'>
 export interface LadderState {
@@ -17,10 +21,10 @@ export interface LadderState {
 export type Ladders = Record<Ladder, LadderState>
 
 /** Two visits' worth of answers: a School visit asks three Zählen and two Rechnen tasks, the others five */
-export const WINDOW: Record<Ladder, number> = { zaehlen: 6, rechnen: 4, reimen: 10, muster: 10, zeit: 10, raum: 10, rhythmus: 10 }
+export const WINDOW = Object.fromEntries(RULES.map(l => [l.id, l.window])) as Record<Ladder, number>
 export const LAST_STEP = 6
 /** How many of the window may be missed on the first try for a move up */
-export const MISSES_ALLOWED: Record<Ladder, number> = { zaehlen: 1, rechnen: 1, reimen: 2, muster: 2, zeit: 2, raum: 2, rhythmus: 2 }
+export const MISSES_ALLOWED = Object.fromEntries(RULES.map(l => [l.id, l.misses])) as Record<Ladder, number>
 
 /** Her answers at the ladder's step: the latest are kept; enough of them with few enough misses move her up */
 export function applyResults(s: LadderState, results: boolean[], ladder: Ladder): LadderState {
