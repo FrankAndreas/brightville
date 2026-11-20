@@ -9,6 +9,7 @@ The town is 120 m across: a plaza in the middle where she starts, with balls to 
 |---|---|---|
 | 🔢 School | Five tasks at her step on two Lehrplan 21 ladders: three for Zählen (up to 10, 20, counting on and back, a quick look, tens bars up to 100) and two for Rechnen (plus up to 5, 10, minus, up to 20, tens up to 100); each ladder moves up by itself after two visits' worth of answers with at most one miss (`src/core/ladders.ts`, `backend/app/school.py`) | +1 per task, +5 for all five |
 | 👂 Reimhaus | Five spoken tasks at her step on the Lehrplan 21 ladder Reimen: what rhymes (two, then three pictures), which word starts the same, and syllables tapped on a drum (up to 3, then 4); an example first while a step is new; moves up after two visits' worth of answers with at most two misses (`src/core/rhymes.ts`) | +1 per task, +5 for all five |
+| 🧩 Musterwerkstatt | Five tasks at her step on the Lehrplan 21 ladder Muster: continue a row of colours, then shapes and sizes, sort four things into two baskets (by colour, kind or size), find a gap in a row, rows where colour and shape change together; an example first while a step is new; moves up after two visits' worth of answers with at most two misses (`src/core/patterns.ts`) | +1 per task, +5 for all five |
 | ✏️ Schreiben | Her own words and short sentences (from the parents), or today's two letters, each traced three times; less help for letters she knows (touch screen only) | +1 per letter, +4 for finishing |
 | 🧘 Yoga Studio | The camera checks three poses | +3 per pose held |
 | 🔍 Unterschiede | Ten differences between two pictures | +1 per difference found without the lamp |
@@ -36,7 +37,7 @@ When a parent has set a play time per day, the Arcade door shows a moon once it 
 
 **Each child has their own Stars**, kept by the game's server (`backend/`), so the laptop and the iPad show the same.
 Who is playing comes from the family hub's login; a coloured circle with the first letter next to the Star counter shows who it is.
-Parents get a gear next to the "?". It opens only when held for three seconds and then asked a multiplication (e.g. 7 × 8), so a child playing on a device logged in as a parent doesn't get in. Their page shows every child's Stars and today's numbers, and sets the daily goal, the play time per day and the Stars. Below, they keep the Cinema's list of YouTube films (a link and a name each, at most 30, the same for every child). Each child's card has a folded "Tagebuch" with the last seven days as text and the stickers earned, and a folded "Lehrplan 21": one number for how far she is towards the end of 2nd grade (the average of Zählen, Rechnen, Reimen and the letters she knows in Schreiben, with a line where Kindergarten ends, about 45 %), the steps of the School's two ladders and the Reimhaus's one to read and set, and this week's practice by subject and by entwicklungsorientierter Zugang (`src/core/lehrplan.ts`; codes from the template at v-fe.lehrplan.ch). The child never sees any of it.
+Parents get a gear next to the "?". It opens only when held for three seconds and then asked a multiplication (e.g. 7 × 8), so a child playing on a device logged in as a parent doesn't get in. Their page shows every child's Stars and today's numbers, and sets the daily goal, the play time per day and the Stars. Below, they keep the Cinema's list of YouTube films (a link and a name each, at most 30, the same for every child). Each child's card has a folded "Tagebuch" with the last seven days as text and the stickers earned, and a folded "Lehrplan 21": one number for how far she is towards the end of 2nd grade (the average of Zählen, Rechnen, Muster, Reimen and the letters she knows in Schreiben, with a line where Kindergarten ends, about 48 %), the steps of the School's two ladders, the Musterwerkstatt's and the Reimhaus's to read and set, and this week's practice by subject and by entwicklungsorientierter Zugang (`src/core/lehrplan.ts`; codes from the template at v-fe.lehrplan.ch). The child never sees any of it.
 
 The idea behind the game is in [Learning City – Gameplay Design.md](Learning%20City%20%E2%80%93%20Gameplay%20Design.md).
 Where the project stands, what wasn't checked on real hardware and what is left to build: [docs/roadmap.md](docs/roadmap.md).
@@ -108,6 +109,10 @@ The trampoline bounces by itself. A long fall makes the character tumble for a m
 The question is asked aloud. Pointing at an object (click or tap) counts it aloud.
 Answer with the digit key, with Left/Right and Enter, or by clicking a button.
 A wrong answer only fades its button and the objects are counted together; the task ends when it is right.
+
+## Musterwerkstatt
+
+A row is said piece by piece as each lights up, then "Was kommt jetzt?" (or "Was fehlt?" for a gap inside, which the voice hums). A tap on one of the pieces below is her answer: a wrong one fades and the row is said again, the right one fills the gap. To sort, she taps a thing (it lifts and its name is said), then a basket; each basket already holds one example. A thing in the wrong basket goes back to its place. Pieces are drawn (`src/buildings/muster/PieceView.vue`); the rows and sorts are made in `src/core/patterns.ts`.
 
 ## Reimhaus
 
