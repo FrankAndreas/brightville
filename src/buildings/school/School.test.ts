@@ -336,6 +336,20 @@ describe('School', () => {
       expect(w.findAll('[data-test="said"]').map(n => n.text())).toEqual(['2', '3', '4'])
     })
 
+    it('draws a big group smaller, so twenty things fit the board', async () => {
+      const w = await openWith([{ type: 'plus', ladder: 'rechnen', kind: 0, a: 12, b: 7, answer: 19, choices: [18, 19, 20] }])
+      const groups = w.findAll('[data-test="group"]')
+      expect(groups[0].attributes('data-many')).toBe('true')
+      expect(groups[1].attributes('data-many')).toBe('false')
+    })
+
+    it('shows numbers above 20 with tens bars and ones when counting on', async () => {
+      const w = await openWith([{ type: 'next', ladder: 'zaehlen', kind: 0, from: 45, by: 5, shown: [45, 50, 55], answer: 60, choices: [55, 60, 65] }])
+      const said = w.findAll('[data-test="said"]')
+      expect(said.map(n => n.findAll('[data-test="mini-bar"]').length)).toEqual([4, 5, 5])
+      expect(said.map(n => n.findAll('[data-test="mini-one"]').length)).toEqual([5, 0, 5])
+    })
+
     it('lays out twenty things to count', async () => {
       const w = await openWith([{ type: 'count', ladder: 'zaehlen', kind: 0, amount: 20, answer: 20, choices: [19, 20, 18] }])
       expect(w.findAll('[data-test="thing"]')).toHaveLength(20)

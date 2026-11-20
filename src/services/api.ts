@@ -67,6 +67,8 @@ export interface WritingState {
 
 /** The School's ladders (backend/app/school.py), and one visit's first-try answers per ladder at the steps asked */
 export type { Ladder, Ladders } from '@/core/ladders'
+/** Her ladders, and the keys of her latest results the server has (so a device can let them go) */
+export type SchoolState = Ladders & { seen: string[] }
 export interface SchoolResultsIn {
   key: string
   zaehlen: { step: number; results: boolean[] }
@@ -177,12 +179,12 @@ export interface Api {
   playerWriting(personId: number): Promise<WritingState>
   /** Parents only; the whole list. Rejects with 'empty', 'letters', 'too-long', 'exists' or 'too-many'. */
   setPlayerTexts(personId: number, texts: string[]): Promise<WritingState>
-  school(): Promise<Ladders>
-  schoolResults(results: SchoolResultsIn): Promise<Ladders>
+  school(): Promise<SchoolState>
+  schoolResults(results: SchoolResultsIn): Promise<SchoolState>
   /** Parents only */
-  playerSchool(personId: number): Promise<Ladders>
+  playerSchool(personId: number): Promise<SchoolState>
   /** Parents only; step 1–6. Rejects with 'bad_step' or 'unknown'. */
-  setPlayerStep(personId: number, ladder: Ladder, step: number): Promise<Ladders>
+  setPlayerStep(personId: number, ladder: Ladder, step: number): Promise<SchoolState>
 }
 
 type Fetch = (url: string, init: RequestInit) => Promise<Response>

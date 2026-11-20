@@ -52,12 +52,17 @@ describe('Lehrplan 21', () => {
   })
 
   it('groups this week\'s visits by Zugang', () => {
-    const days = [day('2026-11-17', entry('yoga'), entry('schlange', 'play')), day('2026-11-11', entry('yoga'))]
+    const days = [day('2026-11-17', entry('yoga'), entry('laden', 'buy')), day('2026-11-11', entry('yoga'))]
     const rows = practice(days, TODAY)
     expect(rows.map(r => r.zugang)).toEqual([1, 2, 3, 5, 6, 7, 8])
     expect(rows.find(r => r.zugang === 1)?.visits).toEqual([{ building: 'yoga', times: 1 }])
     expect(rows.find(r => r.zugang === 3)).toMatchObject({ visits: [], hasBuilding: false })
     expect(rows.find(r => r.zugang === 2)).toMatchObject({ visits: [], hasBuilding: true })
+  })
+
+  it('counts a round of a tagged play building, but not of the others', () => {
+    const days = [day('2026-11-18', entry('arcade', 'play'), entry('schlange', 'play'))]
+    expect(practice(days, TODAY).find(r => r.zugang === 2)?.visits).toEqual([{ building: 'arcade', times: 1 }])
   })
 
   it('lists every subject with this week\'s visits', () => {

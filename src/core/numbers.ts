@@ -16,6 +16,8 @@ const LOOSE_ROWS = 3
 const BIG_COLS = 5
 const BIG_ROWS = 4
 const JITTER = 0.15 // of a cell, so neighbours never overlap
+/** On the finer grid a thing nearly fills its cell: less room to move */
+const BIG_JITTER = 0.08
 const ZERO_CHANCE = 0.1 // how often a count asks for "keine"
 
 /** Deterministic random numbers in [0, 1) for a seed (mulberry32). */
@@ -63,7 +65,7 @@ export function looseLayout(n: number, random: () => number = Math.random): { x:
   const rows = big ? BIG_ROWS : LOOSE_ROWS
   const cells: { col: number; row: number }[] = []
   for (let row = 0; row < rows; row++) for (let col = 0; col < cols; col++) cells.push({ col, row })
-  const jitter = () => (random() * 2 - 1) * JITTER
+  const jitter = () => (random() * 2 - 1) * (big ? BIG_JITTER : JITTER)
   return shuffle(cells, random).slice(0, n).map(({ col, row }) => ({
     x: (col + 0.5 + jitter()) / cols,
     y: (row + 0.5 + jitter()) / rows,

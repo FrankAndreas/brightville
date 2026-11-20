@@ -8,7 +8,7 @@ import { GLYPHS } from '@/core/writing/letters'
 import { applyWrite, checkText, normalizeText, type Letters } from '@/core/writing/levels'
 import {
   ApiError, type Api, type Film, type LogDay, type Me, type Person, type PlayerRow, type ServerState, type StickerRow,
-  type RoomState, type WardrobeState, type WritingState,
+  type RoomState, type SchoolState, type WardrobeState, type WritingState,
 } from './api'
 
 export interface FakePainting { id: string; updated: number; image: string; thumb: string }
@@ -286,7 +286,7 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
   }
   const writingKeys = new Set<string>()
   const schoolKeys = new Set<string>()
-  const schoolCopy = (): Ladders => JSON.parse(JSON.stringify(api.school_))
+  const schoolCopy = (): SchoolState => ({ ...JSON.parse(JSON.stringify(api.school_)), seen: [...schoolKeys].reverse() })
   // As backend/app/writing.py new_left_today
   const newLeft = (day = state.day) => {
     // The day's pace comes from the letters met before it

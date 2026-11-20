@@ -263,6 +263,12 @@ function onSaved(id: number) {
   if (id === session.person?.id) void player.refresh()
 }
 
+function closeParents() {
+  parentsOpen.value = false
+  // A School step set there counts from her next visit
+  void school.load()
+}
+
 function switchPerson() {
   parentsOpen.value = false
   session.switchPerson()
@@ -276,6 +282,8 @@ const refresh = () => {
     // Sends what waited on the device, then takes the server's wardrobe
     void wardrobe.load()
     void room.load()
+    // A step a parent set (here or elsewhere) reaches the School
+    void school.load()
   }
 }
 let refreshTimer: ReturnType<typeof setInterval> | undefined
@@ -334,7 +342,7 @@ onBeforeUnmount(() => {
     <HelpOverlay v-if="helpOpen && inTown" :touch="fingersOnly" @close="closeHelp" />
     <ParentArea
       v-if="parentsOpen && session.api" :api="session.api" :logout-url="session.me?.logout_url" :can-switch="session.canSwitch"
-      @close="parentsOpen = false" @saved="onSaved" @switch="switchPerson" @films-changed="player.refresh()"
+      @close="closeParents" @saved="onSaved" @switch="switchPerson" @films-changed="player.refresh()"
     />
     <section v-if="inside" class="building">
       <component :is="inside.component" @finished="onFinished" />

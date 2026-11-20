@@ -106,13 +106,14 @@ export function weekDays(today: string): string[] {
 
 export interface Visits { building: string; times: number }
 
-/** This week's visits (and free visits, not play) per building, in the order first seen */
+/** This week's visits, free visits and rounds of play per building, in the order first seen */
 function weekVisits(days: LogDay[], today: string): Map<string, number> {
   const week = new Set(weekDays(today))
   const times = new Map<string, number>()
   for (const d of days) {
     if (!week.has(d.day)) continue
-    for (const e of d.entries) if (e.kind === 'visit' || e.kind === 'free') times.set(e.building, (times.get(e.building) ?? 0) + 1)
+    // Rounds of play count too (the Arcade's memory game is Wahrnehmung); purchases don't
+    for (const e of d.entries) if (e.kind !== 'buy') times.set(e.building, (times.get(e.building) ?? 0) + 1)
   }
   return times
 }

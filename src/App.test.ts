@@ -677,6 +677,16 @@ describe('App', () => {
       w.unmount()
     })
 
+    it('asks for the School steps again with every refresh, so a parent\'s change reaches the School', async () => {
+      const w = await started()
+      const asked = () => api.calls.filter(c => c === 'school').length
+      const before = asked()
+      document.dispatchEvent(new Event('visibilitychange'))
+      await flushPromises()
+      expect(asked()).toBe(before + 1)
+      w.unmount()
+    })
+
     it('keeps the town\'s keys out of the look screen', async () => {
       api = fakeApi({ stars: 5 })
       api.wardrobe_.look = null

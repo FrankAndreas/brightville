@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { flushPromises } from '@vue/test-utils'
+import { ApiError } from '@/services/api'
 import { fakeApi, type FakeApi } from '@/services/fakeApi'
 import { useSchoolStore } from './school'
 
@@ -103,4 +104,66 @@ describe('school store', () => {
     await flushPromises()
     expect(api.calls.filter(c => c.startsWith('schoolResults'))).toEqual([])
   })
+
+  it('lets go of a result the server has even when the answer to it was lost', async () => {
+    const school = await open()
+    api.loseAnswers = true
+    school.record([rechnen(true)], AT_START)
+    await flushPromises()
+    api.loseAnswers = false
+    school.record([rechnen(true)], AT_START)
+    await flushPromises()
+    // Two on the server, two here: the first isn't laid over the server's answer a second time
+    expect(api.school_.rechnen.window).toEqual([true, true])
+    expect(school.ladders.rechnen.window).toEqual([true, true])
+    expect(storage.getItem('brightville.school.2')).toBeNull()
+  })
+
+  it('doesn\'t take an older answer over a newer one', async () => {
+    const school = useSchoolStore()
+    school.init(api, 2, storage)
+    let answerGet: (v: unknown) => void = () => {}
+    const realSchool = api.school
+    const old = { ...JSON.parse(JSON.stringify(api.school_)), seen: [] }
+    api.school = () => new Promise(resolve => { answerGet = resolve as (v: unknown) => void })
+    const loading = school.load()
+    await flushPromises()
+    school.record([rechnen(true), rechnen(true)], AT_START)
+    await flushPromises()
+    expect(school.ladders.rechnen.window).toEqual([true, true])
+    answerGet(old)
+    await loading
+    expect(school.ladders.rechnen.window).toEqual([true, true])
+    api.school = realSchool
+  })
+
+  it('goes on loading when the server refuses a result that waited', async () => {
+    storage.setItem('brightville.school.2', JSON.stringify([
+      { key: 'bad', zaehlen: { step: 1, results: [true] }, rechnen: { step: 1, results: [] } },
+    ]))
+    api.school_.zaehlen = { step: 4, window: [] }
+    api.schoolResults = () => Promise.reject(new ApiError(422, 'invalid'))
+    const school = await open()
+    expect(school.ladders.zaehlen.step).toBe(4)
+    expect(storage.getItem('brightville.school.2')).toBeNull()
+  })
+
+  it('keeps a visit\'s answers for the child who started it', async () => {
+    const school = await open(3)
+    school.record([rechnen(true), rechnen(true)], AT_START, 2)
+    await flushPromises()
+    expect(api.calls.filter(c => c.startsWith('schoolResults'))).toEqual([])
+    expect(school.ladders.rechnen.window).toEqual([])
+    expect(JSON.parse(storage.getItem('brightville.school.2') ?? '[]')).toHaveLength(1)
+  })
+
+  it('starts from the steps last known on this device', async () => {
+    api.school_.zaehlen = { step: 3, window: [] }
+    await open()
+    setActivePinia(createPinia())
+    api.offline = true
+    const school = await open()
+    expect(school.ladders.zaehlen.step).toBe(3)
+  })
 })
+

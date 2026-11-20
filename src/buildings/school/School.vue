@@ -32,6 +32,8 @@ const things = props.things ?? THINGS
 const school = useSchoolStore()
 // Her steps as the visit starts: the answers are counted at these steps, even if they change meanwhile
 const steps = { zaehlen: school.ladders.zaehlen.step, rechnen: school.ladders.rechnen.step }
+// And the child who plays them: if the device changes hands meanwhile, they still count for her
+const player = school.who
 const tasks = props.tasks ?? buildLadderSession(steps, things.length)
 const flow = createSchoolFlow(tasks, things)
 const view = reactive({ ...flow.state, wrong: [...flow.state.wrong] })
@@ -140,7 +142,7 @@ function shutDown() {
 function leave() {
   if (closed) return
   shutDown()
-  school.record(flow.state.results, steps)
+  school.record(flow.state.results, steps, player)
   emit('finished', { stars: flow.state.stars })
 }
 
@@ -183,6 +185,8 @@ function blockGroup(from: number, n: number, gone = 0): Group {
   const single = Array.from({ length: ones }, (_, k) => ({ i: from + tens + k, worth: 1, gone: k >= ones - goneOnes }))
   return { things: [], bars, ones: single }
 }
+/** Above this many things a group draws them smaller, so twenty fit the board on an iPad */
+const MANY = 10
 const size = (g: Group) => g.things.length + g.bars.length + g.ones.length
 
 const groups = computed<Group[]>(() => {
@@ -262,14 +266,20 @@ onBeforeUnmount(shutDown)
       </template>
 
       <div v-else-if="task?.type === 'next'" class="row">
-        <span v-for="(n, i) in task.shown" :key="i" class="said" data-test="said">{{ n }}</span>
+        <span v-for="(n, i) in task.shown" :key="i" class="said" data-test="said">
+          {{ n }}
+          <span v-if="n > 20" class="mini" aria-hidden="true">
+            <span v-for="k in Math.floor(n / 10)" :key="`t${k}`" class="mini-bar" data-test="mini-bar" />
+            <span v-for="k in n % 10" :key="`o${k}`" class="mini-one" data-test="mini-one" />
+          </span>
+        </span>
         <span class="said ask" aria-hidden="true">?</span>
       </div>
 
       <div v-else-if="groups.length" class="sum">
         <template v-for="(group, g) in groups" :key="g">
           <svg v-if="g === 1" class="plus" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 6 V34 M6 20 H34" /></svg>
-          <div class="group" data-test="group">
+          <div class="group" data-test="group" :data-many="group.things.length > MANY">
             <button
               v-for="p in group.things" :key="p.i" class="thing" data-test="thing" :data-counted="marked.has(p.i)"
               :data-gone="p.gone" tabindex="-1" @pointerdown="!p.gone && touch(p.i)"
@@ -341,6 +351,8 @@ button { border: 0; padding: 0; background: none; font: inherit; cursor: pointer
   border-radius: 50%;
   transition: transform 0.15s ease, background 0.15s ease;
 }
+.group[data-many='true'] { gap: 4px; }
+.group[data-many='true'] .thing { font-size: clamp(24px, 5vh, 46px); }
 .thing.loose { position: absolute; transform: translate(-50%, -50%); }
 .thing[data-counted='true'] { background: #ffe89a; box-shadow: 0 0 0 6px #ffd93d; }
 .thing.loose[data-counted='true'] { transform: translate(-50%, -50%) scale(1.12); }
@@ -378,7 +390,7 @@ button { border: 0; padding: 0; background: none; font: inherit; cursor: pointer
 /* Faded, but the red line stays strong: the fading is on the content, not on the button */
 .thing[data-gone='true'], .bar[data-gone='true'], .one[data-gone='true'] { position: relative; cursor: default; }
 .thing[data-gone='true'] .face { opacity: 0.3; }
-.bar[data-gone='true'] span, .one[data-gone='true'] { background: #bcd3f5; }
+.bar[data-gone='true'] span, .one[data-gone='true'] { background-color: #bcd3f5; }
 .thing[data-gone='true']::after, .bar[data-gone='true']::after, .one[data-gone='true']::after {
   content: '';
   position: absolute;
@@ -398,8 +410,17 @@ button { border: 0; padding: 0; background: none; font: inherit; cursor: pointer
   background: #cfe3ff;
 }
 .bar span { width: clamp(16px, 3vh, 26px); height: clamp(9px, 2.2vh, 18px); border-radius: 3px; background: #3d7be0; }
-.ones { display: flex; flex-wrap: wrap; gap: 6px; max-width: 60%; }
-.one { width: clamp(16px, 3vh, 26px); height: clamp(16px, 3vh, 26px); border-radius: 4px; background: #3d7be0; }
+.ones { display: flex; flex-wrap: wrap; gap: 2px; max-width: 60%; }
+/* The block is small, the place to tap around it is not */
+.one {
+  width: clamp(16px, 3vh, 26px);
+  height: clamp(16px, 3vh, 26px);
+  padding: 8px;
+  box-sizing: content-box;
+  background: #3d7be0;
+  background-clip: content-box;
+  border-radius: 12px;
+}
 .bar[data-counted='true'], .one[data-counted='true'] { box-shadow: 0 0 0 5px #ffd93d; }
 
 .dot {
@@ -421,6 +442,10 @@ button { border: 0; padding: 0; background: none; font: inherit; cursor: pointer
   min-width: 1.4em;
   text-align: center;
 }
+.said { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.mini { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-end; gap: 3px; max-width: 2.2em; }
+.mini-bar { width: 6px; height: 40px; border-radius: 2px; background: #3d7be0; }
+.mini-one { width: 6px; height: 6px; border-radius: 2px; background: #3d7be0; }
 .said.ask { color: #e0a800; border-bottom: 8px dashed #ffd93d; }
 .plus path { stroke: #6b4a00; stroke-width: 7; stroke-linecap: round; }
 

@@ -67,6 +67,10 @@ describe('looseLayout up to 20', () => {
       for (const s of spots) expect(s.x > 0 && s.x < 1 && s.y > 0 && s.y < 1).toBe(true)
       const cells = new Set(spots.map(s => `${Math.floor(s.x * 5)},${Math.floor(s.y * 4)}`))
       expect(cells.size).toBe(n)
+      // Less jitter on the finer grid: a thing nearly fills its cell
+      for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+        expect(Math.max(Math.abs(spots[i].x - spots[j].x) * 5, Math.abs(spots[i].y - spots[j].y) * 4)).toBeGreaterThan(0.82)
+      }
     }
   })
 })
