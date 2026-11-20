@@ -111,9 +111,12 @@ class LadderResultIn(BaseModel):
 
 
 class SchoolResultsIn(BaseModel):
+    """A visit's answers: the School sends Zählen and Rechnen, the Reimhaus only Reimen"""
+
     key: str = Field(min_length=1, max_length=64)
-    zaehlen: LadderResultIn
-    rechnen: LadderResultIn
+    zaehlen: LadderResultIn | None = None
+    rechnen: LadderResultIn | None = None
+    reimen: LadderResultIn | None = None
 
 
 class StepIn(BaseModel):
@@ -523,7 +526,7 @@ def school_results(
         db,
         person.id,
         body.key,
-        {"zaehlen": body.zaehlen.model_dump(), "rechnen": body.rechnen.model_dump()},  # type: ignore[dict-item]
+        {name: (ladder.model_dump() if ladder else None) for name, ladder in body if name != "key"},
     )
     return school.state(db, person.id)
 

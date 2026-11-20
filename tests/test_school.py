@@ -10,7 +10,7 @@ from app import school
 def state(browser):
     """The two ladders, without the keys the server has seen"""
     answer = browser.get("/api/school").json()
-    return {"zaehlen": answer["zaehlen"], "rechnen": answer["rechnen"]}
+    return {"zaehlen": answer["zaehlen"], "rechnen": answer["rechnen"], "reimen": answer["reimen"]}
 
 
 def send(browser, key, zaehlen=(1, []), rechnen=(1, [])):
@@ -24,6 +24,12 @@ def send(browser, key, zaehlen=(1, []), rechnen=(1, [])):
     )
 
 
+def send_only(browser, key, **ladders):
+    """A result naming only some ladders, as the Reimhaus sends"""
+    body = {"key": key, **{name: {"step": step, "results": list(results)} for name, (step, results) in ladders.items()}}
+    return browser.post("/api/school/results", json=body)
+
+
 def set_step(browser, ladder, step, person_id=2):
     return browser.put(f"/api/players/{person_id}/school", json={"ladder": ladder, "step": step})
 
@@ -33,7 +39,11 @@ def code(answer):
 
 
 def test_a_new_child_starts_at_zaehlen_1_rechnen_1(mia):
-    assert state(mia) == {"zaehlen": {"step": 1, "window": []}, "rechnen": {"step": 1, "window": []}}
+    assert state(mia) == {
+        "zaehlen": {"step": 1, "window": []},
+        "rechnen": {"step": 1, "window": []},
+        "reimen": {"step": 1, "window": []},
+    }
 
 
 def test_a_child_who_used_the_old_school_starts_rechnen_at_2(tmp_path, monkeypatch):
@@ -141,3 +151,30 @@ def test_bad_steps_and_ladders_are_refused(papa, mia):
 
 def test_an_unknown_person_is_404(papa):
     assert set_step(papa, "zaehlen", 2, person_id=99).status_code == 404
+
+
+def test_ten_reimen_answers_with_two_misses_move_up(mia):
+    send_only(mia, "a", reimen=(1, [True, False, True, True, True]))
+    answer = send_only(mia, "b", reimen=(1, [True, True, False, True, True])).json()
+    assert answer["reimen"] == {"step": 2, "window": []}
+
+
+def test_three_misses_in_ten_dont_move_reimen(mia):
+    send_only(mia, "a", reimen=(1, [False, False, True, True, True]))
+    send_only(mia, "b", reimen=(1, [False, True, True, True, True]))
+    assert state(mia)["reimen"]["step"] == 1
+
+
+def test_a_result_with_only_reimen_leaves_the_others(mia):
+    assert send_only(mia, "a", reimen=(1, [True])).status_code == 200
+    assert state(mia)["zaehlen"] == {"step": 1, "window": []}
+    assert state(mia)["reimen"] == {"step": 1, "window": [True]}
+
+
+def test_an_old_result_without_reimen_still_counts(mia):
+    assert send(mia, "a", rechnen=(1, [True, True])).status_code == 200
+    assert state(mia)["rechnen"]["window"] == [True, True]
+
+
+def test_a_parent_sets_reimen(papa, mia):
+    assert set_step(papa, "reimen", 4).json()["reimen"] == {"step": 4, "window": []}

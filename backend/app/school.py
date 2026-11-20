@@ -1,7 +1,8 @@
-"""The School's two Lehrplan 21 ladders, Zählen (MA.1.A.2) and Rechnen (MA.1.A.3). A ladder moves up one step when, of
-her last answered tasks at its step (two visits' worth), at most one was missed on the first try; it never moves down
-by itself. Step 6 is "fertig". The page keeps the same rule (src/core/ladders.ts) to go on while the server is away; the
-server is the truth."""
+"""The Lehrplan 21 ladders: the School's Zählen (MA.1.A.2) and Rechnen (MA.1.A.3), and the Reimhaus's Reimen (D.1.A.1).
+The names say "school" for all of them. A ladder moves up one step when, of her last answered tasks at its step (two
+visits' worth), no more than the ladder's allowed misses were wrong on the first try; it never moves down by itself.
+Step 6 is "fertig". The page keeps the same rule (src/core/ladders.ts) to go on while the server is away; the server is
+the truth."""
 
 import json
 import sqlite3
@@ -12,10 +13,10 @@ from . import clock
 from .db import writing
 from .game import Refused
 
-WINDOW = {"zaehlen": 6, "rechnen": 4}
+WINDOW = {"zaehlen": 6, "rechnen": 4, "reimen": 10}
 FIRST_STEP = 1
 LAST_STEP = 6
-MISSES_ALLOWED = 1
+MISSES_ALLOWED = {"zaehlen": 1, "rechnen": 1, "reimen": 2}
 KEEP_KEYS_DAYS = 60
 # How many of her latest result keys are named back: more than a device keeps waiting
 SEEN_KEYS = 50
@@ -26,12 +27,12 @@ class Result(TypedDict):
     results: list[bool]
 
 
-def apply(step: int, recent: list[bool], results: list[bool], size: int) -> tuple[int, list[bool]]:
-    """Her new answers at `step`: the latest `size` are kept; enough of them with at most one miss move her up"""
+def apply(step: int, recent: list[bool], results: list[bool], size: int, misses: int) -> tuple[int, list[bool]]:
+    """Her new answers at `step`: the latest `size` are kept; enough of them with at most `misses` missed move her up"""
     if step >= LAST_STEP:
         return LAST_STEP, []
     kept = (recent + results)[-size:]
-    if len(kept) >= size and kept.count(False) <= MISSES_ALLOWED:
+    if len(kept) >= size and kept.count(False) <= misses:
         return step + 1, []
     return step, kept
 
@@ -70,7 +71,7 @@ def state(db: sqlite3.Connection, person_id: int) -> dict:
     return out
 
 
-def record(db: sqlite3.Connection, person_id: int, key: str, results: dict[str, Result]) -> None:
+def record(db: sqlite3.Connection, person_id: int, key: str, results: dict[str, Result | None]) -> None:
     """One visit's answers, counted once (by its key), each ladder only if it was asked at the step it is at now"""
     forget = (date.fromisoformat(clock.today()) - timedelta(days=KEEP_KEYS_DAYS)).isoformat()
     with writing(db):
@@ -87,7 +88,7 @@ def record(db: sqlite3.Connection, person_id: int, key: str, results: dict[str, 
             step, recent = _ladder(db, person_id, ladder)
             if result["step"] != step:
                 continue
-            _store(db, person_id, ladder, *apply(step, recent, result["results"], size))
+            _store(db, person_id, ladder, *apply(step, recent, result["results"], size, MISSES_ALLOWED[ladder]))
 
 
 def set_step(db: sqlite3.Connection, person_id: int, ladder: str, step: int) -> None:
