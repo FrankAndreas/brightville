@@ -7,7 +7,7 @@ import { createCharacter } from './character'
 import { HILLS, LAKE, TOWN_HALF, heightAt, inLake, solidAreas } from './map'
 import { createFollowCamera } from './followCamera'
 import { TRAMPOLINES } from './props'
-import { BUILDING_COLORS, GRAVITY, buildTown, cameraBlocker, disposeScene } from './world'
+import { BUILDING_LOOKS, GRAVITY, buildTown, cameraBlocker, disposeScene, lookOf } from './world'
 
 describe('the town', () => {
   beforeAll(() => RAPIER.init())
@@ -39,12 +39,40 @@ describe('the door buildings', () => {
   const hue = (hex: number) => new THREE.Color(hex).getHSL({ h: 0, s: 0, l: 0 }).h * 360
 
   it('gives every door building its own colour pair, close to the one it had', () => {
-    expect(BUILDING_COLORS).toHaveLength(BUILDINGS.length)
-    expect(new Set(BUILDING_COLORS.map(([w, r]) => `${w}/${r}`)).size).toBe(BUILDINGS.length)
-    BUILDING_COLORS.forEach(([wall], i) => {
-      const d = Math.abs(hue(wall) - hue(OLD_WALLS[i % OLD_WALLS.length]))
-      expect(Math.min(d, 360 - d), BUILDINGS[i].id).toBeLessThanOrEqual(40)
+    expect(Object.keys(BUILDING_LOOKS).sort()).toEqual(BUILDINGS.map(b => b.id).sort())
+    expect(new Set(Object.values(BUILDING_LOOKS).map(l => `${l.wall}/${l.roof}`)).size).toBe(BUILDINGS.length)
+    BUILDINGS.forEach((b, i) => {
+      const d = Math.abs(hue(lookOf(b.id).wall) - hue(OLD_WALLS[i % OLD_WALLS.length]))
+      expect(Math.min(d, 360 - d), b.id).toBeLessThanOrEqual(40)
     })
+  })
+
+  it('keeps each building\'s colour when another is left out: the colour belongs to the building, not its place in the list', () => {
+    vi.stubGlobal('document', { createElement: () => ({ getContext: () => null }) })
+    const doors = toDoors(BUILDINGS.slice(1), { camera: true, touch: true, keyboard: true, films: true }, true, 10)
+    const { scene } = buildTown(RAPIER, new RAPIER.World({ x: 0, y: -GRAVITY, z: 0 }), doors)
+    vi.unstubAllGlobals()
+    // The houses are merged into big meshes, each part's colour kept per vertex
+    const second = doors[0]
+    const want = new THREE.Color(lookOf(second.id).wall)
+    let near = 0
+    scene.traverse(o => {
+      const m = o as THREE.Mesh
+      const colour = m.isMesh ? m.geometry.getAttribute('color') : undefined
+      if (!colour) return
+      const pos = m.geometry.getAttribute('position')
+      const at = new THREE.Vector3()
+      for (let i = 0; i < pos.count; i++) {
+        at.fromBufferAttribute(pos, i).applyMatrix4(m.matrixWorld)
+        const same = Math.abs(colour.getX(i) - want.r) + Math.abs(colour.getY(i) - want.g) + Math.abs(colour.getZ(i) - want.b) < 1e-3
+        if (same && Math.hypot(at.x - second.x, at.z - second.z) < 12) near++
+      }
+    })
+    expect(near, second.id).toBeGreaterThan(0)
+  })
+
+  it('gives a building not in the list a colour of its own instead of failing', () => {
+    expect(lookOf('noch-nicht-da')).toMatchObject({ wall: expect.any(Number), roof: expect.any(Number) })
   })
 
   it('shows each sign as a picture above its door, seen from every side', () => {
