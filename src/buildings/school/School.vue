@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import Confetti from '@/components/Confetti.vue'
-import { buildSession, dicePips, looseLayout, numberWord, seededRandom, type Task, type Thing } from '@/core/numbers'
+import { buildLadderSession, dicePips, looseLayout, numberWord, seededRandom, type Task, type Thing } from '@/core/numbers'
 import { playBeat } from '@/services/sound'
 import { instruct, speak, stopSpeaking } from '@/services/tts'
 import { onLeaveRequest } from '../leave'
@@ -23,7 +23,7 @@ const RECOUNT_STEP_MS = 700
 const CONFETTI_MS = 3000
 
 const things = props.things ?? THINGS
-const tasks = props.tasks ?? buildSession(things.length)
+const tasks = props.tasks ?? buildLadderSession({ zaehlen: 1, rechnen: 2 }, things.length)
 const flow = createSchoolFlow(tasks, things)
 const view = reactive({ ...flow.state, wrong: [...flow.state.wrong] })
 /** Objects that are lit: pointed at by the child, or counted along */

@@ -164,7 +164,7 @@ describe('Haus', () => {
       expect(entry.text()).toBe('🛏️−25')
       expect(entry.attributes('data-spent')).toBe('true')
       await entry.trigger('click')
-      expect(lastSaid()).toBe('Holzbett gekauft, 25 Sterne.')
+      expect(lastSaid()).toBe('Holzbett gekauft, fünfundzwanzig Sterne.')
     })
 
     it('says an entry when it is tapped', async () => {
