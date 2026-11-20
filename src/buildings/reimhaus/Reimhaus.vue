@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import Confetti from '@/components/Confetti.vue'
-import { buildRhymeSession, exampleFor, WORDS, type Example, type RhymeTask } from '@/core/rhymes'
+import { buildRhymeSession, exampleFor, sayAsHeard, WORDS, type Example, type RhymeTask } from '@/core/rhymes'
 import { playBeat } from '@/services/sound'
+import { askedAgain } from '@/services/sayAgain'
 import { instruct, instruction, speak, stopSpeaking } from '@/services/tts'
 import { useSchoolStore } from '@/stores/school'
 import { onLeaveRequest } from '../leave'
@@ -21,8 +22,13 @@ const emit = defineEmits<{ finished: [result: BuildingResult] }>()
 
 // The pause after the cheer, before the next question
 const AFTER_CHEER_MS = 500
-// Between two named pictures or drummed syllables
+// Between two named pictures
 const BETWEEN_MS = 250
+// The drum lights this long per syllable, and is dark this long between two
+const DRUM_ON_MS = 320
+const DRUM_OFF_MS = 230
+/** More dots than this would push the row out of the board; she has drummed far too often anyway */
+const MAX_DOTS = 10
 const CONFETTI_MS = 3000
 
 const school = useSchoolStore()
@@ -59,17 +65,22 @@ function sync() {
 
 /** Each run is numbered: what an older one still had to say is dropped when a newer one starts (she answered) */
 let current = 0
+/** The question being asked, for the 🔊 text after a wrong picture */
+let question = ''
+const sayAgainText = (text: string, ids: string[]) => `${text} ${sayOf(ids[0])}. ${ids.slice(1).map(sayOf).join(', ')}.`
 
 /** Carries out what the flow asks for, one after the other. Resolves when all of it has been said, or was dropped. */
 function run(effects: RhymeEffect[]): Promise<boolean> {
   sync()
   const mine = ++current
   const live = () => !closed && mine === current
+  // Whatever an older run had lit goes dark: only what this one names lights up
+  lit.value = null
+  drumLit.value = false
   let chain: Promise<void> = Promise.resolve()
-  // The 🔊 button says the question and the pictures' names again
+  // The 🔊 button says the question and the pictures' names again (the example: just itself)
   const named = effects.find(e => e.type === 'name')
-  const again = (text: string) =>
-    named?.type === 'name' ? `${text} ${sayOf(named.ids[0])}. ${named.ids.slice(1).map(sayOf).join(', ')}.` : text
+  const asking = flow.state.phase === 'asking'
   for (const effect of effects) {
     if (effect.type === 'chime') playBeat('chime')
     else if (effect.type === 'beat') playBeat('drum')
@@ -79,10 +90,15 @@ function run(effects: RhymeEffect[]): Promise<boolean> {
         if (!live()) return
         if (!effect.ask) return speak(effect.text)
         const said = instruct(effect.text)
-        instruction.value = again(effect.text)
+        if (asking) question = effect.text
+        if (asking && named?.type === 'name') instruction.value = sayAgainText(effect.text, named.ids)
         return said
       })
     } else if (effect.type === 'name') {
+      // After a wrong picture: 🔊 names only those still there
+      if (asking && question && !effects.some(e => e.type === 'speak' && e.ask)) {
+        instruction.value = sayAgainText(question, effect.ids)
+      }
       chain = chain.then(async () => {
         for (const id of effect.ids) {
           if (!live()) return
@@ -93,15 +109,19 @@ function run(effects: RhymeEffect[]): Promise<boolean> {
         if (live()) lit.value = null
       })
     } else if (effect.type === 'drum') {
+      // Said in one go ("Au – to"): a syllable alone may be spelled out by the voice. The drum lights along.
       chain = chain.then(async () => {
-        for (const syllable of effect.syllables) {
+        if (!live()) return
+        const said = speak(sayAsHeard(effect.syllables))
+        for (let k = 0; k < effect.syllables.length; k++) {
           if (!live()) return
           drumLit.value = true
           playBeat('drum')
-          await speak(syllable)
+          await pause(DRUM_ON_MS)
           drumLit.value = false
-          await pause(BETWEEN_MS)
+          await pause(DRUM_OFF_MS)
         }
+        await said
       })
     }
   }
@@ -110,6 +130,7 @@ function run(effects: RhymeEffect[]): Promise<boolean> {
 
 /** After what was said: the example leads to the first question, a cheer to the next, a replay back to the drum */
 function carryOn(effects: RhymeEffect[]) {
+  sync()
   if (effects.length === 0) return
   void run(effects).then(finished => {
     if (!finished) return
@@ -171,6 +192,14 @@ function onKey(e: KeyboardEvent) {
   else if (e.code === 'Backspace') clear()
 }
 
+// 🔊 while the pictures are being named: the naming stops, so the whole instruction is heard
+watch(askedAgain, () => {
+  if (closed || flow.state.phase !== 'asking') return
+  current++
+  lit.value = null
+  drumLit.value = false
+})
+
 onMounted(() => {
   window.addEventListener('keydown', onKey)
   stopLeaveRequests = onLeaveRequest(leave)
@@ -210,7 +239,7 @@ onBeforeUnmount(shutDown)
 
         <template v-else>
           <div class="beats" aria-hidden="true">
-            <span v-for="n in view.beats" :key="n" class="beat" data-test="beat" />
+            <span v-for="n in Math.min(view.beats, MAX_DOTS)" :key="n" class="beat" data-test="beat" />
           </div>
           <div class="row drumrow">
             <button
@@ -282,7 +311,7 @@ button { border: 0; padding: 0; background: none; font: inherit; cursor: pointer
 .picture[data-lit='true'] { box-shadow: 0 0 0 8px #ffd93d; transform: scale(1.08); }
 .picture.choice[data-faded='true'] { opacity: 0.3; box-shadow: none; transform: scale(0.9); }
 
-.beats { display: flex; gap: 14px; min-height: 32px; }
+.beats { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; min-height: 32px; max-width: 100%; }
 .beat { width: 28px; height: 28px; border-radius: 50%; background: #e2702c; }
 
 .drumrow { gap: 5vw; }

@@ -13,6 +13,8 @@ export interface Word {
   rhyme?: string
   /** The first sound ('S', 'Sch', 'M' …), only where it is clear and at least three words share it */
   sound?: string
+  /** How it starts to the ear (St and Sp as Sch, Au as A): a wrong picture never starts like the asked word */
+  start: string
 }
 
 export type RhymeTask =
@@ -38,35 +40,35 @@ const LAST_STEP = 6
 /** [say, emoji, syllables joined by '-', rhyme] */
 const LIST: [string, string, string, string?][] = [
   ['Maus', '🐭', 'Maus', 'aus'], ['Haus', '🏠', 'Haus', 'aus'], ['Strauß', '💐', 'Strauß', 'aus'],
-  ['Hose', '👖', 'Ho-se', 'ose'], ['Rose', '🌹', 'Ro-se', 'ose'], ['Dose', '🥫', 'Do-se', 'ose'],
+  ['Hose', '👖', 'Ho-se', 'ose'], ['Rose', '🌹', 'Ro-se', 'ose'],
   ['Hand', '✋', 'Hand', 'and'], ['Strand', '🏖️', 'Strand', 'and'],
   ['Kuh', '🐮', 'Kuh', 'uh'], ['Schuh', '👟', 'Schuh', 'uh'],
   ['Hase', '🐰', 'Ha-se', 'ase'], ['Nase', '👃', 'Na-se', 'ase'],
   ['Socke', '🧦', 'So-cke', 'ocke'], ['Glocke', '🔔', 'Glo-cke', 'ocke'],
-  ['Eis', '🍦', 'Eis', 'eis'], ['Reis', '🍚', 'Reis', 'eis'],
+  ['Igel', '🦔', 'I-gel', 'igel'], ['Spiegel', '🪞', 'Spie-gel', 'igel'],
   ['Bein', '🦵', 'Bein', 'ein'], ['Schwein', '🐷', 'Schwein', 'ein'], ['Stein', '🪨', 'Stein', 'ein'],
   ['Boot', '⛵', 'Boot', 'ot'], ['Brot', '🍞', 'Brot', 'ot'],
   ['Tee', '🍵', 'Tee', 'ee'], ['Schnee', '❄️', 'Schnee', 'ee'], ['Klee', '🍀', 'Klee', 'ee'],
-  ['Ziege', '🐐', 'Zie-ge', 'iege'], ['Fliege', '🪰', 'Flie-ge', 'iege'],
+  ['Hund', '🐶', 'Hund', 'und'], ['Mund', '👄', 'Mund', 'und'],
   ['Zahn', '🦷', 'Zahn', 'ahn'], ['Hahn', '🐓', 'Hahn', 'ahn'],
   ['Sonne', '☀️', 'Son-ne'], ['Sofa', '🛋️', 'So-fa'], ['Salat', '🥗', 'Sa-lat'],
-  ['Mond', '🌙', 'Mond'], ['Mütze', '🧢', 'Müt-ze'],
+  ['Mond', '🌙', 'Mond'], ['Muschel', '🐚', 'Mu-schel'],
   ['Banane', '🍌', 'Ba-na-ne'], ['Bär', '🐻', 'Bär'], ['Baum', '🌳', 'Baum'], ['Buch', '📖', 'Buch'],
   ['Bus', '🚌', 'Bus'], ['Biene', '🐝', 'Bie-ne'],
   ['Fisch', '🐟', 'Fisch'], ['Frosch', '🐸', 'Frosch'], ['Feder', '🪶', 'Fe-der'], ['Fuchs', '🦊', 'Fuchs'],
-  ['Hund', '🐶', 'Hund'], ['Hut', '🎩', 'Hut'],
+  ['Fliege', '🪰', 'Flie-ge'], ['Hut', '🎩', 'Hut'],
   ['Käse', '🧀', 'Kä-se'], ['Kerze', '🕯️', 'Ker-ze'], ['Krone', '👑', 'Kro-ne'], ['Kuchen', '🍰', 'Ku-chen'],
   ['Tomate', '🍅', 'To-ma-te'], ['Tiger', '🐯', 'Ti-ger'],
   ['Löwe', '🦁', 'Lö-we'], ['Leiter', '🪜', 'Lei-ter'], ['Löffel', '🥄', 'Löf-fel'],
   ['Rakete', '🚀', 'Ra-ke-te'], ['Regenbogen', '🌈', 'Re-gen-bo-gen'], ['Ring', '💍', 'Ring'],
   ['Zitrone', '🍋', 'Zi-tro-ne'], ['Zebra', '🦓', 'Ze-bra'],
-  ['Nest', '🪺', 'Nest'], ['Geschenk', '🎁', 'Ge-schenk'], ['Gurke', '🥒', 'Gur-ke'], ['Drache', '🐉', 'Dra-che'],
+  ['Nashorn', '🦏', 'Nas-horn'], ['Geschenk', '🎁', 'Ge-schenk'], ['Gurke', '🥒', 'Gur-ke'], ['Drache', '🐉', 'Dra-che'],
   ['Apfel', '🍎', 'Ap-fel'], ['Ananas', '🍍', 'A-na-nas'], ['Ameise', '🐜', 'A-mei-se'],
   ['Auto', '🚗', 'Au-to'], ['Elefant', '🐘', 'E-le-fant'], ['Wolke', '☁️', 'Wol-ke'],
   ['Schildkröte', '🐢', 'Schild-krö-te'], ['Kartoffel', '🥔', 'Kar-tof-fel'],
   ['Schere', '✂️', 'Sche-re'], ['Schnecke', '🐌', 'Schne-cke'], ['Schlange', '🐍', 'Schlan-ge'],
   ['Schokolade', '🍫', 'Scho-ko-la-de'], ['Sonnenblume', '🌻', 'Son-nen-blu-me'],
-  ['Krankenwagen', '🚑', 'Kran-ken-wa-gen'],
+  ['Avocado', '🥑', 'A-vo-ca-do'],
 ]
 
 /** The first sound as she hears it; none where a written start hides it (St, Sp, Ei, Au …) or a vowel isn't A */
@@ -78,11 +80,20 @@ function firstSound(say: string): string | undefined {
   return first
 }
 
+/** How a word starts to the ear, to keep wrong pictures from starting the same way */
+function heardStart(say: string): string {
+  if (/^(Sch|St|Sp)/.test(say)) return 'Sch'
+  if (/^Au/.test(say)) return 'A'
+  if (/^(Eu|Äu)/.test(say)) return 'Eu'
+  if (/^Ei/.test(say)) return 'Ei'
+  return say[0]
+}
+
 const toId = (say: string) =>
   say.toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
 
 const RAW: Word[] = LIST.map(([say, emoji, syllables, rhyme]) => ({
-  id: toId(say), say, emoji, syllables: syllables.split('-'), rhyme, sound: firstSound(say),
+  id: toId(say), say, emoji, syllables: syllables.split('-'), rhyme, sound: firstSound(say), start: heardStart(say),
 }))
 /** A first sound only three words or more share is asked */
 const SOUNDS = new Set(
@@ -106,8 +117,15 @@ function shuffle<T>(items: T[], random: () => number): T[] {
 
 const rhymes = (a: Word, b: Word) => a.rhyme !== undefined && a.rhyme === b.rhyme
 const sameSound = (a: Word, b: Word) => a.sound !== undefined && a.sound === b.sound
-/** Pictures that are plainly wrong: neither rhyme nor first sound in common with the asked word */
-const others = (word: Word) => WORDS.filter(w => w.id !== word.id && !rhymes(w, word) && !sameSound(w, word))
+/** Pictures that are plainly wrong: neither rhyme nor first sound in common with the asked word, not even to the ear */
+const others = (word: Word) =>
+  WORDS.filter(w => w.id !== word.id && !rhymes(w, word) && !sameSound(w, word) && w.start !== word.start)
+
+/** Syllables as the voice should say them, apart: a piece alone like "cke" would be spelled out, "ke" is said */
+export function sayAsHeard(syllables: string[]): string {
+  return syllables.map(s => s.replace(/^ck/, 'k').replace(/^c(?=[aou])/, 'k')).join(' – ')
+}
+export const spokenSyllables = (word: Word) => sayAsHeard(word.syllables)
 
 function pictureTask(type: 'rhyme' | 'sound', choiceCount: number, used: Set<string>, random: () => number): RhymeTask {
   const fits = (w: Word, x: Word) => (type === 'rhyme' ? rhymes(w, x) : sameSound(w, x) && !rhymes(w, x))
@@ -152,7 +170,7 @@ export function buildRhymeSession(step: number, random: () => number = Math.rand
 
 const syllableExample = (id: string, count: string): Example => {
   const word = byId(id)
-  const said = word.syllables.join(' – ')
+  const said = spokenSyllables(word)
   return {
     kind: 'syllables', words: [word], beats: word.syllables.length,
     text: `${said}. Hör mal: ${said}. ${count} Silben. Ich trommle mit:`,

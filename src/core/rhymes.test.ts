@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { seededRandom } from './numbers'
-import { buildRhymeSession, exampleFor, TASKS_PER_VISIT, WORDS, type RhymeTask, type Word } from './rhymes'
+import { buildRhymeSession, exampleFor, spokenSyllables, TASKS_PER_VISIT, WORDS, type RhymeTask, type Word } from './rhymes'
 
 const group = <K extends string>(key: (w: Word) => K | undefined) => {
   const m = new Map<K, Word[]>()
@@ -81,6 +81,29 @@ describe('a Reimhaus visit', () => {
         expect(new Set([t.word.id, ...t.choices.map(c => c.id)]).size).toBe(t.choices.length + 1)
       }
     }
+  })
+
+  it('never offers a wrong picture that starts the way the asked word does (Stein in a Sch task, Auto in an A task)', () => {
+    for (const [, tasks] of sessions()) {
+      for (const t of tasks) {
+        if (t.type !== 'sound') continue
+        for (const c of t.choices) if (c.id !== t.answer) expect(c.start, `${t.word.id}: ${c.id}`).not.toBe(t.word.start)
+      }
+    }
+    const start = (id: string) => WORDS.find(w => w.id === id)?.start
+    expect([start('stein'), start('schuh'), start('strand')]).toEqual(['Sch', 'Sch', 'Sch'])
+    expect(start('auto')).toBe(start('apfel'))
+  })
+
+  it('says syllables as they sound, not as letters to spell', () => {
+    const word = (id: string) => WORDS.find(w => w.id === id) as Word
+    expect(spokenSyllables(word('socke'))).toBe('So – ke')
+    expect(spokenSyllables(word('banane'))).toBe('Ba – na – ne')
+  })
+
+  it('names nothing a Swiss child calls otherwise, and no picture an older iPad lacks', () => {
+    const ids = WORDS.map(w => w.id)
+    for (const id of ['muetze', 'eis', 'krankenwagen', 'ziege', 'dose', 'nest']) expect(ids).not.toContain(id)
   })
 
   it('puts the right picture in different places', () => {

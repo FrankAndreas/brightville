@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { askedAgain } from '@/services/sayAgain'
 import { forgetInstruction, instruct } from '@/services/tts'
 import SayAgain from './SayAgain.vue'
 
@@ -26,6 +27,17 @@ describe('the button to hear it again', () => {
     forgetInstruction()
     await w.vm.$nextTick()
     expect(w.find('[data-test="say-again"]').exists()).toBe(false)
+    w.unmount()
+  })
+
+  it('tells the building it was tapped, so naming stops', async () => {
+    listen()
+    const w = mount(SayAgain)
+    void instruct('Was reimt sich auf Maus?')
+    await w.vm.$nextTick()
+    const before = askedAgain.value
+    await w.find('[data-test="say-again"]').trigger('click')
+    expect(askedAgain.value).toBe(before + 1)
     w.unmount()
   })
 

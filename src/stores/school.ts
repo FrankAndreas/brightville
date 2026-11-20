@@ -114,7 +114,9 @@ export const useSchoolStore = defineStore('school', () => {
     const waiting = readWaiting(key)
     const left = waiting.filter(x => !seen.has(x.key))
     if (left.length !== waiting.length) writeWaiting(key, left)
-    show(left.reduce(lay, { zaehlen: state.zaehlen, rechnen: state.rechnen, reimen: state.reimen }))
+    // A server from before Reimen (during an update) names no Reimen: step 1
+    const reimen = state.reimen ?? startLadders(false).reimen
+    show(left.reduce(lay, { zaehlen: state.zaehlen, rechnen: state.rechnen, reimen }))
   }
 
   const refused = (e: unknown) => e instanceof ApiError && e.status >= 400 && e.status < 500 && e.status !== 401 && e.status !== 403

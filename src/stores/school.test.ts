@@ -189,6 +189,15 @@ describe('school store', () => {
     expect(api.calls.filter(c => c.startsWith('schoolResults'))).toEqual([])
   })
 
+  it('keeps Reimen at step 1 when a server from before Reimen answers', async () => {
+    const school = await open()
+    const old = { zaehlen: { step: 2, window: [] }, rechnen: { step: 1, window: [] }, seen: [] }
+    api.school = () => Promise.resolve(old as never)
+    await school.load()
+    expect(school.ladders.zaehlen.step).toBe(2)
+    expect(school.ladders.reimen).toEqual({ step: 1, window: [] })
+  })
+
   it('starts from the steps last known on this device', async () => {
     api.school_.zaehlen = { step: 3, window: [] }
     await open()

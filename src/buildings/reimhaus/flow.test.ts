@@ -25,8 +25,16 @@ describe('the Reimhaus flow', () => {
   it('drums the word after a syllable example', () => {
     const flow = createRhymeFlow([syllableTask()], exampleFor(4, 0))
     expect(flow.start()).toEqual([
-      { type: 'speak', text: 'Ba – na – ne. Hör mal: Ba – na – ne. Drei Silben. Ich trommle mit:' },
+      { type: 'speak', text: 'Ba – na – ne. Hör mal: Ba – na – ne. Drei Silben. Ich trommle mit:', ask: true },
       { type: 'drum', syllables: ['Ba', 'na', 'ne'] },
+    ])
+  })
+
+  it('lights the pictures of a rhyme or first-sound example as it names them', () => {
+    const flow = createRhymeFlow([rhymeTask()], exampleFor(3, 0))
+    expect(flow.start()).toEqual([
+      { type: 'speak', text: 'Sonne – Sofa. Sonne, Sofa: die fangen gleich an!', ask: true },
+      { type: 'name', ids: ['sonne', 'sofa'] },
     ])
   })
 

@@ -3,6 +3,7 @@ import { mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { exampleFor, WORDS, type RhymeTask } from '@/core/rhymes'
 import { playBeat } from '@/services/sound'
+import { askedAgain } from '@/services/sayAgain'
 import { instruction, speak } from '@/services/tts'
 import { useSchoolStore } from '@/stores/school'
 import { requestLeave } from '../leave'
@@ -54,6 +55,75 @@ describe('Reimhaus', () => {
     wrapper.unmount()
   })
 
+  it('lights no picture any more after a tap made while the pictures are named', async () => {
+    let finish: () => void = () => {}
+    vi.mocked(speak).mockImplementation(text => (text === 'Haus' ? new Promise<void>(r => { finish = r }) : Promise.resolve()))
+    const wrapper = await open([RHYME, RHYME])
+    await run(1000)
+    expect(pick(wrapper, 'haus').attributes('data-lit')).toBe('true')
+    await pick(wrapper, 'haus').trigger('pointerdown')
+    finish()
+    await run(10)
+    expect(wrapper.findAll('[data-lit="true"]')).toHaveLength(0)
+    vi.mocked(speak).mockImplementation(() => Promise.resolve())
+    wrapper.unmount()
+  })
+
+  it('keeps the 🔊 text to the pictures still there after a wrong one', async () => {
+    const three: RhymeTask = { ...RHYME, choices: [w('haus'), w('fisch'), w('hund')] }
+    const wrapper = await open([three])
+    await run(CHEER)
+    await pick(wrapper, 'fisch').trigger('pointerdown')
+    await run(CHEER)
+    expect(instruction.value).toBe('Was reimt sich auf Maus? Maus. Haus, Hund.')
+    wrapper.unmount()
+  })
+
+  it('stops naming when 🔊 says it all again', async () => {
+    let finish: () => void = () => {}
+    vi.mocked(speak).mockImplementation(text => (text === 'Haus' ? new Promise<void>(r => { finish = r }) : Promise.resolve()))
+    const wrapper = await open([RHYME])
+    await run(1000)
+    // 🔊 tapped (SayAgain.vue)
+    askedAgain.value++
+    finish()
+    await run(1000)
+    expect(said()).not.toContain('Fisch')
+    expect(wrapper.findAll('[data-lit="true"]')).toHaveLength(0)
+    vi.mocked(speak).mockImplementation(() => Promise.resolve())
+    wrapper.unmount()
+  })
+
+  it('keeps the example for the 🔊 button', async () => {
+    const wrapper = mount(Reimhaus, { props: { tasks: [RHYME], example: exampleFor(1, 0) }, attachTo: document.body })
+    // While the example's pictures are named
+    await run(10)
+    expect(instruction.value).toBe('Maus – Haus. Hör mal: Maus, Haus. Das klingt am Ende gleich. Das reimt sich!')
+    wrapper.unmount()
+  })
+
+  it('says a count again in one go, as it sounds, with the drum lit, and is ready again after', async () => {
+    const socke: RhymeTask = { type: 'syllables', word: w('socke'), answer: 2 }
+    const wrapper = await open([socke, RHYME])
+    await wrapper.find('[data-test="drum"]').trigger('pointerdown')
+    await wrapper.find('[data-test="done"]').trigger('pointerdown')
+    await run(100)
+    expect(said()).toContain('So – ke')
+    expect(said()).not.toContain('cke')
+    expect(wrapper.find('[data-test="drum"]').attributes('data-lit')).toBe('true')
+    await run(CHEER)
+    expect(wrapper.find('[data-test="reimhaus"]').attributes('data-phase')).toBe('asking')
+    expect(wrapper.find('[data-test="drum"]').attributes('data-lit')).toBe('false')
+    wrapper.unmount()
+  })
+
+  it('shows at most ten dots however often she drums', async () => {
+    const wrapper = await open([COUNT])
+    for (let i = 0; i < 25; i++) await wrapper.find('[data-test="drum"]').trigger('pointerdown')
+    expect(wrapper.findAll('[data-test="beat"]')).toHaveLength(10)
+    wrapper.unmount()
+  })
+
   it('fades a wrong picture and goes on after the right one', async () => {
     const wrapper = await open()
     await pick(wrapper, 'fisch').trigger('pointerdown')
@@ -81,7 +151,7 @@ describe('Reimhaus', () => {
     await wrapper.find('[data-test="drum"]').trigger('pointerdown')
     await wrapper.find('[data-test="done"]').trigger('pointerdown')
     await run(CHEER)
-    expect(said()).toEqual(expect.arrayContaining(['Au', 'to', 'Super!']))
+    expect(said()).toEqual(expect.arrayContaining(['Au – to', 'Super!']))
     expect(said().slice(said().indexOf('Super!'))).toEqual(['Super!', 'Was reimt sich auf Maus?', 'Maus', 'Haus', 'Fisch'])
     wrapper.unmount()
   })
