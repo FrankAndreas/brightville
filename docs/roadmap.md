@@ -121,7 +121,6 @@ A second architecture review after the Lehrplan work. Fixed so far:
 - The ladder rules (window, misses) live in `shared/ladders.json`, read by the server and the page alike (#50).
 - Building colours and house shapes are looked up by building id, not by the position in the registry (#51).
 - One ladder table (`LADDER_DEFS` in `src/core/lehrplan.ts`): name, subject, step texts and where Kindergarten ends. The parents' page shows **one bar per subject** instead of a single overall number (the parent's choice), so a new ladder no longer moves every child's number. The server's results model is made from the shared file and refuses an unknown ladder (a newer page's results wait instead of being lost).
-
 - The learning buildings share their visit lifecycle (`src/buildings/visit.ts`: timers, numbered runs, leaving, the ladder snapshot, scoring; `ProgressStars.vue`); each keeps its own effects (#53–#58).
 - Small things: the app's ladder store is `useLaddersStore` (`src/stores/ladders.ts`; the API path, the tables and the device keys still say "school"), `pick`/`shuffle` live once in `src/core/random.ts`, stale comments and README lines fixed, the School's random screen test is seeded.
 
