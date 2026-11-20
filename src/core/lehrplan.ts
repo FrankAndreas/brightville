@@ -86,6 +86,14 @@ export const STEP_TEXT: Record<Ladder, string[]> = {
     'Silben bis 4 und Anlaute gemischt',
     'fertig (Ende Kindergarten)',
   ],
+  muster: [
+    'Reihen mit zwei Farben',
+    'Reihen mit drei Farben',
+    'Reihen mit Formen und Grössen',
+    'Sortieren nach Farbe und Art',
+    'Lücken, Grösse, zwei Merkmale',
+    'fertig (Ende 2. Klasse)',
+  ],
 }
 
 /**

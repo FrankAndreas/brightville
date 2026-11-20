@@ -38,7 +38,7 @@ describe('school store', () => {
   })
 
   it('starts at step 1 before the server answers, then takes the server\'s steps', async () => {
-    api.school_ = { zaehlen: { step: 3, window: [] }, rechnen: { step: 2, window: [true] }, reimen: { step: 1, window: [] } }
+    api.school_ = { zaehlen: { step: 3, window: [] }, rechnen: { step: 2, window: [true] }, reimen: { step: 1, window: [] }, muster: { step: 1, window: [] } }
     const school = useSchoolStore()
     school.init(api, 2, storage)
     expect(school.ladders.zaehlen.step).toBe(1)
@@ -196,6 +196,33 @@ describe('school store', () => {
     await school.load()
     expect(school.ladders.zaehlen.step).toBe(2)
     expect(school.ladders.reimen).toEqual({ step: 1, window: [] })
+  })
+
+  it('sends a Musterwerkstatt visit with only Muster', async () => {
+    const school = await open()
+    school.record(Array(5).fill({ ladder: 'muster', firstTry: true }), { muster: 1 })
+    await flushPromises()
+    expect(api.school_.muster.window).toHaveLength(5)
+    expect(api.school_.reimen).toEqual({ step: 1, window: [] })
+  })
+
+  it('takes cached steps from before Muster', async () => {
+    storage.setItem('brightville.school.2.ladders', JSON.stringify({
+      zaehlen: { step: 3, window: [] }, rechnen: { step: 2, window: [] }, reimen: { step: 4, window: [true] },
+    }))
+    api.offline = true
+    const school = await open()
+    expect(school.ladders.reimen).toEqual({ step: 4, window: [true] })
+    expect(school.ladders.muster).toEqual({ step: 1, window: [] })
+  })
+
+  it('keeps Muster at step 1 when a server from before Muster answers', async () => {
+    const school = await open()
+    const old = { zaehlen: { step: 2, window: [] }, rechnen: { step: 1, window: [] }, reimen: { step: 3, window: [] }, seen: [] }
+    api.school = () => Promise.resolve(old as never)
+    await school.load()
+    expect(school.ladders.reimen.step).toBe(3)
+    expect(school.ladders.muster).toEqual({ step: 1, window: [] })
   })
 
   it('starts from the steps last known on this device', async () => {

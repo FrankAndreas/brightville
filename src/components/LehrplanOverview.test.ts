@@ -20,7 +20,7 @@ describe('LehrplanOverview', () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date(2026, 10, 20, 10, 0))
     api = fakeApi()
-    api.school_ = { zaehlen: { step: 3, window: [] }, rechnen: { step: 2, window: [] }, reimen: { step: 1, window: [] } }
+    api.school_ = { zaehlen: { step: 3, window: [] }, rechnen: { step: 2, window: [] }, reimen: { step: 1, window: [] }, muster: { step: 1, window: [] } }
     api.writing_.letters = { M: known, I: known, A: known }
     api.logbook_ = [
       { day: '2026-11-19', goal_reached: true, stickers: [], paintings: [], entries: [
