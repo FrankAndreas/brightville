@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import Confetti from '@/components/Confetti.vue'
+import ProgressStars from '@/components/ProgressStars.vue'
 import {
   beatTimes, buildRhythmSession, exampleFor, findOnsets, LEAD_IN, type Hit, type Mode, type RhythmTask,
 } from '@/core/rhythm'
 import { hasMicrophone, openMicrophone, type Level, type Microphone } from '@/services/microphone'
 import { playBeat, unlockAudio } from '@/services/sound'
-import { forgetInstruction, instruct, instruction, speak, stopSpeaking } from '@/services/tts'
-import { useSchoolStore } from '@/stores/school'
-import { onLeaveRequest } from '../leave'
+import { forgetInstruction, instruct, instruction, speak } from '@/services/tts'
 import type { BuildingResult } from '../types'
+import { ladderVisit, useVisit } from '../visit'
 import { createRhythmFlow, type RhythmEffect } from './flow'
 
 // The Trommelhaus: rhythm. She taps the drums or claps (the microphone hears it), chosen at the door; the beat is
@@ -41,11 +41,13 @@ const FLOOR_AT_MOST = 0.02
 /** Readings that never rise above this, or never change, come from a microphone that hears nothing */
 const DEAD_LEVEL = 0.002
 
-const school = useSchoolStore()
-const step = school.ladders.rhythmus.step
-const player = school.who
+// Her step, her answers at it and the child who plays, as the visit starts
+const ladder = ladderVisit('rhythmus')
+const step = ladder.step
+const visit = useVisit(leave)
+const { later, pause } = visit
 const tasks = props.tasks ?? buildRhythmSession(step)
-const showFirst = props.example ?? exampleFor(step, school.ladders.rhythmus.window.length)
+const showFirst = props.example ?? exampleFor(step, ladder.windowLength)
 const flow = createRhythmFlow(tasks, showFirst)
 const view = reactive({ ...flow.state })
 const canClap = props.micAvailable ?? hasMicrophone()
@@ -59,16 +61,6 @@ const confetti = ref(false)
 const dynamicsTask = computed(() => view.task?.type === 'dynamics')
 
 let mic: Microphone | null = null
-let closed = false
-const timers = new Set<ReturnType<typeof setTimeout>>()
-function later(fn: () => void, ms: number) {
-  const id = setTimeout(() => {
-    timers.delete(id)
-    if (!closed) fn()
-  }, ms)
-  timers.add(id)
-}
-const pause = (ms: number) => new Promise<void>(resolve => later(resolve, ms))
 /** One clock for the house's beats, her taps and the microphone's readings */
 const now = () => performance.now()
 
@@ -197,7 +189,7 @@ function claps(): Hit[] {
 function watchClaps(task: RhythmTask) {
   let seen = 0
   const look = () => {
-    if (!listening.value || closed) return
+    if (!listening.value || visit.isClosed()) return
     const found = claps()
     if (found.length > seen) {
       seen = found.length
@@ -211,12 +203,11 @@ function watchClaps(task: RhythmTask) {
 
 // ---- The flow's effects ----
 
-let current = 0
 
 function run(effects: RhythmEffect[]): Promise<boolean> {
   sync()
-  const mine = ++current
-  const live = () => !closed && mine === current
+  // Each run is numbered: what an older one still had to say is dropped when a newer one starts
+  const live = visit.newRun()
   let chain: Promise<void> = Promise.resolve()
   for (const effect of effects) {
     if (effect.type === 'chime') {
@@ -258,7 +249,7 @@ function carryOn(effects: RhythmEffect[]) {
 let opening = false
 
 async function choose(mode: Mode) {
-  if (closed || opening || view.phase !== 'choosing') return
+  if (visit.isClosed() || opening || view.phase !== 'choosing') return
   unlockAudio()
   if (mode === 'tap') {
     carryOn(flow.choose('tap'))
@@ -268,7 +259,7 @@ async function choose(mode: Mode) {
   opening = true
   mic = await (props.openMic ?? openMicrophone)()
   opening = false
-  if (closed) {
+  if (visit.isClosed()) {
     mic?.close()
     return
   }
@@ -277,23 +268,17 @@ async function choose(mode: Mode) {
 
 // ---- Leaving ----
 
-let stopLeaveRequests = () => {}
-
-function shutDown() {
-  if (closed) return
-  closed = true
-  for (const id of timers) clearTimeout(id)
-  timers.clear()
+/** What closing the visit must undo besides its timers and voice */
+function cleanUp() {
   if (endTimer) clearTimeout(endTimer)
   closeMic()
-  stopLeaveRequests()
-  stopSpeaking()
 }
+visit.onShutDown(cleanUp)
 
 function leave() {
-  if (closed) return
-  shutDown()
-  school.record(flow.state.results, { rhythmus: step }, player)
+  if (visit.isClosed()) return
+  visit.shutDown()
+  ladder.record(flow.state.results)
   emit('finished', { stars: flow.state.stars })
 }
 
@@ -301,20 +286,14 @@ function leave() {
 // the microphone listens there is no instruction to say (see turn)
 
 onMounted(() => {
-  stopLeaveRequests = onLeaveRequest(leave)
   if (canClap) carryOn(flow.start())
   else carryOn(flow.choose('tap'))
 })
-onBeforeUnmount(shutDown)
 </script>
 
 <template>
   <div class="trommelhaus" data-test="trommelhaus" :data-phase="view.phase" :data-mode="view.mode">
-    <div class="progress" aria-hidden="true">
-      <svg v-for="n in tasks.length" :key="n" viewBox="0 0 24 24" data-test="progress-star" :data-done="n <= view.solved">
-        <path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.2 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z" />
-      </svg>
-    </div>
+    <ProgressStars :total="tasks.length" :solved="view.solved" edge="#f0c4b8" />
 
     <div class="board">
       <template v-if="view.phase === 'choosing'">
@@ -354,10 +333,6 @@ onBeforeUnmount(shutDown)
   background: #fde9e4;
 }
 button { border: 0; padding: 0; background: none; font: inherit; cursor: pointer; }
-.progress { display: flex; gap: 14px; }
-.progress svg { width: 46px; }
-.progress path { fill: rgb(255 255 255 / 70%); stroke: #f0c4b8; stroke-width: 1.2; stroke-linejoin: round; }
-.progress svg[data-done='true'] path { fill: #ffd93d; stroke: #e0a800; }
 
 .board {
   flex: 1;
