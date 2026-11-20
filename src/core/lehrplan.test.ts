@@ -67,7 +67,9 @@ describe('Lehrplan 21', () => {
     const rows = practice(days, TODAY)
     expect(rows.map(r => r.zugang)).toEqual([1, 2, 3, 5, 6, 7, 8])
     expect(rows.find(r => r.zugang === 1)?.visits).toEqual([{ building: 'yoga', times: 1 }])
-    expect(rows.find(r => r.zugang === 3)).toMatchObject({ visits: [], hasBuilding: false })
+    // Lernen und Reflexion has no house yet; Zeitliche Orientierung has the Kalender
+    expect(rows.find(r => r.zugang === 7)).toMatchObject({ visits: [], hasBuilding: false })
+    expect(rows.find(r => r.zugang === 3)).toMatchObject({ visits: [], hasBuilding: true })
     expect(rows.find(r => r.zugang === 2)).toMatchObject({ visits: [], hasBuilding: true })
   })
 

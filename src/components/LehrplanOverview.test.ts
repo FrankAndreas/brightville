@@ -62,7 +62,8 @@ describe('LehrplanOverview', () => {
     expect(subjects).toContain('Bewegung und Sport: Yoga ×2')
     const zugaenge = w.findAll('[data-test="zugang"]').map(z => z.text())
     expect(zugaenge).toContain('✓ Körper, Gesundheit und Motorik (Yoga ×2)')
-    expect(zugaenge).toContain('– Zeitliche Orientierung (noch kein Haus)')
+    expect(zugaenge).toContain('– Lernen und Reflexion (noch kein Haus)')
+    expect(zugaenge).toContain('– Zeitliche Orientierung')
     expect(zugaenge).toContain('– Wahrnehmung')
   })
 

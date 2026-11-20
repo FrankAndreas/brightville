@@ -28,6 +28,7 @@ const moebel = () => import('./moebel/Moebelhaus.vue')
 const flatterflug = () => import('./flatterflug/Flatterflug.vue')
 const reimhaus = () => import('./reimhaus/Reimhaus.vue')
 const muster = () => import('./muster/Musterwerkstatt.vue')
+const kalender = () => import('./kalender/Kalender.vue')
 
 /**
  * Every building in the town, mixed along the streets of `src/city/map.ts` so every walk passes learning, playing and
@@ -123,6 +124,11 @@ export const BUILDINGS: BuildingDef[] = [
     // Seeing rules in things: rows to continue and things to sort (Lehrplan 21 MA.1.B, MA.3), past the Yoga studio
     id: 'muster', spokenName: 'Musterwerkstatt', icon: '🧩', kind: 'earn', needs: [], door: { x: 3.5, z: 51, side: 'right' },
     component: defineAsyncComponent(muster), preload: muster,
+  },
+  {
+    // Finding her way in time (Lehrplan 21 MA.3, Zugang 3): what was a plain house next to the Bibliothek
+    id: 'kalender', spokenName: 'Kalender', icon: '🗓️', kind: 'earn', needs: [], door: { x: 3.5, z: -24, side: 'right' },
+    component: defineAsyncComponent(kalender), preload: kalender,
   },
 ]
 

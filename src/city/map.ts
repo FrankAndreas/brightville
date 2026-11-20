@@ -77,7 +77,7 @@ const scenery = (x: number, z: number, side: DoorSpot['side'], floors: 1 | 2 | 3
   ({ spot: { x, z, side }, w, d: 5, floors })
 
 export const SCENERY_HOUSES: SceneryHouse[] = [
-  scenery(3.5, -24, 'right', 2, 7),
+  // (3.5, −24, right) is the Kalender now
   scenery(3.5, -51, 'right', 3),
   scenery(-3.5, -51, 'left', 2),
   scenery(-3.5, 51, 'left', 2),

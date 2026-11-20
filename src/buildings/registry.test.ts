@@ -1,5 +1,5 @@
 import sharedBuildings from '../../shared/buildings.json'
-import { EMPTY_LOTS } from '@/city/map'
+import { EMPTY_LOTS, SCENERY_HOUSES } from '@/city/map'
 import { describe, expect, it } from 'vitest'
 import { defineComponent } from 'vue'
 import { BUILDINGS, canServe, toDoors } from './registry'
@@ -127,6 +127,15 @@ describe('building registry', () => {
     const shared = (sharedBuildings as { id: string }[]).find(x => x.id === 'muster')
     expect(shared).toEqual({ id: 'muster', kind: 'earn', maxStars: 10, minSecondsPerStar: 2 })
     expect(EMPTY_LOTS).toEqual([{ x: -3.5, z: -40, side: 'left' }, { x: -51, z: 3.5, side: 'front' }])
+  })
+
+  it('lists the Kalender as an earning building in the plain house next to the Bibliothek', () => {
+    const b = BUILDINGS.find(x => x.id === 'kalender')
+    expect(b).toMatchObject({ spokenName: 'Kalender', icon: '🗓️', kind: 'earn', needs: [], door: { x: 3.5, z: -24, side: 'right' } })
+    expect(b?.preload).toBeTypeOf('function')
+    const shared = (sharedBuildings as { id: string }[]).find(x => x.id === 'kalender')
+    expect(shared).toEqual({ id: 'kalender', kind: 'earn', maxStars: 10, minSecondsPerStar: 2 })
+    expect(SCENERY_HOUSES.some(h => h.spot.x === 3.5 && h.spot.z === -24)).toBe(false)
   })
 
   it('lists the house, free, needing nothing, and kept out of the logbook', () => {
