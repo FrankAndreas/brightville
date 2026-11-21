@@ -23,6 +23,10 @@ describe('Lehrplan 21', () => {
     expect(Object.keys(ZUGAENGE)).toHaveLength(9)
   })
 
+  it('names the Reimhaus\'s syllable steps as she does them, on the drum', () => {
+    expect(STEP_TEXT.reimen[3]).toBe('Silben trommeln bis 3')
+  })
+
   it('describes every ladder once: its name, its subject, six step texts and where Kindergarten ends', () => {
     expect(Object.keys(LADDER_DEFS).sort()).toEqual([...LADDERS].sort())
     for (const l of LADDERS) {

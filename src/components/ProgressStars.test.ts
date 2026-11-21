@@ -9,4 +9,11 @@ describe('the progress stars of a learning building', () => {
     expect(stars).toHaveLength(5)
     expect(stars.map(s => s.attributes('data-done'))).toEqual(['true', 'true', 'false', 'false', 'false'])
   })
+
+  it('is a small row at the top while the visit goes on, and large in the middle when asked (the visit is over)', () => {
+    expect(mount(ProgressStars, { props: { total: 5, solved: 2 } }).find('.progress').attributes('data-big')).toBe('false')
+    const big = mount(ProgressStars, { props: { total: 5, solved: 5, big: true } })
+    expect(big.find('.progress').attributes('data-big')).toBe('true')
+    expect(big.find('svg').attributes('style')).toContain('width: 96px')
+  })
 })

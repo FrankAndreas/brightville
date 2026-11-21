@@ -295,7 +295,7 @@ onMounted(() => {
 
 <template>
   <div class="trommelhaus" data-test="trommelhaus" :data-phase="view.phase" :data-mode="view.mode">
-    <ProgressStars :total="tasks.length" :solved="view.solved" edge="#f0c4b8" />
+    <ProgressStars :total="tasks.length" :solved="view.solved" :big="view.phase === 'done'" edge="#f0c4b8" />
 
     <div class="board">
       <template v-if="view.phase === 'choosing'">

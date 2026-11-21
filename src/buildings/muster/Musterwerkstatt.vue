@@ -159,7 +159,7 @@ onMounted(() => {
 
 <template>
   <div class="muster" data-test="muster" :data-phase="view.phase">
-    <ProgressStars :total="tasks.length" :solved="view.solved" edge="#b8dcc3" />
+    <ProgressStars :total="tasks.length" :solved="view.solved" :big="view.phase === 'done'" edge="#b8dcc3" />
 
     <div class="board">
       <div v-if="view.phase === 'example'" class="badge" data-test="example" aria-hidden="true">👀</div>

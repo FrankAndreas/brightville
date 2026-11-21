@@ -82,8 +82,12 @@ These were tested with automated tests and in a desktop browser, but not where t
 - The Trommelhaus offered clapping and showed its example only in tests: in the game both were always off (#60).
 - The Spielwelt at steps 1–3 shows where the thing to find hides; before, the first task could hide it off the screen before she knew the world scrolls.
 - The Reimhaus's syllable drum: after three wrong counts the house drums it for her once more and the visit goes on (the Star kept), as in the Trommelhaus.
+- Tapping a day in the Kalender's week strip says its name (it looked tappable and did nothing).
+- At the end of a learning visit the stars she earned show large in the middle of the empty card.
+- The parents' overview says „Silben trommeln“, as she does in the Reimhaus.
+- The Kalender clocks draw their numbers over the hands, so a hand on the 12 doesn't hide it.
 
-Next: tapping a day in the Kalender's week strip says its name; the stars earned shown large at the end of a learning visit; the parents' overview says „Silben trommeln“; the Kalender clocks' long hand off the 12.
+Not checked this way: clapping into a real microphone, real speech timing, and whether she understands „Silben“ or the coloured day cards. That is for watching her play.
 
 ## Calls made without asking, which may be worth revisiting
 

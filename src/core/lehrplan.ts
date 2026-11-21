@@ -142,7 +142,7 @@ export const LADDER_DEFS: Record<Ladder, LadderDef> = {
       'reimt sich? aus zwei Bildern',
       'reimt sich? aus drei Bildern',
       'Anlaute: was fängt gleich an',
-      'Silben klatschen bis 3',
+      'Silben trommeln bis 3',
       'Silben bis 4 und Anlaute gemischt',
       'fertig (Ende Kindergarten)',
     ],

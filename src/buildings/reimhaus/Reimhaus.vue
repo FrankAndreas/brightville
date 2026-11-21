@@ -188,7 +188,7 @@ onMounted(() => {
 
 <template>
   <div class="reimhaus" data-test="reimhaus" :data-phase="view.phase">
-    <ProgressStars :total="tasks.length" :solved="view.solved" edge="#ecd2b4" />
+    <ProgressStars :total="tasks.length" :solved="view.solved" :big="view.phase === 'done'" edge="#ecd2b4" />
 
     <div class="board">
       <template v-if="view.phase === 'example' && example">
