@@ -65,6 +65,12 @@ These were tested with automated tests and in a desktop browser, but not where t
 - At most two paintings are read at once, so uploads can't exhaust the backend's memory.
 - On the NAS, `ALLOWED_HOSTS` should name the game's address (see `docs/deploy-nas.md`).
 
+**Security review of what came since (Nov 21, 2026): done.** The wardrobe and shop, her room, her words and letters, the seven ladders and the microphone. Nothing critical, high or medium: every route needs the login and the CSRF header, a child reaches only her own data, every query uses placeholders, a purchase or result sent twice counts once, and Stars are taken in the purchase's own transaction. No known vulnerabilities in the server's or the shipped page's packages. Fixed:
+
+- The NAS's headers forbade the microphone (`microphone=()`): the Trommelhaus offered clapping and browsers that follow the header refused it (not yet tried on the iPad). Now `microphone=(self)`, like the camera, and a test reads the headers file.
+
+Accepted: a logged-in child's page is trusted with her answers, so a hand-made request could move her own ladders up (not another child's; Stars stay under the cool-down). Result and letter keys are kept 60 days.
+
 **UX review, walkthrough (Nov 13, 2026): done.** Every building and the town at iPad and laptop size, with screenshots and what the voice says. Fixed:
 
 - The town's camera looks a few metres ahead of the character: the buildings and their signs sit in the middle of the picture instead of under the Star bar.
