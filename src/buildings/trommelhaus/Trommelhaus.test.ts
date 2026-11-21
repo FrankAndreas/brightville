@@ -5,7 +5,7 @@ import { beatTimes, LEAD_IN, type RhythmTask } from '@/core/rhythm'
 import type { Level, Microphone } from '@/services/microphone'
 import { playBeat } from '@/services/sound'
 import { instruction, speak } from '@/services/tts'
-import { useSchoolStore } from '@/stores/school'
+import { useLaddersStore } from '@/stores/ladders'
 import { askedAgain } from '@/services/sayAgain'
 import { requestLeave } from '../leave'
 import Trommelhaus from './Trommelhaus.vue'
@@ -224,7 +224,7 @@ describe('Trommelhaus', () => {
   })
 
   it('records the tasks for the child who started, at the visit\'s step, and closes the microphone on leaving', async () => {
-    const school = useSchoolStore()
+    const school = useLaddersStore()
     school.ladders = { ...school.ladders, rhythmus: { step: 4, window: [] } }
     school.who = 2
     const record = vi.spyOn(school, 'record').mockImplementation(() => {})

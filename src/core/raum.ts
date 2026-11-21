@@ -6,6 +6,7 @@ import {
   BACK_LANE, CAR, delta, FRONT_LANE, GROUND, holds, nounPhrase, OBJECTS, PAIRS, placeFor, prepPhrase, THINGS, wrap,
   WORLD_WIDTH, type Arrangement, type Clue, type Place, type Word, type WorldObject,
 } from './world'
+import { pick } from './random'
 
 export type RaumTask =
   /** She taps the thing, hidden where the clues say */
@@ -25,10 +26,6 @@ const MIN_ZONE = 10
 const TASK_OBJECTS = OBJECTS.filter(o => o.id !== CAR)
 const takes = (o: WorldObject, word: Word) =>
   word === 'auf' ? o.top !== null : word === 'unter' ? o.under : word === 'in' ? o.container : word !== 'zwischen'
-
-function pick<T>(items: T[], random: () => number): T {
-  return items[Math.floor(random() * items.length)]
-}
 
 /** A place where every clue is true, or null */
 export function placeForAll(clues: Clue[], objects: WorldObject[] = OBJECTS): Place | null {

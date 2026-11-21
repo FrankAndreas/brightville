@@ -26,7 +26,7 @@ import { unlockAudio } from '@/services/sound'
 import { forgetInstruction, speak } from '@/services/tts'
 import { usePlayerStore } from '@/stores/player'
 import { useRoomStore } from '@/stores/room'
-import { useSchoolStore } from '@/stores/school'
+import { useLaddersStore } from '@/stores/ladders'
 import { useWritingStore } from '@/stores/writing'
 import { useWardrobeStore } from '@/stores/wardrobe'
 import { useSessionStore } from '@/stores/session'
@@ -41,7 +41,7 @@ const player = usePlayerStore()
 const wardrobe = useWardrobeStore()
 const room = useRoomStore()
 const writing = useWritingStore()
-const school = useSchoolStore()
+const ladderStore = useLaddersStore()
 const device = detectDevice()
 /** The device, and whether the parents chose films for the Cinema */
 const caps = computed(() => ({ ...device, films: player.films.length > 0 }))
@@ -122,9 +122,9 @@ watch(() => (session.status === 'ready' ? session.person?.id : undefined), async
   wardrobe.init(props.api, id)
   room.init(props.api, id)
   writing.init(props.api, id)
-  school.init(props.api, id)
+  ladderStore.init(props.api, id)
   // Her School steps: until they come, the School asks at the first steps
-  void school.load()
+  void ladderStore.load()
   // The room is only needed in the house and the Möbelhaus: the game doesn't wait for it
   void room.load()
   await Promise.all([player.refresh(), wardrobe.load()])
@@ -266,7 +266,7 @@ function onSaved(id: number) {
 function closeParents() {
   parentsOpen.value = false
   // A School step set there counts from her next visit
-  void school.load()
+  void ladderStore.load()
 }
 
 function switchPerson() {
@@ -283,7 +283,7 @@ const refresh = () => {
     void wardrobe.load()
     void room.load()
     // A step a parent set (here or elsewhere) reaches the School
-    void school.load()
+    void ladderStore.load()
   }
 }
 let refreshTimer: ReturnType<typeof setInterval> | undefined

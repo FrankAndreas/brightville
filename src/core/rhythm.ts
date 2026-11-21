@@ -3,6 +3,7 @@
 // docs/superpowers/specs/2026-11-20-brightville-trommelhaus-design.md
 
 import { WINDOW } from './ladders'
+import { shuffle } from './random'
 export type Mode = 'tap' | 'clap'
 export type Dyn = 'laut' | 'leise'
 
@@ -55,15 +56,6 @@ const LONG: number[][] = [
   [500, 500, 1000, 500], [250, 250, 1000, 500], [500, 1000, 250, 250], [500, 500, 500, 1000, 500],
   [250, 500, 1000, 250, 250], [500, 250, 250, 1000, 500],
 ]
-
-function shuffle<T>(items: T[], random: () => number): T[] {
-  const a = [...items]
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(random() * (i + 1))
-    ;[a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
-}
 
 /** The five tasks of a visit at `step` (1–5, 6 = "fertig"); never the same twice */
 export function buildRhythmSession(step: number, random: () => number = Math.random): RhythmTask[] {

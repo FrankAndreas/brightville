@@ -4,7 +4,7 @@ import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { stopSpeaking } from '@/services/tts'
 import { laddersAt } from '@/core/ladders.fixture'
-import { useSchoolStore } from '@/stores/school'
+import { useLaddersStore } from '@/stores/ladders'
 import { requestLeave } from './leave'
 import { ladderVisit, scoreSolved, useVisit, type Visit } from './visit'
 
@@ -79,7 +79,7 @@ describe('a learning building\'s ladder', () => {
   beforeEach(() => setActivePinia(createPinia()))
 
   it('takes the step, the window and the child once, when the visit starts, and records at that step for that child', () => {
-    const school = useSchoolStore()
+    const school = useLaddersStore()
     school.ladders = laddersAt({ reimen: 3 })
     school.ladders.reimen.window = [true, false]
     school.who = 2

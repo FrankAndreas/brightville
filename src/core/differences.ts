@@ -1,3 +1,5 @@
+import { shuffle } from './random'
+
 const EDGE_ZONE = 0.12
 const MAX_SCALE = 1.9
 
@@ -48,15 +50,6 @@ export function hitTest(
   const dx = (tapX - hotspot.x) * containerRect.width
   const dy = (tapY - hotspot.y) * containerRect.height
   return Math.sqrt(dx * dx + dy * dy) <= screenR
-}
-
-function shuffle<T>(items: T[], random: () => number): T[] {
-  const a = [...items]
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(random() * (i + 1))
-    ;[a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
 }
 
 /**

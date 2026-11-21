@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { SET_BONUS, STARS_PER_TASK, createSchoolFlow, type SchoolFlow } from './flow'
+import { SET_BONUS, STARS_PER_TASK } from '../visit'
+import { createSchoolFlow, type SchoolFlow } from './flow'
 import type { Task } from '@/core/numbers'
 import { TEST_TASKS, TEST_THINGS } from './testTasks'
 

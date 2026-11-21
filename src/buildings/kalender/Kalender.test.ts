@@ -4,7 +4,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { exampleFor, type Activity, type Choice, type ZeitTask } from '@/core/kalender'
 import { playBeat } from '@/services/sound'
 import { forgetInstruction, instruction, speak } from '@/services/tts'
-import { useSchoolStore } from '@/stores/school'
+import { useLaddersStore } from '@/stores/ladders'
 import { requestLeave } from '../leave'
 import Kalender from './Kalender.vue'
 
@@ -125,7 +125,7 @@ describe('Kalender', () => {
   })
 
   it('records only solved tasks for the child who started, at the visit\'s step, and gives the Stars', async () => {
-    const school = useSchoolStore()
+    const school = useLaddersStore()
     school.ladders = { ...school.ladders, zeit: { step: 3, window: [] } }
     school.who = 2
     const record = vi.spyOn(school, 'record').mockImplementation(() => {})
@@ -141,7 +141,7 @@ describe('Kalender', () => {
   })
 
   it('builds the visit at her Zeit step when no tasks are given', () => {
-    const school = useSchoolStore()
+    const school = useLaddersStore()
     school.ladders = { ...school.ladders, zeit: { step: 2, window: [] } }
     const w = mount(Kalender)
     const tasks = (w.vm as unknown as { tasks: ZeitTask[] }).tasks

@@ -2,12 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { laddersAt } from '@/core/ladders.fixture'
-import { useSchoolStore } from '@/stores/school'
+import { useLaddersStore } from '@/stores/ladders'
 import { playBeat } from '@/services/sound'
 import { speak } from '@/services/tts'
 import { requestLeave } from '../leave'
 import School, { FLASH_MS } from './School.vue'
-import type { Task } from '@/core/numbers'
+import { seededRandom, type Task } from '@/core/numbers'
 import { TEST_TASKS, TEST_THINGS } from './testTasks'
 
 vi.mock('@/services/sound', () => ({ playBeat: vi.fn(), unlockAudio: vi.fn() }))
@@ -368,8 +368,11 @@ describe('School', () => {
 
   describe('at her steps', () => {
     it('asks the visit\'s Zählen tasks at her step', () => {
-      const school = useSchoolStore()
+      const school = useLaddersStore()
       school.ladders = laddersAt({ zaehlen: 3, rechnen: 4 })
+      // The same visits every run: the School makes its tasks with Math.random
+      const random = seededRandom(3)
+      const spy = vi.spyOn(Math, 'random').mockImplementation(random)
       const kinds = new Set<string>()
       for (let i = 0; i < 30; i++) {
         const w = mount(School, { props: { things: TEST_THINGS } })
@@ -380,12 +383,13 @@ describe('School', () => {
         }
         w.unmount()
       }
+      spy.mockRestore()
       expect(kinds.has('next') || kinds.has('flash')).toBe(true)
       expect(kinds.has('count')).toBe(false)
     })
 
     it('records the answered tasks when she leaves', async () => {
-      const school = useSchoolStore()
+      const school = useLaddersStore()
       const w = await open()
       await choice(w, 3).trigger('pointerdown')
       await run(CHEER)

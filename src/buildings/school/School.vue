@@ -10,7 +10,7 @@ import ProgressStars from '@/components/ProgressStars.vue'
 import { buildLadderSession, countable, dicePips, looseLayout, numberWord, seededRandom, type Task, type Thing } from '@/core/numbers'
 import { playBeat } from '@/services/sound'
 import { instruct, speak } from '@/services/tts'
-import { useSchoolStore } from '@/stores/school'
+import { useLaddersStore } from '@/stores/ladders'
 import type { BuildingResult } from '../types'
 import { useVisit } from '../visit'
 import { createSchoolFlow, type SchoolEffect } from './flow'
@@ -30,11 +30,11 @@ const RECOUNT_STEP_MS = 700
 const CONFETTI_MS = 3000
 
 const things = props.things ?? THINGS
-const school = useSchoolStore()
+const ladderStore = useLaddersStore()
 // Her steps as the visit starts: the answers are counted at these steps, even if they change meanwhile
-const steps = { zaehlen: school.ladders.zaehlen.step, rechnen: school.ladders.rechnen.step }
+const steps = { zaehlen: ladderStore.ladders.zaehlen.step, rechnen: ladderStore.ladders.rechnen.step }
 // And the child who plays them: if the device changes hands meanwhile, they still count for her
-const player = school.who
+const player = ladderStore.who
 const visit = useVisit(leave)
 const { later } = visit
 const tasks = props.tasks ?? buildLadderSession(steps, things.length)
@@ -122,7 +122,7 @@ function moveFocus(by: number) {
 function leave() {
   if (visit.isClosed()) return
   visit.shutDown()
-  school.record(flow.state.results, steps, player)
+  ladderStore.record(flow.state.results, steps, player)
   emit('finished', { stars: flow.state.stars })
 }
 

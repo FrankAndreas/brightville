@@ -3,7 +3,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { flushPromises } from '@vue/test-utils'
 import { ApiError } from '@/services/api'
 import { fakeApi, type FakeApi } from '@/services/fakeApi'
-import { useSchoolStore } from './school'
+import { useLaddersStore } from './ladders'
 
 function memory(): Storage {
   const data = new Map<string, string>()
@@ -25,7 +25,7 @@ describe('school store', () => {
   let api: FakeApi
   let storage: Storage
   const open = async (personId = 2) => {
-    const school = useSchoolStore()
+    const school = useLaddersStore()
     school.init(api, personId, storage)
     await school.load()
     return school
@@ -39,7 +39,7 @@ describe('school store', () => {
 
   it('starts at step 1 before the server answers, then takes the server\'s steps', async () => {
     api.school_ = { zaehlen: { step: 3, window: [] }, rechnen: { step: 2, window: [true] }, reimen: { step: 1, window: [] }, muster: { step: 1, window: [] }, zeit: { step: 1, window: [] }, raum: { step: 1, window: [] }, rhythmus: { step: 1, window: [] } }
-    const school = useSchoolStore()
+    const school = useLaddersStore()
     school.init(api, 2, storage)
     expect(school.ladders.zaehlen.step).toBe(1)
     await school.load()
@@ -120,7 +120,7 @@ describe('school store', () => {
   })
 
   it('doesn\'t take an older answer over a newer one', async () => {
-    const school = useSchoolStore()
+    const school = useLaddersStore()
     school.init(api, 2, storage)
     let answerGet: (v: unknown) => void = () => {}
     const realSchool = api.school

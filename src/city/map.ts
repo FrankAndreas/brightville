@@ -2,7 +2,7 @@ import { BLOCKS } from './props'
 import { footprint, type DoorSpot, type Footprint } from './doors'
 
 /**
- * The town as data: streets, hills, the lake, the empty lots and the houses that are just houses. `world.ts` builds
+ * The town as data: streets, hills, the lake, the two gardens and the houses that are just houses. `world.ts` builds
  * the town from it; `map.test.ts` checks it (every door reachable, nothing steep, the lake closed) before anything is
  * drawn. Door buildings are placed in `src/buildings/registry.ts`, along these streets.
  *

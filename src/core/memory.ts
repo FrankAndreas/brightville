@@ -1,5 +1,7 @@
 // Memory: find the pairs. Deck building ported from Spielzeugkiste (src/logic/memory.js).
 
+import { shuffle } from './random'
+
 export interface Pair {
   id: string
   emoji: string
@@ -10,15 +12,6 @@ export interface Pair {
 export interface Card extends Pair {
   /** Unique per card: the two cards of a pair differ here */
   key: string
-}
-
-function shuffle<T>(list: T[], random: () => number): T[] {
-  const a = [...list]
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(random() * (i + 1))
-    ;[a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
 }
 
 /** `count` different pairs, picked at random, so a round isn't always the same animals. */

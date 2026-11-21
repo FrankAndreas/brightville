@@ -5,7 +5,7 @@ import type { RaumTask } from '@/core/raum'
 import { CAR, GROUND, OBJECTS, placeFor, WORLD_WIDTH } from '@/core/world'
 import { playBeat } from '@/services/sound'
 import { speak } from '@/services/tts'
-import { useSchoolStore } from '@/stores/school'
+import { useLaddersStore } from '@/stores/ladders'
 import { requestLeave } from '../leave'
 import Spielwelt, { PX_PER_UNIT } from './Spielwelt.vue'
 
@@ -62,7 +62,7 @@ describe('Spielwelt', () => {
     vi.mocked(speak).mockClear()
     vi.mocked(playBeat).mockClear()
     storage = memory()
-    useSchoolStore().who = 2
+    useLaddersStore().who = 2
   })
   afterEach(() => {
     vi.useRealTimers()
@@ -126,7 +126,7 @@ describe('Spielwelt', () => {
   })
 
   it('starts the thing to carry in view at the later steps, and does not move the view away from it', async () => {
-    const school = useSchoolStore()
+    const school = useLaddersStore()
     school.ladders = { ...school.ladders, raum: { step: 4, window: [] } }
     const far: RaumTask = { type: 'place', thing: 'ball', clues: [{ word: 'links neben', object: 'busch' }] }
     const w = await open([far])
@@ -222,7 +222,7 @@ describe('Spielwelt', () => {
   })
 
   it('records only solved tasks for the child who started, at the visit\'s step, and gives the Stars', async () => {
-    const school = useSchoolStore()
+    const school = useLaddersStore()
     school.ladders = { ...school.ladders, raum: { step: 2, window: [] } }
     const record = vi.spyOn(school, 'record').mockImplementation(() => {})
     const w = await open([FIND, PLACE])

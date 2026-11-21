@@ -69,7 +69,7 @@ export interface WritingState {
 export type { Ladder, Ladders } from '@/core/ladders'
 /** Her ladders, and the keys of her latest results the server has (so a device can let them go) */
 export type SchoolState = Ladders & { seen: string[] }
-/** The School sends Zählen and Rechnen, the Reimhaus only Reimen */
+/** A visit's answers: the School sends Zählen and Rechnen, the other learning buildings their one ladder */
 export type SchoolResultsIn = { key: string } & Partial<Record<Ladder, { step: number; results: boolean[] }>>
 
 /** One counted write: clean or bumpy, at the level the letter was shown at */

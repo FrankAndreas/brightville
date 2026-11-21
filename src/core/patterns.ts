@@ -3,6 +3,7 @@
 // design's table (docs/superpowers/specs/2026-11-20-brightville-musterwerkstatt-design.md).
 
 import { WINDOW } from './ladders'
+import { pick, shuffle } from './random'
 export type Colour = 'rot' | 'blau' | 'gelb' | 'gruen'
 export type Shape = 'kreis' | 'dreieck' | 'quadrat'
 export interface Piece { colour: Colour; shape: Shape; big: boolean }
@@ -64,17 +65,6 @@ export function pieceName(p: Piece, feature: Feature): string {
   return `${COLOUR_WORD[p.colour]}${MASCULINE[p.shape] ? 'er' : 'es'} ${SHAPE_WORD[p.shape]}`
 }
 
-function pick<T>(items: T[], random: () => number): T {
-  return items[Math.floor(random() * items.length)]
-}
-function shuffle<T>(items: T[], random: () => number): T[] {
-  const a = [...items]
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(random() * (i + 1))
-    ;[a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
-}
 const between = (lo: number, hi: number, random: () => number) => lo + Math.floor(random() * (hi - lo + 1))
 
 type Unit = 'AB' | 'ABC' | 'AAB' | 'ABB'

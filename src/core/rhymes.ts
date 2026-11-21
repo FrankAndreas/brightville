@@ -3,6 +3,7 @@
 // (docs/superpowers/specs/2026-11-20-brightville-reimhaus-design.md).
 
 import { WINDOW } from './ladders'
+import { pick, shuffle } from './random'
 export interface Word {
   id: string
   /** What the voice says */
@@ -101,18 +102,6 @@ const SOUNDS = new Set(
 export const WORDS: Word[] = RAW.map(w => (w.sound && SOUNDS.has(w.sound) ? w : { ...w, sound: undefined }))
 
 const byId = (id: string) => WORDS.find(w => w.id === id) as Word
-
-function pick<T>(items: T[], random: () => number): T {
-  return items[Math.floor(random() * items.length)]
-}
-function shuffle<T>(items: T[], random: () => number): T[] {
-  const a = [...items]
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(random() * (i + 1))
-    ;[a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
-}
 
 const rhymes = (a: Word, b: Word) => a.rhyme !== undefined && a.rhyme === b.rhyme
 const sameSound = (a: Word, b: Word) => a.sound !== undefined && a.sound === b.sound

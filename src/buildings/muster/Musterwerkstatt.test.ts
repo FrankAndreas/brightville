@@ -4,7 +4,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { exampleFor, type MusterTask, type Piece, type SortThing } from '@/core/patterns'
 import { playBeat } from '@/services/sound'
 import { forgetInstruction, instruction, speak } from '@/services/tts'
-import { useSchoolStore } from '@/stores/school'
+import { useLaddersStore } from '@/stores/ladders'
 import { requestLeave } from '../leave'
 import Musterwerkstatt from './Musterwerkstatt.vue'
 
@@ -131,7 +131,7 @@ describe('Musterwerkstatt', () => {
   })
 
   it('records only solved tasks for the child who started, at the visit\'s step, and gives the Stars', async () => {
-    const school = useSchoolStore()
+    const school = useLaddersStore()
     school.ladders = { ...school.ladders, muster: { step: 2, window: [] } }
     school.who = 2
     const record = vi.spyOn(school, 'record').mockImplementation(() => {})
@@ -148,7 +148,7 @@ describe('Musterwerkstatt', () => {
   })
 
   it('builds the visit at her Muster step when no tasks are given', () => {
-    const school = useSchoolStore()
+    const school = useLaddersStore()
     school.ladders = { ...school.ladders, muster: { step: 4, window: [] } }
     const w = mount(Musterwerkstatt)
     const tasks = (w.vm as unknown as { tasks: MusterTask[] }).tasks
