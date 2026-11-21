@@ -70,16 +70,29 @@ describe('mapPicture', () => {
   })
 
   it('leaves a gap between pictures, so a small finger finds the right one', () => {
-    expect(MIN_PIN_GAP).toBeGreaterThanOrEqual(MARKER_SIZE + 1.5)
+    const { markers } = mapPicture(BUILDINGS.map(b => ({ id: b.id, icon: b.icon, name: b.spokenName, door: b.door, state: 'open' as const })))
+    for (const a of markers) {
+      for (const b of markers) {
+        if (a !== b) expect(Math.hypot(a.pin.x - b.pin.x, a.pin.z - b.pin.z), `${a.id} and ${b.id}`).toBeGreaterThanOrEqual(MARKER_SIZE + 1.5 - 1e-6)
+      }
+    }
   })
 
-  it("keeps every building's picture on its house's side of the street, never across it", () => {
+  it("keeps every building's picture on its own house: at least as far back as its front, and nearer it than any other", () => {
     const { markers } = mapPicture(BUILDINGS.map(b => ({ id: b.id, icon: b.icon, name: b.spokenName, door: b.door, state: 'open' as const })))
+    const middle = (id: string) => {
+      const f = footprint(BUILDINGS.find(b => b.id === id)!.door)
+      return { x: (f.minX + f.maxX) / 2, z: (f.minZ + f.maxZ) / 2 }
+    }
     for (const m of markers.filter(m => m.kind === 'building')) {
       const door = BUILDINGS.find(b => b.id === m.id)!.door
-      const f = footprint(door)
-      const house = { x: (f.minX + f.maxX) / 2 - door.x, z: (f.minZ + f.maxZ) / 2 - door.z }
-      expect((m.pin.x - door.x) * house.x + (m.pin.z - door.z) * house.z, m.id).toBeGreaterThan(0)
+      const own = middle(m.id)
+      const back = { x: own.x - door.x, z: own.z - door.z }
+      const length = Math.hypot(back.x, back.z)
+      // How far from the door towards the house: the house's front is 1 m back
+      expect(((m.pin.x - door.x) * back.x + (m.pin.z - door.z) * back.z) / length, m.id).toBeGreaterThanOrEqual(1 - 1e-6)
+      const distance = (p: { x: number; z: number }) => Math.hypot(m.pin.x - p.x, m.pin.z - p.z)
+      for (const other of BUILDINGS) if (other.id !== m.id) expect(distance(own), `${m.id} nearer ${other.id}`).toBeLessThan(distance(middle(other.id)))
     }
   })
 })

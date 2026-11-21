@@ -78,4 +78,12 @@ describe('the bicycle', () => {
     expect(bike.presence).toBe(0)
     expect(bike.object.visible).toBe(false)
   })
+
+  it('is gone at once when she is knocked off it, not drawn under her tumble', () => {
+    const bike = createBicycle(new THREE.MeshStandardMaterial())
+    bike.update(her, true, 0, 1)
+    bike.update(her, false, 0, 1 / 60, true)
+    expect(bike.presence).toBe(0)
+    expect(bike.object.visible).toBe(false)
+  })
 })

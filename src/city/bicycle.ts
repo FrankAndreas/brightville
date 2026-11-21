@@ -63,7 +63,8 @@ export interface Bicycle {
    * Under her while `shown`, at her feet (`y`: her middle, as CharacterFrame.y) and facing her heading; the wheels
    * turn with `speed`
    */
-  update(f: { x: number; y: number; z: number; heading: number }, shown: boolean, speed: number, dt: number): void
+  /** `gone`: away at once, not shrinking (she was knocked off it and tumbles) */
+  update(f: { x: number; y: number; z: number; heading: number }, shown: boolean, speed: number, dt: number, gone?: boolean): void
   /** 0 (gone) … 1 (all there): it grows in when a ride starts and shrinks away when it ends, over GROW_S */
   readonly presence: number
 }
@@ -138,8 +139,8 @@ export function createBicycle(paint: THREE.Material): Bicycle {
     get presence() {
       return presence
     },
-    update(f, shown, speed, dt) {
-      presence = Math.min(1, Math.max(0, presence + (shown ? dt : -dt) / GROW_S))
+    update(f, shown, speed, dt, gone = false) {
+      presence = gone ? 0 : Math.min(1, Math.max(0, presence + (shown ? dt : -dt) / GROW_S))
       root.visible = presence > 0
       if (!root.visible) return
       root.scale.setScalar(presence)

@@ -179,7 +179,7 @@ export async function createCity(opts: CityOptions): Promise<City> {
     props.sync()
     props.update(dt)
     // She rises onto the saddle as the bike grows in under her, and steps down as it shrinks away
-    bicycle.update(f, rider.onBike, f.speed, dt)
+    bicycle.update(f, rider.onBike, f.speed, dt, f.tumbling)
     if (bicycle.presence > 0) {
       Object.assign(sitting, f)
       sitting.y += SADDLE_LIFT * bicycle.presence

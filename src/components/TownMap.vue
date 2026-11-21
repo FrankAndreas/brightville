@@ -51,10 +51,10 @@ const peaks = computed(() => {
 
 /** Why a building can't be gone into now: still to learn, played enough today, or (at the door, the price) short of stars */
 const CLOSED_SIGN: Partial<Record<MapMarker['state'], string>> = { locked: '🔒', timeUp: '🌙' }
-/** What a closed marker shows, as its door does: the lock, the moon, or the price as one star per Star (no digits) */
-function closedSign(m: MapMarker): string | undefined {
-  return m.state === 'poor' ? '⭐'.repeat(Math.min(Math.max(m.cost ?? 1, 1), 5)) : CLOSED_SIGN[m.state]
-}
+/** What she lacks the Stars for shows its price: one star per Star, no digits (she can't read them yet) */
+const priceStars = (m: MapMarker) => Math.min(Math.max(m.cost ?? 1, 1), 5)
+/** The price row fits inside the marker, however many stars, so it never covers the picture next to it */
+const priceSize = (m: MapMarker) => metres((MARKER_SIZE * 0.8) / (priceStars(m) * 1.2))
 
 function onKey(e: KeyboardEvent) {
   if (e.code === 'Escape' || e.key === 'Escape') emit('close')
@@ -97,7 +97,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
         @pointerdown.stop="emit('choose', m)"
       >
         <span class="icon">{{ m.icon }}</span>
-        <span v-if="closedSign(m)" class="closed-sign">{{ closedSign(m) }}</span>
+        <span v-if="CLOSED_SIGN[m.state]" class="closed-sign">{{ CLOSED_SIGN[m.state] }}</span>
+        <span v-if="m.state === 'poor'" class="price" :style="{ fontSize: priceSize(m) }">{{ '⭐'.repeat(priceStars(m)) }}</span>
       </button>
 
       <span class="her" data-test="map-her" aria-hidden="true" :style="{ ...place(her.x, her.z), background: color }" />
@@ -160,6 +161,8 @@ svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .marker[data-state='locked'] .icon, .marker[data-state='timeUp'] .icon, .marker[data-state='poor'] .icon { opacity: 0.45; }
 .marker:active { transform: translate(-50%, -50%) scale(0.92); }
 .closed-sign { position: absolute; right: -14%; top: -14%; font-size: 2.6cqw; line-height: 1; }
+/* Inside the marker along its bottom, and not a target of its own: a tap there is a tap on this marker only */
+.price { position: absolute; bottom: 6%; left: 50%; transform: translateX(-50%); white-space: nowrap; line-height: 1; pointer-events: none; }
 
 /* Her: a small dot in her colour, over the pictures but small enough not to hide the one she stands by, and a ripple
    that keeps opening out from it so she finds herself */

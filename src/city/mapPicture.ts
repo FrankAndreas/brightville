@@ -1,5 +1,5 @@
 import type { DoorState } from '@/core/access'
-import { footprint, type DoorSpot, type Footprint } from './doors'
+import { SETBACK, footprint, type DoorSpot, type Footprint } from './doors'
 import type { Area, DistrictId, StopId } from './districts/types'
 import { ALL_STREETS, BOUNDS, DISTRICTS, HILLS, LAKE, PLAZA, STOPS, type Hill, type Street } from './map'
 
@@ -57,9 +57,13 @@ const LANDMARK_AHEAD = 7
 
 const STOP_NAMES: Record<StopId, string> = { platz: 'Platz', bauernhof: 'Bauernhof', wald: 'Wald', werkstatt: 'Werkstatt' }
 
-/** Pushes pictures that are too close apart, a little at a time, and keeps them inside `inside` */
-function spread(pins: Point[], inside: Footprint): void {
-  const clamp = (p: Point) => {
+/**
+ * Pushes pictures that are too close apart, a little at a time, and keeps them inside `inside` and each building's
+ * picture on its own house: never nearer the street than the house's front (`keep`, one per pin, may move it back)
+ */
+function spread(pins: Point[], inside: Footprint, keep: ((p: Point) => void)[]): void {
+  const clamp = (p: Point, i: number) => {
+    keep[i](p)
     p.x = Math.min(inside.maxX, Math.max(inside.minX, p.x))
     p.z = Math.min(inside.maxZ, Math.max(inside.minZ, p.z))
   }
@@ -76,8 +80,8 @@ function spread(pins: Point[], inside: Footprint): void {
         const push = (MIN_PIN_GAP - d) / 2 + 1e-3
         a.x -= (dx / d) * push; a.z -= (dz / d) * push
         b.x += (dx / d) * push; b.z += (dz / d) * push
-        clamp(a)
-        clamp(b)
+        clamp(a, i)
+        clamp(b, j)
         moved = true
       }
     }
@@ -106,7 +110,21 @@ export function mapPicture(
     })),
   ]
   const half = MARKER_SIZE / 2
-  spread(markers.map(m => m.pin), { minX: box.minX + half, maxX: box.maxX - half, minZ: box.minZ + half, maxZ: box.maxZ - half })
+  const keep = markers.map(m => {
+    if (m.kind !== 'building') return () => {}
+    // From the door straight back into the house: the picture stays at least as far back as the house's front
+    const back = { x: m.pin.x - m.x, z: m.pin.z - m.z }
+    const length = Math.hypot(back.x, back.z)
+    const ux = back.x / length, uz = back.z / length
+    return (p: Point) => {
+      const along = (p.x - m.x) * ux + (p.z - m.z) * uz
+      if (along < SETBACK) {
+        p.x += (SETBACK - along) * ux
+        p.z += (SETBACK - along) * uz
+      }
+    }
+  })
+  spread(markers.map(m => m.pin), { minX: box.minX + half, maxX: box.maxX - half, minZ: box.minZ + half, maxZ: box.maxZ - half }, keep)
   return {
     viewBox: `${box.minX} ${box.minZ} ${box.maxX - box.minX} ${box.maxZ - box.minZ}`,
     box,

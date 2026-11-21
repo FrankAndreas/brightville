@@ -34,8 +34,11 @@ describe('TownMap', () => {
     const w = mount(TownMap, { props: { picture: poor, her: { x: 0, z: 5 }, color: '#e91e63' }, attachTo: document.body })
     const arcade = w.find('[data-test="map-marker-arcade"]')
     expect(arcade.attributes('data-state')).toBe('poor')
-    // As at the door, the price: one star for each Star it costs (no digits: she can't read them yet)
-    expect(arcade.find('.closed-sign').text()).toBe('⭐⭐⭐')
+    // The price as one star for each Star it costs (no digits: she can't read them yet), and taps on the stars go to
+    // the picture under them, never to this marker
+    const price = arcade.find('.price')
+    expect(price.text()).toBe('⭐⭐⭐')
+    expect(arcade.find('.closed-sign').exists()).toBe(false)
     expect(arcade.text()).not.toContain('🔒')
     w.unmount()
   })
