@@ -93,6 +93,9 @@ function run(effects: ZeitEffect[]): Promise<boolean> {
       else chain = chain.then(() => { if (live()) examplePlaced.value = [...examplePlaced.value, effect.id] })
     } else if (effect.type === 'clock') chain = chain.then(() => { if (live()) exampleClock.value = effect.clock })
     else if (effect.type === 'speak') {
+      // 🔊's text is this run's question from the start, even while something before it is said: a tap on a day may
+      // cut the run short, and 🔊 must not keep the question as it was before (with a card now faded)
+      if (effect.ask && flow.state.phase === 'asking') instruction.value = effect.again ?? effect.text
       chain = chain.then(async () => {
         if (!live()) return
         lit.value = effect.light ?? null
@@ -148,6 +151,19 @@ function onKey(e: KeyboardEvent) {
   }
 }
 
+/**
+ * A tap on a day of the week while she is asked says its name, the day lit. Only the name: what is next to it is hers to
+ * find. Whatever was still being said stops.
+ */
+function sayDay(i: number) {
+  if (visit.isClosed() || view.phase !== 'asking') return
+  const live = visit.newRun()
+  lit.value = `strip-${i}`
+  void speak(DAYS[i]).then(() => {
+    if (live()) lit.value = null
+  })
+}
+
 // 🔊 while something is being said: it stops, so the whole instruction is heard
 watch(askedAgain, () => {
   if (visit.isClosed() || flow.state.phase !== 'asking') return
@@ -163,7 +179,7 @@ onMounted(() => {
 
 <template>
   <div class="kalender" data-test="kalender" :data-phase="view.phase">
-    <ProgressStars :total="tasks.length" :solved="view.solved" edge="#c6cbec" />
+    <ProgressStars :total="tasks.length" :solved="view.solved" :big="view.phase === 'done'" edge="#c6cbec" />
 
     <div class="board">
       <div v-if="inExample" class="badge" data-test="example" aria-hidden="true">👀</div>
@@ -187,7 +203,7 @@ onMounted(() => {
           <span
             v-for="(d, i) in DAYS" :key="d" class="day" :data-test="`strip-${i}`"
             :data-today="!!pickTask.aboutToday && i === todayIndex" :data-lit="isLit(`strip-${i}`)"
-            :style="{ background: DAY_COLOURS[i] }"
+            :style="{ background: DAY_COLOURS[i] }" @pointerdown="sayDay(i)"
           ><span v-if="pickTask.aboutToday && i === todayIndex" class="sun">☀️</span></span>
         </div>
 

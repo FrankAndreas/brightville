@@ -93,6 +93,45 @@ describe('Kalender', () => {
     w.unmount()
   })
 
+  it('says a day of the week when she taps it, while she is asked, and nothing else', async () => {
+    const w = await open([WEEK])
+    await run(CHEER)
+    vi.mocked(speak).mockClear()
+    let finish: () => void = () => {}
+    vi.mocked(speak).mockImplementation(() => new Promise<void>(r => { finish = r }))
+    await tap(w, 'strip-5')
+    expect(said()).toEqual(['Samstag'])
+    expect(w.find('[data-test="strip-5"]').attributes('data-lit')).toBe('true')
+    finish()
+    vi.mocked(speak).mockImplementation(() => Promise.resolve())
+    await run(10)
+    expect(w.find('[data-test="strip-5"]').attributes('data-lit')).toBe('false')
+    expect(w.find('[data-test="choice-day-4"]').attributes('data-faded')).not.toBe('true')
+    w.unmount()
+  })
+
+  it('keeps 🔊 to the cards still there when a tapped day cuts off the question after a wrong card', async () => {
+    const w = await open([WEEK])
+    await run(CHEER)
+    let finish: () => void = () => {}
+    vi.mocked(speak).mockImplementation(text => (text === 'Hör nochmal gut zu.' ? new Promise<void>(r => { finish = r }) : Promise.resolve()))
+    await tap(w, 'choice-day-4')
+    await tap(w, 'strip-5')
+    finish()
+    vi.mocked(speak).mockImplementation(() => Promise.resolve())
+    await run(10)
+    expect(instruction.value).toBe('Was kommt nach Montag? Dienstag, Sonntag.')
+    w.unmount()
+  })
+
+  it('says no day for a tap on the week during the example', async () => {
+    const w = await open([WEEK], exampleFor(3, 0, THURSDAY))
+    vi.mocked(speak).mockClear()
+    await tap(w, 'strip-5')
+    expect(said()).not.toContain('Samstag')
+    w.unmount()
+  })
+
   it('shows the example\'s pictures as not to be tapped', () => {
     const w = mount(Kalender, { props: { tasks: [ORDER], example: exampleFor(1, 0, THURSDAY), today: THURSDAY }, attachTo: document.body })
     expect(w.find('.loose').attributes('data-shown-only')).toBe('true')

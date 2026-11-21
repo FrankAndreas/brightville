@@ -213,7 +213,7 @@ onMounted(() => {
 
 <template>
   <div class="school" :data-phase="view.phase">
-    <ProgressStars :total="tasks.length" :solved="view.solved" edge="#b9d6ee" />
+    <ProgressStars :total="tasks.length" :solved="view.solved" :big="view.phase === 'done'" edge="#b9d6ee" />
 
     <div class="board">
       <template v-if="task?.type === 'count'">
