@@ -157,7 +157,9 @@ export function createCharacter(
       // bicycle, and while she slows down after it) a bump never knocks her
       // over: she is held up or slides along. At its speed the ground's own
       // seams can stop the controller for a frame, which would throw her off on
-      // an open street.
+      // an open street. So a bump is at most WALK_SPEED + 0.5 < TUMBLE_IMPACT_SPEED,
+      // and the bump tumbles below can't happen today: they are kept for
+      // something faster that should knock her over.
       const got = { x: move.x / dt, y: move.y / dt, z: move.z / dt }
       speed = Math.hypot(got.x, got.z)
       const fast = Math.hypot(before.x, before.z) > WALK_SPEED + 0.5

@@ -3,7 +3,10 @@ import type { CharacterFrame } from './character'
 import { planRide, startRide, steer, type RideState, type RideTarget } from './ride'
 import type { Point, WalkGrid } from './walkable'
 
-/** The longest frame a ride steers by: after a hidden tab, she must not be thrown past the point she steers at */
+/**
+ * The longest frame a ride steers by: after a hidden tab, she must not be thrown past the point she steers at. The
+ * town's loop already clamps frames to MAX_FRAME_S (frame.ts); this keeps the rider safe on its own.
+ */
 const MAX_STEER_DT = 0.1
 /** Stuck: moved less than this … */
 const STUCK_DISTANCE = 0.5
