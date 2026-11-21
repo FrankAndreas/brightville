@@ -8,6 +8,7 @@ import { TRAMPOLINES, buildProps } from './props'
 import { createCharacter, type CharacterFrame } from './character'
 import { createBlob } from './blob'
 import type { Dress } from '@/core/look'
+import { createMountains } from './mountains'
 import { createFollowCamera } from './followCamera'
 import { createView, walkDirection } from './view'
 import { createSpeedWatch } from './quality'
@@ -63,6 +64,7 @@ export async function createCity(opts: CityOptions): Promise<City> {
   renderer.shadowMap.enabled = true
 
   const town = buildTown(RAPIER, world, opts.doors)
+  const mountains = createMountains(town.scene)
   const props = buildProps(RAPIER, world, town.scene)
   const character = createCharacter(RAPIER, world, START, TRAMPOLINES)
   const blob = createBlob()
@@ -138,6 +140,7 @@ export async function createCity(opts: CityOptions): Promise<City> {
     town.update(time)
     view.follow(f, dt, first, turning.yaw, blocked)
     town.followSun(f.x, f.z)
+    mountains.follow(view.camera.position.x, view.camera.position.z)
     first = false
     renderer.render(town.scene, view.camera)
     if (import.meta.env.DEV) debug.drawn(renderer.info.render.calls, renderer.info.render.triangles, pixelRatio)
@@ -168,6 +171,7 @@ export async function createCity(opts: CityOptions): Promise<City> {
     dispose() {
       loop.stop()
       window.removeEventListener('resize', resize)
+      mountains.dispose()
       disposeScene(town.scene)
       renderer.dispose()
       world.free()
