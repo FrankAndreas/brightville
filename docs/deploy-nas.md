@@ -12,7 +12,7 @@ Who is playing comes from the family hub's login (family-hub's README, "For apps
 ## Prerequisites
 
 - A Synology NAS with **Container Manager** and SSH access (**Control Panel → Terminal & SNMP → Enable SSH**).
-- family-hub running on the NAS, with its `*.local.<domain>` DNS record and wildcard certificate (family-hub's README_DOCKER.md). The hub's login cookie and the Yoga Studio's camera both need HTTPS.
+- family-hub running on the NAS, with its `*.local.<domain>` DNS record and wildcard certificate (family-hub's README_DOCKER.md). The hub's login cookie, the Yoga Studio's camera and the Trommelhaus's microphone all need HTTPS.
 
 ## Installation
 
@@ -132,4 +132,5 @@ It shows how the NAS's `nas-update.sh` differs from the repository's, uploads it
 | Everyone can pick who plays, without a login | `LOCAL_MODE=1` is set | Remove it from `.env` and set `HUB_URL`, then `sudo docker-compose up -d` |
 | Paintings in Malen keep showing ⏳ | The painting can't reach the server; a reverse proxy in front may refuse large uploads (nginx inside the container takes up to 10 MB) | `sudo docker logs brightville-frontend`; in DSM's reverse proxy, allow larger requests |
 | The Yoga Studio door is grey | The page is open over plain `http://` | Use the HTTPS address |
+| The Trommelhaus offers no 👏 Klatschen, or says it can't hear her and switches to tapping | Over plain `http://` the iPad has no microphone for the page; or the image predates `microphone=(self)` in security-headers.conf | Use the HTTPS address; rebuild and pull the image |
 | No voice on the iPad | The ring switch or volume is off, or no German voice is installed | Turn the sound on; **Settings → Accessibility → Spoken Content → Voices → Deutsch** |
