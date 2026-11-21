@@ -63,6 +63,37 @@ describe('Trommelhaus', () => {
     document.body.innerHTML = ''
   })
 
+  describe('opened as the game opens it, with no props', () => {
+    const had = Object.getOwnPropertyDescriptor(navigator, 'mediaDevices')
+    const microphone = (present: boolean) => Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true, value: present ? { getUserMedia: vi.fn() } : undefined,
+    })
+    afterEach(() => {
+      if (had) Object.defineProperty(navigator, 'mediaDevices', had)
+      else Reflect.deleteProperty(navigator, 'mediaDevices')
+    })
+
+    it('asks tapping or clapping where the device has a microphone, then shows a new child how it goes', async () => {
+      microphone(true)
+      const w = mount(Trommelhaus, { attachTo: document.body })
+      await run(10)
+      expect(said()).toEqual(['Willst du tippen oder klatschen?'])
+      await w.find('[data-test="choose-tap"]').trigger('pointerdown')
+      await run(10)
+      expect(said()).toContain('Schau und hör zu, so geht das.')
+      w.unmount()
+    })
+
+    it('starts with tapping where the device has no microphone', async () => {
+      microphone(false)
+      const w = mount(Trommelhaus, { attachTo: document.body })
+      await run(10)
+      expect(said()[0]).not.toBe('Willst du tippen oder klatschen?')
+      expect(w.find('[data-test="choose-clap"]').exists()).toBe(false)
+      w.unmount()
+    })
+  })
+
   it('asks tapping or clapping at the door, and starts straight away with tapping where there is no microphone', async () => {
     const w = await open([COPY])
     expect(said()).toEqual(['Willst du tippen oder klatschen?'])

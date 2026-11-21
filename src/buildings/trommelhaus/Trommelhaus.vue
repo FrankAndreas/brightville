@@ -14,7 +14,9 @@ import { createRhythmFlow, type RhythmEffect } from './flow'
 
 // The Trommelhaus: rhythm. She taps the drums or claps (the microphone hears it), chosen at the door; the beat is
 // always seen too. On the Rhythmus ladder (Lehrplan 21 MU, Zugänge 1 and 2). The house never listens while it plays.
-const props = defineProps<{
+// Vue reads a yes/no prop that isn't passed as false; every prop here defaults to undefined, so `??` finds the real answer
+// when the game opens the house (it passes none)
+const props = withDefaults(defineProps<{
   /** The tasks of this visit; made up at her Rhythmus step when not given */
   tasks?: RhythmTask[]
   /** Show a task once first; from her step and answers when not given */
@@ -23,7 +25,7 @@ const props = defineProps<{
   openMic?: () => Promise<Microphone | null>
   /** Whether to offer clapping */
   micAvailable?: boolean
-}>()
+}>(), { tasks: undefined, example: undefined, openMic: undefined, micAvailable: undefined })
 const emit = defineEmits<{ finished: [result: BuildingResult] }>()
 
 const AFTER_CHEER_MS = 500
