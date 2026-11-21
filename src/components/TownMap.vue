@@ -50,7 +50,11 @@ const peaks = computed(() => {
 })
 
 /** Why a building can't be gone into now: still to learn, played enough today, or (at the door, the price) short of stars */
-const CLOSED_SIGN: Partial<Record<MapMarker['state'], string>> = { locked: '🔒', timeUp: '🌙', poor: '⭐' }
+const CLOSED_SIGN: Partial<Record<MapMarker['state'], string>> = { locked: '🔒', timeUp: '🌙' }
+/** What a closed marker shows, as its door does: the lock, the moon, or the price as one star per Star (no digits) */
+function closedSign(m: MapMarker): string | undefined {
+  return m.state === 'poor' ? '⭐'.repeat(Math.min(Math.max(m.cost ?? 1, 1), 5)) : CLOSED_SIGN[m.state]
+}
 
 function onKey(e: KeyboardEvent) {
   if (e.code === 'Escape' || e.key === 'Escape') emit('close')
@@ -93,7 +97,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
         @pointerdown.stop="emit('choose', m)"
       >
         <span class="icon">{{ m.icon }}</span>
-        <span v-if="CLOSED_SIGN[m.state]" class="closed-sign">{{ CLOSED_SIGN[m.state] }}</span>
+        <span v-if="closedSign(m)" class="closed-sign">{{ closedSign(m) }}</span>
       </button>
 
       <span class="her" data-test="map-her" aria-hidden="true" :style="{ ...place(her.x, her.z), background: color }" />

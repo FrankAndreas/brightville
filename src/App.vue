@@ -156,7 +156,7 @@ const herOnMap = ref({ x: 0, z: 0 })
 function openMap() {
   if (!inTown.value || helpOpen.value || mapOpen.value) return
   // Drawn as the doors are now; unavailable buildings are left off
-  picture.value = mapPicture(props.buildings.map(b => ({ id: b.id, icon: b.icon, name: b.spokenName, door: b.door, state: stateFor(b) })))
+  picture.value = mapPicture(props.buildings.map(b => ({ id: b.id, icon: b.icon, name: b.spokenName, door: b.door, state: stateFor(b), cost: b.cost })))
   herOnMap.value = cityView.value?.position() ?? { x: 0, z: 0 }
   mapOpen.value = true
   void speak('Wohin willst du fahren?')

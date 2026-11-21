@@ -64,7 +64,12 @@ export interface Bicycle {
    * turn with `speed`
    */
   update(f: { x: number; y: number; z: number; heading: number }, shown: boolean, speed: number, dt: number): void
+  /** 0 (gone) … 1 (all there): it grows in when a ride starts and shrinks away when it ends, over GROW_S */
+  readonly presence: number
 }
+
+/** How long the bike takes to grow in under her, or shrink away */
+const GROW_S = 0.25
 
 /**
  * Her bicycle, block-built, in four meshes: the frame in `paint` (her body's material, so it takes her colour whenever
@@ -127,11 +132,17 @@ export function createBicycle(paint: THREE.Material): Bicycle {
     return wheel
   })
 
+  let presence = 0
   return {
     object: root,
+    get presence() {
+      return presence
+    },
     update(f, shown, speed, dt) {
-      root.visible = shown
-      if (!shown) return
+      presence = Math.min(1, Math.max(0, presence + (shown ? dt : -dt) / GROW_S))
+      root.visible = presence > 0
+      if (!root.visible) return
+      root.scale.setScalar(presence)
       root.position.set(f.x, f.y - BODY_HEIGHT / 2, f.z)
       root.rotation.set(0, f.heading, 0)
       // Rolling forwards (+z) turns the top of the wheel forwards

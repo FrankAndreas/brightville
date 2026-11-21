@@ -21,6 +21,8 @@ export interface MapMarker {
   x: number
   z: number
   state: DoorState | 'stop'
+  /** Stars a play building costs, shown on it when she hasn't enough */
+  cost?: number
   /**
    * Where its picture is drawn: the middle of the house, or the landmark a stop looks at, moved apart from its
    * neighbours until every picture is MIN_PIN_GAP from the next (two doors across a street are only 7 m apart)
@@ -45,8 +47,8 @@ export interface MapPicture {
 
 /** A marker is drawn this wide, in metres: 45 px on a 1024 × 768 screen, where the whole map is 3.9 px a metre */
 export const MARKER_SIZE = 11.5
-/** No two pictures closer than this, middle to middle: they never overlap */
-export const MIN_PIN_GAP = MARKER_SIZE
+/** No two pictures closer than this, middle to middle: a little gap between them, so a small finger finds the right one */
+export const MIN_PIN_GAP = MARKER_SIZE + 1.5
 /** The mountains' band above the town's back edge, and the margin round it all */
 const BAND = 14
 const MARGIN = 3
@@ -85,7 +87,7 @@ function spread(pins: Point[], inside: Footprint): void {
 
 /** The map of the town with these buildings on it; those this device can never go into are left out */
 export function mapPicture(
-  buildings: { id: string; icon: string; name: string; door: DoorSpot; state: DoorState }[],
+  buildings: { id: string; icon: string; name: string; door: DoorSpot; state: DoorState; cost?: number }[],
 ): MapPicture {
   const box: Footprint = {
     minX: BOUNDS.minX - MARGIN, maxX: BOUNDS.maxX + MARGIN, minZ: BOUNDS.minZ - BAND - MARGIN, maxZ: BOUNDS.maxZ + MARGIN,
@@ -94,7 +96,7 @@ export function mapPicture(
     ...buildings.filter(b => b.state !== 'unavailable').map((b): MapMarker => {
       const f = footprint(b.door)
       return {
-        kind: 'building', id: b.id, icon: b.icon, name: b.name, x: b.door.x, z: b.door.z, state: b.state,
+        kind: 'building', id: b.id, icon: b.icon, name: b.name, x: b.door.x, z: b.door.z, state: b.state, cost: b.cost,
         pin: { x: (f.minX + f.maxX) / 2, z: (f.minZ + f.maxZ) / 2 },
       }
     }),

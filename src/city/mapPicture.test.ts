@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { BUILDINGS } from '@/buildings/registry'
 import { BOUNDS, STOPS } from './map'
-import { MIN_PIN_GAP, mapPicture } from './mapPicture'
+import { MARKER_SIZE, MIN_PIN_GAP, mapPicture } from './mapPicture'
+import { footprint } from './doors'
 
 const all = BUILDINGS.map(b => ({ id: b.id, icon: b.icon, name: b.spokenName, door: b.door, state: 'open' as const }))
 const viewBox = (v: string) => {
@@ -66,5 +67,19 @@ describe('mapPicture', () => {
     expect(Math.max(...nature.areas.map(a => a.maxZ))).toBeLessThanOrEqual(Math.min(...town.areas.map(a => a.minZ)))
     // The forest green, the farm yellow-brown
     expect(nature.areas.map(a => a.ground)).toEqual([0x8cc56f, 0xd9c78c])
+  })
+
+  it('leaves a gap between pictures, so a small finger finds the right one', () => {
+    expect(MIN_PIN_GAP).toBeGreaterThanOrEqual(MARKER_SIZE + 1.5)
+  })
+
+  it("keeps every building's picture on its house's side of the street, never across it", () => {
+    const { markers } = mapPicture(BUILDINGS.map(b => ({ id: b.id, icon: b.icon, name: b.spokenName, door: b.door, state: 'open' as const })))
+    for (const m of markers.filter(m => m.kind === 'building')) {
+      const door = BUILDINGS.find(b => b.id === m.id)!.door
+      const f = footprint(door)
+      const house = { x: (f.minX + f.maxX) / 2 - door.x, z: (f.minZ + f.maxZ) / 2 - door.z }
+      expect((m.pin.x - door.x) * house.x + (m.pin.z - door.z) * house.z, m.id).toBeGreaterThan(0)
+    }
   })
 })
