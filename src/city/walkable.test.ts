@@ -44,4 +44,10 @@ describe('the walking grid', () => {
     expect(grid.free(-40, -62)).toBe(false)
     expect(grid.free(0, -62)).toBe(true)
   })
+
+  it('keeps her off the hedge between the old town and a district, but lets her through the gates', () => {
+    for (const [x, z] of [[10, -60], [-20, -60], [60, 10], [60, -15]]) expect(grid.free(x, z), `${x},${z}`).toBe(false)
+    expect(grid.free(0, -60)).toBe(true)
+    expect(grid.free(60, 0)).toBe(true)
+  })
 })

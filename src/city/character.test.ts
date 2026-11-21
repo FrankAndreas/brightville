@@ -78,28 +78,28 @@ describe('character', () => {
   })
 
   it.each([DT, 0.05])('stops at the town\'s edge at %s s steps', dt => {
-    // Along the avenue to the right, where nothing stands in the way
+    // Along the avenue to the left, where nothing stands in the way (the one to the right goes on to the workshop)
     const { run } = setup({ x: 0, z: 0 })
     settle(run)
-    const f = run(18, { ...still, moveX: 1 }, dt).at(-1)!
-    expect(f.x).toBeGreaterThan(TOWN_HALF - 2)
-    expect(f.x).toBeLessThan(TOWN_HALF)
+    const f = run(18, { ...still, moveX: -1 }, dt).at(-1)!
+    expect(f.x).toBeLessThan(-(TOWN_HALF - 2))
+    expect(f.x).toBeGreaterThan(-TOWN_HALF)
   })
 
   it('reports the speed it really moves at, not the speed it wants', () => {
     const { run } = setup({ x: 0, z: 0 })
     settle(run)
-    const f = run(18, { ...still, moveX: 1 }).at(-1)!
+    const f = run(18, { ...still, moveX: -1 }).at(-1)!
     expect(f.speed).toBeLessThan(0.5)
   })
 
   it('never tumbles from jumping against a wall', () => {
     const { run } = setup({ x: 0, z: 0 })
     settle(run)
-    run(16, { ...still, moveX: 1 })
+    run(16, { ...still, moveX: -1 })
     const seen: unknown[] = []
     for (let i = 0; i < 12; i++) {
-      seen.push(...events(run(DT, { moveX: 1, moveZ: 0, jump: true })), ...events(run(1.1 + i * 0.013, { ...still, moveX: 1 })))
+      seen.push(...events(run(DT, { moveX: -1, moveZ: 0, jump: true })), ...events(run(1.1 + i * 0.013, { ...still, moveX: -1 })))
     }
     expect(seen).not.toContain('tumble')
     expect(seen).toContain('jump')

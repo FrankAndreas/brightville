@@ -1,12 +1,14 @@
+import * as THREE from 'three'
 import { describe, expect, it } from 'vitest'
 import { BUILDINGS } from '@/buildings/registry'
 import { DOOR_RADIUS, footprint, type Footprint } from './doors'
 import { BLOCKS, TRAMPOLINES } from './props'
 import {
-  ALL_SCENERY, ALL_STREETS, BOUNDS, DISTRICTS, EMPTY_LOTS, HILLS, JETTY, LAKE, MAX_SLOPE_DEG, OUTLINE, PLAZA, SCENERY_HOUSES,
-  START, STOPS, STREETS, heightAt, inLake, inTown, onStreet, sceneryArea, streetDistance, type Street,
+  ALL_PROPS, ALL_SCENERY, ALL_STREETS, BOUNDS, DISTRICTS, EMPTY_LOTS, HILLS, JETTY, LAKE, MAX_SLOPE_DEG, OUTLINE, PLAZA, SCENERY_HOUSES,
+  START, STOPS, STREETS, heightAt, inLake, inTown, onStreet, propArea, sceneryArea, solidAreas, streetDistance, type Street,
 } from './map'
 import { walkGrid } from './walkable'
+import { CLEARING, FIELD, PENS } from './districts/nature'
 
 const STEP = 0.5
 const gap = (a: Footprint, b: Footprint) => Math.max(a.minX - b.maxX, b.minX - a.maxX, a.minZ - b.maxZ, b.minZ - a.maxZ)
@@ -209,5 +211,38 @@ describe('the town map', () => {
         expect(Math.hypot(s.x - d.x, s.z - d.z), s.id).toBeGreaterThan(DOOR_RADIUS + 1)
       }
     }
+  })
+
+  it('colours the ground of each area: the old town light, the forest green, the farm yellow-brown, the workshop grey', () => {
+    const colour = (x: number, z: number) => OUTLINE.find(a => x > a.minX && x < a.maxX && z > a.minZ && z < a.maxZ)!.ground
+    const [town, forest, farm, workshop] = [colour(0, 0), colour(-20, -80), colour(20, -80), colour(80, 0)]
+    expect(new Set([town, forest, farm, workshop]).size).toBe(4)
+    const hsl = (hex: number) => new THREE.Color(hex).getHSL({ h: 0, s: 0, l: 0 })
+    expect(hsl(forest).h * 360).toBeGreaterThan(80)
+    expect(hsl(forest).l).toBeLessThan(hsl(town).l)
+    expect(hsl(farm).h * 360).toBeLessThan(60)
+    expect(hsl(workshop).s).toBeLessThan(0.2)
+  })
+
+  it('marks the forest path and the farm lane as dirt, and no street of the old town', () => {
+    const nature = DISTRICTS.find(d => d.id === 'nature')!
+    expect(nature.streets.filter(s => s.kind === 'dirt')).toHaveLength(2)
+    expect(STREETS.some(s => s.kind)).toBe(false)
+  })
+
+  it('keeps the props, pens, field and clearing in town and off the streets, 1 m from every house and lot', () => {
+    const things: [string, Footprint][] = [
+      ...ALL_PROPS.map((p, i): [string, Footprint] => [`${p.kind} ${i}`, propArea(p)]),
+      ...PENS.map((p, i): [string, Footprint] => [`pen ${i}`, p]), ['field', FIELD],
+      ['clearing', around(CLEARING.x, CLEARING.z, CLEARING.radius)],
+    ]
+    expect(ALL_PROPS.map(p => p.kind).sort()).toEqual(expect.arrayContaining(['crane', 'crate', 'tractor']))
+    for (const [name, f] of things) {
+      for (const [x, z] of corners(f)) expect(inTown(x, z, 1.5), `${name} at ${x},${z}`).toBe(true)
+      for (const [x, z] of cells(f)) expect(onStreet(x, z), `${name} at ${x},${z}`).toBe(false)
+      for (const [h, fh] of houses) expect(gap(f, fh), `${name} / ${h}`).toBeGreaterThanOrEqual(1)
+    }
+    // She bumps into the props, so the walking checks see them
+    for (const p of ALL_PROPS) expect(solidAreas(doors)).toContainEqual(propArea(p))
   })
 })

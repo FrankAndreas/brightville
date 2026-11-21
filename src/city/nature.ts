@@ -2,16 +2,19 @@ import * as THREE from 'three'
 import type RAPIER from '@dimforge/rapier3d-compat'
 import { DOOR_RADIUS, footprint, type DoorSpot, type Footprint } from './doors'
 import {
-  EMPTY_LOTS, HILLS, JETTY, LAKE, PLAZA, SCENERY_HOUSES, STREETS, TOWN_HALF, heightAt, sceneryArea, streetDistance,
+  ALL_PROPS, ALL_SCENERY, ALL_STREETS, EMPTY_LOTS, HILLS, JETTY, LAKE, PLAZA, TOWN_HALF, hedgeDistance, heightAt, inTown,
+  propArea, sceneryArea, streetDistance,
 } from './map'
+import { CLEARING, FIELD, NATURE, PENS } from './districts/nature'
 import { BLOCKS, TRAMPOLINES } from './props'
 import { UNSEEN_GROUPS } from './groups'
 
 type Rapier = typeof RAPIER
 
 /**
- * Trees, bushes, flower beds, garden fences, street lamps and benches: placed by rules (never on a street, in the
- * lake, in front of a door or on a lot a building may come to), the same every time. Trees, lamps and benches are
+ * Trees, bushes, flower beds, garden and pen fences, street lamps and benches: placed by rules (never on a street, in
+ * the lake, in front of a door or on a lot a building may come to), the same every time. The districts get their own:
+ * a dense forest, a few trees on the farm, its pens, and lamps along their paved streets. Trees, lamps and benches are
  * solid; bushes, flowers and fences are not (she walks through, as through tall grass).
  */
 export type NatureKind = 'tree' | 'bush' | 'flowers' | 'fence' | 'lamp' | 'bench'
@@ -77,7 +80,9 @@ const lakeRatio = (x: number, z: number, grow = 0) => ((x - LAKE.x) / (LAKE.rx +
 
 export function placeNature(seed: number, doors: DoorSpot[]): NatureItem[] {
   const rand = random(seed)
-  const houses = [...doors.map(d => footprint(d)), ...SCENERY_HOUSES.map(sceneryArea)]
+  const houses = [...doors.map(d => footprint(d)), ...ALL_SCENERY.map(sceneryArea)]
+  // The farm's pens and field and the districts' props: only their own fences stand there
+  const farm = [...PENS, FIELD, ...ALL_PROPS.map(propArea)]
   const lots = EMPTY_LOTS.map(l => footprint(l))
   const toys: Footprint[] = [
     ...TRAMPOLINES.map(t => ({ minX: t.x - t.radius, maxX: t.x + t.radius, minZ: t.z - t.radius, maxZ: t.z + t.radius })),
@@ -87,7 +92,7 @@ export function placeNature(seed: number, doors: DoorSpot[]): NatureItem[] {
 
   /** May a `kind` stand at (x, z), `fromStreet` metres or more off the paving, `apart` from other solid things? */
   function free(kind: NatureKind, x: number, z: number, fromStreet: number, apart = 0): boolean {
-    if (Math.max(Math.abs(x), Math.abs(z)) > TOWN_HALF - 1.5) return false
+    if (!inTown(x, z, 1.5) || hedgeDistance(x, z) < 1.5) return false
     if (streetDistance(x, z) < fromStreet) return false
     if (inside(x, z, JETTY, 0.6) || lakeRatio(x, z, 1.5) <= 1) return false
     // A lamp stands in the narrow strip between the paving and the houses; the rest keeps more room
@@ -95,6 +100,8 @@ export function placeNature(seed: number, doors: DoorSpot[]): NatureItem[] {
     if (doors.some(d => Math.hypot(d.x - x, d.z - z) < DOOR_RADIUS + (lamp ? 1.05 : 1.2))) return false
     if (houses.some(h => inside(x, z, h, lamp ? 0.45 : 1))) return false
     if (toys.some(t => inside(x, z, t, 1.7))) return false
+    if (farm.some(f => inside(x, z, f, 1))) return false
+    if (kind !== 'lamp' && Math.hypot(x - CLEARING.x, z - CLEARING.z) <= CLEARING.radius + 0.5) return false
     if (kind !== 'flowers' && kind !== 'fence' && lots.some(l => inside(x, z, l, 0.7))) return false
     if (apart > 0 && items.some(i => SOLID_KINDS.has(i.kind) && Math.hypot(i.x - x, i.z - z) < apart)) return false
     return true
@@ -102,8 +109,8 @@ export function placeNature(seed: number, doors: DoorSpot[]): NatureItem[] {
   const put = (kind: NatureKind, x: number, z: number, rotY = 0, scale = 1, color = 0) =>
     items.push({ kind, x, z, rotY, scale, color })
 
-  // Lamps along every street, on alternating sides, one every LAMP_EVERY metres
-  for (const s of STREETS) {
+  // Lamps along every paved street, on alternating sides, one every LAMP_EVERY metres
+  for (const s of ALL_STREETS.filter(s => s.kind !== 'dirt')) {
     let side = 1
     for (let k = 1; k < s.points.length; k++) {
       const a = s.points[k - 1]
@@ -182,6 +189,40 @@ export function placeNature(seed: number, doors: DoorSpot[]): NatureItem[] {
     const z = (rand() * 2 - 1) * (TOWN_HALF - 2)
     if (!free('bush', x, z, 1, 0) || items.some(i => Math.hypot(i.x - x, i.z - z) < 1.6)) continue
     put('bush', x, z, rand() * Math.PI, 0.7 + rand() * 0.6, LEAVES[Math.floor(rand() * LEAVES.length)])
+  }
+
+  // The districts', from a sequence of their own, so the old town's trees and bushes stay where they always were
+  const rand2 = random(seed + 101)
+  const [forest, farmland] = NATURE.areas
+
+  // The pens, fenced all round
+  for (const p of PENS) {
+    const corners = [[p.minX, p.minZ], [p.maxX, p.minZ], [p.maxX, p.maxZ], [p.minX, p.maxZ]]
+    corners.forEach(([x0, z0], k) => {
+      const [x1, z1] = corners[(k + 1) % 4]
+      put('fence', (x0 + x1) / 2, (z0 + z1) / 2, Math.atan2(x1 - x0, z1 - z0), Math.hypot(x1 - x0, z1 - z0), 0)
+    })
+  }
+
+  // The forest: trees close together but for its path and its clearing; on the farm, a few
+  for (let k = 0; k < 1200; k++) {
+    const x = forest.minX + rand2() * (farmland.maxX - forest.minX)
+    const z = forest.minZ + rand2() * (forest.maxZ - forest.minZ)
+    const inForest = inside(x, z, forest)
+    const chance = inForest ? 0.8 : inside(x, z, farmland) ? 0.05 : 0
+    if (rand2() > chance) continue
+    // In the forest a little back from the path, so the camera following her along it sees past the crowns
+    if (!free('tree', x, z, 2.5, inForest ? 2.4 : 3.2)) continue
+    put('tree', x, z, rand2() * Math.PI, 0.8 + rand2() * 0.5, LEAVES[Math.floor(rand2() * LEAVES.length)])
+  }
+
+  // Bushes at the forest's edge and about the farm
+  const bushes = items.filter(i => i.kind === 'bush').length
+  for (let k = 0; k < 600 && items.filter(i => i.kind === 'bush').length < bushes + 24; k++) {
+    const x = forest.minX + rand2() * (farmland.maxX - forest.minX)
+    const z = forest.minZ + rand2() * (forest.maxZ - forest.minZ)
+    if (!free('bush', x, z, 1, 0) || items.some(i => Math.hypot(i.x - x, i.z - z) < 1.6)) continue
+    put('bush', x, z, rand2() * Math.PI, 0.7 + rand2() * 0.6, LEAVES[Math.floor(rand2() * LEAVES.length)])
   }
 
   return items

@@ -135,6 +135,7 @@ export async function createCity(opts: CityOptions): Promise<City> {
     strollTownsfolk(f, dt)
     animals.update(time, dt, f)
     for (const door of town.doorVisuals) door.update(time)
+    town.update(time)
     view.follow(f, dt, first, turning.yaw, blocked)
     town.followSun(f.x, f.z)
     first = false

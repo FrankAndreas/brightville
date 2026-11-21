@@ -16,16 +16,31 @@ export interface Stop {
   line: string
 }
 
+/** A rectangle of a district's ground, and the ground's colour there (0xRRGGBB), in town and on the map */
+export interface Area extends Footprint {
+  ground: number
+}
+
+/** Something solid standing in a district, not a house: she bumps into it, and the walking checks see it */
+export interface DistrictProp {
+  kind: 'tractor' | 'crate' | 'crane'
+  /** Its middle */
+  x: number
+  z: number
+  /** Its size along x and along z */
+  w: number
+  d: number
+}
+
 /** A part of the town: the old square, or one of the districts joined onto it */
 export interface District {
   id: DistrictId
   /** Rectangles that never overlap; the town's outline is the union of all districts' areas */
-  areas: Footprint[]
-  /** Its colour on the map (0xRRGGBB) */
-  ground: number
+  areas: Area[]
   /** Its own streets (the old town's are STREETS) */
   streets: Street[]
   scenery: SceneryHouse[]
+  props: DistrictProp[]
   /** Lots kept for buildings still to come: a garden until then */
   lots: { use: 'nmg' | 'beebot' | 'spare'; spot: DoorSpot }[]
   /** The nature district has two: the farm and the forest */

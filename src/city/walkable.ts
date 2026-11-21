@@ -1,5 +1,5 @@
 import type { DoorSpot, Footprint } from './doors'
-import { BOUNDS, JETTY, inLake, inTown, solidAreas } from './map'
+import { BOUNDS, JETTY, hedgeDistance, inLake, inTown, solidAreas } from './map'
 
 export interface Point {
   x: number
@@ -18,7 +18,7 @@ export interface WalkGrid {
 
 /** Her body is about 0.4 m round: walls and blocks are that much bigger for the walk */
 const BODY = 0.4
-/** She stays 1 m from the outline's edge, where the hedge stands */
+/** She stays 1 m from the hedge: round the outline's edge, and between the old town and each district */
 const EDGE = 1
 
 /** The walking grid past the door buildings of `doors`, the scenery houses and the playground's blocks */
@@ -30,7 +30,7 @@ export function walkGrid(doors: DoorSpot[], step = 0.5): WalkGrid {
 export function walkGridAround(solids: Footprint[], step = 0.5): WalkGrid {
   const solid = solids.map(f => ({ minX: f.minX - BODY, maxX: f.maxX + BODY, minZ: f.minZ - BODY, maxZ: f.maxZ + BODY }))
   const free = (x: number, z: number) => {
-    if (!inTown(x, z, EDGE)) return false
+    if (!inTown(x, z, EDGE) || hedgeDistance(x, z) < EDGE) return false
     if (inLake(x, z) && !(x >= JETTY.minX && x <= JETTY.maxX && z >= JETTY.minZ && z <= JETTY.maxZ)) return false
     return !solid.some(f => x >= f.minX && x <= f.maxX && z >= f.minZ && z <= f.maxZ)
   }

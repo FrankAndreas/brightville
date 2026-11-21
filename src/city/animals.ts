@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { DOOR_RADIUS, footprint, type DoorSpot } from './doors'
 import type { Part } from './houseKit'
-import { EMPTY_LOTS, LAKE, TOWN_HALF, heightAt, inLake, solidAreas } from './map'
+import { EMPTY_LOTS, LAKE, heightAt, inLake, inTown, solidAreas } from './map'
 import { mergeParts } from './merge'
 import { NATURE_SEED, SOLID_KINDS, natureArea, placeNature } from './nature'
 
@@ -77,7 +77,7 @@ export function spotForBird(doors: DoorSpot[]): (x: number, z: number) => boolea
     ...placeNature(NATURE_SEED, doors).filter(i => SOLID_KINDS.has(i.kind)).map(natureArea),
   ]
   return (x, z) =>
-    Math.max(Math.abs(x), Math.abs(z)) < TOWN_HALF - 3 &&
+    inTown(x, z, 3) &&
     !inLake(x, z) && ((x - LAKE.x) / (LAKE.rx + 1.5)) ** 2 + ((z - LAKE.z) / (LAKE.rz + 1.5)) ** 2 > 1 &&
     doors.every(d => Math.hypot(d.x - x, d.z - z) >= DOOR_RADIUS + 2) &&
     !solids.some(f => x >= f.minX - 1 && x <= f.maxX + 1 && z >= f.minZ - 1 && z <= f.maxZ + 1)

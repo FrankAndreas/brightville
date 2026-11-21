@@ -1,7 +1,7 @@
 import { BLOCKS } from './props'
 import { footprint, type DoorSpot, type Footprint } from './doors'
 import { NATURE } from './districts/nature'
-import type { District, Stop } from './districts/types'
+import type { Area, District, DistrictProp, Stop } from './districts/types'
 import { WORKSHOP } from './districts/workshop'
 
 /**
@@ -24,6 +24,8 @@ export const MAX_SLOPE_DEG = 20
 export interface Street {
   points: { x: number; z: number }[]
   width: number
+  /** A dirt path or lane in the nature district, drawn in a dirt colour; a paved street when not given */
+  kind?: 'dirt'
 }
 
 /**
@@ -52,6 +54,9 @@ export const HILLS: Hill[] = [
   { x: 48, z: -48, radius: 10, height: 2 },
   { x: 48, z: 46, radius: 10, height: 2 },
   { x: -46, z: 46, radius: 10, height: 2 },
+  // Gentle bumps in the forest, off its path and its clearing
+  { x: -22, z: -68, radius: 6, height: 1 },
+  { x: -14, z: -99, radius: 5, height: 0.9 },
 ]
 
 /** The lake, an ellipse in the front right quarter, by the plaza */
@@ -66,6 +71,8 @@ export interface SceneryHouse {
   w: number
   d: number
   floors: 1 | 2 | 3
+  /** Its own wall and roof colours (the farm's barn is red); a row-house pair by its place in the list when not given */
+  look?: { wall: number; roof: number }
 }
 
 const scenery = (x: number, z: number, side: DoorSpot['side'], floors: 1 | 2 | 3, w = 6): SceneryHouse =>
@@ -98,10 +105,11 @@ export const SCENERY_HOUSES: SceneryHouse[] = [
 /** The old town as a district: the square, its streets and houses, and the plaza as its stop */
 const TOWN: District = {
   id: 'town',
-  areas: [{ minX: -TOWN_HALF, maxX: TOWN_HALF, minZ: -TOWN_HALF, maxZ: TOWN_HALF }],
-  ground: 0xb8e6a3,
+  areas: [{ minX: -TOWN_HALF, maxX: TOWN_HALF, minZ: -TOWN_HALF, maxZ: TOWN_HALF, ground: 0xb8e6a3 }],
   streets: STREETS,
   scenery: SCENERY_HOUSES,
+  // The playground's blocks and trampolines are in props.ts
+  props: [],
   lots: [],
   // On the plaza's edge in front of her start, looking at the fountain in the middle
   stops: [{ id: 'platz', icon: '⛲', x: PLAZA.x, z: PLAZA.z + 7, face: Math.PI, line: 'Wir fahren zum Platz!' }],
@@ -109,7 +117,7 @@ const TOWN: District = {
 
 export const DISTRICTS: District[] = [TOWN, NATURE, WORKSHOP]
 /** The town's ground: every district's areas, which never overlap */
-export const OUTLINE: Footprint[] = DISTRICTS.flatMap(d => d.areas)
+export const OUTLINE: Area[] = DISTRICTS.flatMap(d => d.areas)
 export const BOUNDS: Footprint = {
   minX: Math.min(...OUTLINE.map(a => a.minX)),
   maxX: Math.max(...OUTLINE.map(a => a.maxX)),
@@ -118,6 +126,7 @@ export const BOUNDS: Footprint = {
 }
 export const ALL_STREETS: Street[] = DISTRICTS.flatMap(d => d.streets)
 export const ALL_SCENERY: SceneryHouse[] = DISTRICTS.flatMap(d => d.scenery)
+export const ALL_PROPS: DistrictProp[] = DISTRICTS.flatMap(d => d.props)
 export const STOPS: Stop[] = DISTRICTS.flatMap(d => d.stops)
 
 /**
@@ -150,6 +159,78 @@ export function inTown(x: number, z: number, margin = 0): boolean {
 /** The ground a scenery house covers */
 export function sceneryArea(h: SceneryHouse): Footprint {
   return footprint(h.spot, h.w, h.d)
+}
+
+/** The ground a district's prop covers */
+export function propArea(p: DistrictProp): Footprint {
+  return { minX: p.x - p.w / 2, maxX: p.x + p.w / 2, minZ: p.z - p.d / 2, maxZ: p.z + p.d / 2 }
+}
+
+type Point = { x: number; z: number }
+
+/** Which district (its place in DISTRICTS) holds the point, or −1 outside the town */
+function districtAt(x: number, z: number): number {
+  return DISTRICTS.findIndex(d => d.areas.some(a => x >= a.minX && x <= a.maxX && z >= a.minZ && z <= a.maxZ))
+}
+
+/**
+ * Where the hedge stands: round the outline, and between the old town and each district, but for the gates. Not
+ * between two areas of one district (the forest and the farm). Straight pieces along x or z, each from `a` to `b`.
+ */
+function buildHedge(): { a: Point; b: Point }[] {
+  // Each area's edges, cut where other areas' edges meet them, kept where the other side is outside the town or
+  // another district (once for each pair of districts)
+  const pieces: { alongX: boolean; at: number; from: number; to: number }[] = []
+  DISTRICTS.forEach((d, di) => {
+    for (const a of d.areas) {
+      const edges = [
+        { alongX: true, at: a.minZ, from: a.minX, to: a.maxX, out: -1 }, { alongX: true, at: a.maxZ, from: a.minX, to: a.maxX, out: 1 },
+        { alongX: false, at: a.minX, from: a.minZ, to: a.maxZ, out: -1 }, { alongX: false, at: a.maxX, from: a.minZ, to: a.maxZ, out: 1 },
+      ]
+      for (const e of edges) {
+        const cuts = OUTLINE.flatMap(o => (e.alongX ? [o.minX, o.maxX] : [o.minZ, o.maxZ])).filter(c => c > e.from && c < e.to)
+        const stops = [...new Set([e.from, ...cuts, e.to])].sort((p, q) => p - q)
+        for (let k = 1; k < stops.length; k++) {
+          const mid = (stops[k - 1] + stops[k]) / 2
+          const beyond = e.alongX ? districtAt(mid, e.at + e.out * 0.01) : districtAt(e.at + e.out * 0.01, mid)
+          if (beyond === di || (beyond >= 0 && beyond < di)) continue
+          pieces.push({ alongX: e.alongX, at: e.at, from: stops[k - 1], to: stops[k] })
+        }
+      }
+    }
+  })
+  // Pieces on one line that touch become one
+  pieces.sort((p, q) => Number(p.alongX) - Number(q.alongX) || p.at - q.at || p.from - q.from)
+  const lines: typeof pieces = []
+  for (const p of pieces) {
+    const last = lines[lines.length - 1]
+    if (last && last.alongX === p.alongX && last.at === p.at && last.to >= p.from) last.to = Math.max(last.to, p.to)
+    else lines.push({ ...p })
+  }
+  // The gates' gaps
+  for (const g of DISTRICTS.flatMap(d => (d.gate ? [d.gate] : []))) {
+    for (const [k, l] of lines.entries()) {
+      const [at, along] = l.alongX ? [g.z, g.x] : [g.x, g.z]
+      if (l.at !== at || along <= l.from || along >= l.to) continue
+      lines.splice(k, 1, { ...l, to: along - g.width / 2 }, { ...l, from: along + g.width / 2 })
+      break
+    }
+  }
+  return lines.filter(l => l.to > l.from).map(l => (l.alongX
+    ? { a: { x: l.from, z: l.at }, b: { x: l.to, z: l.at } }
+    : { a: { x: l.at, z: l.from }, b: { x: l.at, z: l.to } }))
+}
+
+const HEDGE = buildHedge()
+
+/** The hedge's straight pieces (a copy each time) */
+export function hedgeSegments(): { a: Point; b: Point }[] {
+  return HEDGE.map(s => ({ a: { ...s.a }, b: { ...s.b } }))
+}
+
+/** How far (x, z) is from the hedge's middle line */
+export function hedgeDistance(x: number, z: number): number {
+  return Math.min(...HEDGE.map(s => segmentDistance(x, z, s.a, s.b)))
 }
 
 /** Ground height in metres: 0 everywhere but on the hills */
@@ -189,11 +270,15 @@ export function onStreet(x: number, z: number): boolean {
   return streetDistance(x, z) === 0
 }
 
-/** Everything she can't walk through: the door buildings (of `doors`), every scenery house and the playground's blocks */
+/**
+ * Everything she can't walk through: the door buildings (of `doors`), every scenery house, the districts' props and
+ * the playground's blocks
+ */
 export function solidAreas(doors: DoorSpot[]): Footprint[] {
   return [
     ...doors.map(d => footprint(d)),
     ...ALL_SCENERY.map(sceneryArea),
+    ...ALL_PROPS.map(propArea),
     ...BLOCKS.map(b => ({ minX: b.x - b.w / 2, maxX: b.x + b.w / 2, minZ: b.z - b.d / 2, maxZ: b.z + b.d / 2 })),
   ]
 }

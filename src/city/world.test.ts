@@ -4,10 +4,10 @@ import RAPIER from '@dimforge/rapier3d-compat'
 import * as THREE from 'three'
 import { BUILDINGS, toDoors } from '@/buildings/registry'
 import { createCharacter } from './character'
-import { HILLS, LAKE, TOWN_HALF, heightAt, inLake, solidAreas } from './map'
+import { ALL_SCENERY, BOUNDS, DISTRICTS, HILLS, LAKE, STOPS, TOWN_HALF, heightAt, inLake, onStreet, sceneryArea, solidAreas } from './map'
 import { createFollowCamera } from './followCamera'
 import { TRAMPOLINES } from './props'
-import { BUILDING_LOOKS, GRAVITY, buildTown, cameraBlocker, disposeScene, lookOf } from './world'
+import { BUILDING_LOOKS, GRAVITY, buildTown, cameraBlocker, disposeScene, hedgeSegments, lookOf } from './world'
 
 describe('the town', () => {
   beforeAll(() => RAPIER.init())
@@ -29,6 +29,126 @@ describe('the town', () => {
       expect(f.y - 0.6, `hill at ${hill.x},${hill.z}`).toBeCloseTo(heightAt(x, z), 0)
       expect(Math.abs(f.y - 0.6 - heightAt(x, z))).toBeLessThan(0.15)
     }
+  })
+})
+
+describe('the ground', () => {
+  beforeAll(() => RAPIER.init())
+
+  it('lays the ground under the whole town, the districts too', () => {
+    const world = new RAPIER.World({ x: 0, y: -GRAVITY, z: 0 })
+    buildTown(RAPIER, world, [])
+    const fields: RAPIER.Collider[] = []
+    world.forEachCollider(c => { if (c.shapeType() === RAPIER.ShapeType.HeightField) fields.push(c) })
+    expect(fields).toHaveLength(1)
+    const t = fields[0].translation()
+    const scale = (fields[0].shape as RAPIER.Heightfield).scale
+    expect(t.x - scale.x / 2).toBeLessThanOrEqual(BOUNDS.minX)
+    expect(t.x + scale.x / 2).toBeGreaterThanOrEqual(BOUNDS.maxX)
+    expect(t.z - scale.z / 2).toBeLessThanOrEqual(BOUNDS.minZ)
+    expect(t.z + scale.z / 2).toBeGreaterThanOrEqual(BOUNDS.maxZ)
+  })
+
+  it('stands her on the ground at every stop, in every district', () => {
+    for (const stop of STOPS) {
+      const world = new RAPIER.World({ x: 0, y: -GRAVITY, z: 0 })
+      buildTown(RAPIER, world, [])
+      const character = createCharacter(RAPIER, world, stop, TRAMPOLINES)
+      world.timestep = 1 / 60
+      let f = character.step({ moveX: 0, moveZ: 0, jump: false }, 1 / 60)
+      for (let i = 0; i < 120; i++) {
+        f = character.step({ moveX: 0, moveZ: 0, jump: false }, 1 / 60)
+        world.step()
+      }
+      expect(Math.abs(f.y - 0.6 - heightAt(stop.x, stop.z)), stop.id).toBeLessThan(0.15)
+    }
+  })
+
+  it('gives every house that is just a house solid walls, in the districts too', () => {
+    const world = new RAPIER.World({ x: 0, y: -GRAVITY, z: 0 })
+    buildTown(RAPIER, world, [])
+    world.step()
+    for (const h of ALL_SCENERY) {
+      const f = sceneryArea(h)
+      const mid = { x: (f.minX + f.maxX) / 2, z: (f.minZ + f.maxZ) / 2 }
+      const d = { x: mid.x - h.spot.x, z: mid.z - h.spot.z }
+      const length = Math.hypot(d.x, d.z)
+      const ray = new RAPIER.Ray({ x: h.spot.x, y: 1, z: h.spot.z }, { x: d.x / length, y: 0, z: d.z / length })
+      expect(world.castRay(ray, length, true, RAPIER.QueryFilterFlags.EXCLUDE_SENSORS), `house at ${mid.x},${mid.z}`).not.toBeNull()
+    }
+  })
+
+  it('turns the workshop crane\'s arm slowly', () => {
+    const town = buildTown(RAPIER, new RAPIER.World({ x: 0, y: -GRAVITY, z: 0 }), [])
+    const arm = town.scene.getObjectByName('crane-arm')!
+    expect(arm).toBeDefined()
+    town.update(0)
+    const before = arm.rotation.y
+    town.update(1)
+    const turn = Math.abs(arm.rotation.y - before)
+    expect(turn).toBeGreaterThan(0.01)
+    expect(turn).toBeLessThan(0.3)
+  })
+})
+
+describe('the hedge', () => {
+  const segments = hedgeSegments()
+  /** Which district (its index) holds the point, or -1 outside the town */
+  const districtAt = (x: number, z: number) =>
+    DISTRICTS.findIndex(d => d.areas.some(a => x >= a.minX && x <= a.maxX && z >= a.minZ && z <= a.maxZ))
+  const normal = (s: { a: { x: number; z: number }; b: { x: number; z: number } }) => (s.a.z === s.b.z ? { x: 0, z: 1 } : { x: 1, z: 0 })
+  function points(s: { a: { x: number; z: number }; b: { x: number; z: number } }, step = 0.5) {
+    const length = Math.hypot(s.b.x - s.a.x, s.b.z - s.a.z)
+    const out: { x: number; z: number }[] = []
+    for (let t = 0; t <= length + 1e-9; t += step) out.push({ x: s.a.x + ((s.b.x - s.a.x) * t) / length, z: s.a.z + ((s.b.z - s.a.z) * t) / length })
+    return out
+  }
+  const onSegment = (p: { x: number; z: number }) => segments.some(s =>
+    Math.abs((s.b.x - s.a.x) * (p.z - s.a.z) - (s.b.z - s.a.z) * (p.x - s.a.x)) < 1e-6 &&
+    p.x >= Math.min(s.a.x, s.b.x) - 1e-6 && p.x <= Math.max(s.a.x, s.b.x) + 1e-6 &&
+    p.z >= Math.min(s.a.z, s.b.z) - 1e-6 && p.z <= Math.max(s.a.z, s.b.z) + 1e-6)
+  const gates = DISTRICTS.flatMap(d => (d.gate ? [d.gate] : []))
+
+  it('runs along the outline and between the districts, never through one', () => {
+    expect(segments.length).toBeGreaterThan(4)
+    for (const s of segments) {
+      expect(s.a.x === s.b.x || s.a.z === s.b.z).toBe(true)
+      const n = normal(s)
+      // Off its ends, where a corner of the outline has the same district on both sides
+      for (const p of points(s).slice(1, -1)) {
+        const where = `${p.x},${p.z}`
+        expect(districtAt(p.x + n.x * 0.25, p.z + n.z * 0.25), where).not.toBe(districtAt(p.x - n.x * 0.25, p.z - n.z * 0.25))
+      }
+    }
+  })
+
+  it('closes the outline and every edge between districts, but for the gates', () => {
+    for (const a of DISTRICTS.flatMap(d => d.areas)) {
+      const edges = [
+        { a: { x: a.minX, z: a.minZ }, b: { x: a.maxX, z: a.minZ } }, { a: { x: a.minX, z: a.maxZ }, b: { x: a.maxX, z: a.maxZ } },
+        { a: { x: a.minX, z: a.minZ }, b: { x: a.minX, z: a.maxZ } }, { a: { x: a.maxX, z: a.minZ }, b: { x: a.maxX, z: a.maxZ } },
+      ]
+      for (const e of edges) {
+        const n = normal(e)
+        for (const p of points(e).slice(1, -1)) {
+          if (districtAt(p.x + n.x * 0.25, p.z + n.z * 0.25) === districtAt(p.x - n.x * 0.25, p.z - n.z * 0.25)) continue
+          if (gates.some(g => Math.hypot(p.x - g.x, p.z - g.z) < g.width / 2)) continue
+          expect(onSegment(p), `${p.x},${p.z}`).toBe(true)
+        }
+      }
+    }
+  })
+
+  it('leaves a gap at least 6 m wide at each gate', () => {
+    expect(gates).toHaveLength(2)
+    for (const g of gates) {
+      expect(districtAt(g.x, g.z)).toBeGreaterThanOrEqual(0)
+      for (const s of segments) for (const p of points(s, 0.1)) expect(Math.hypot(p.x - g.x, p.z - g.z), `${p.x},${p.z}`).toBeGreaterThanOrEqual(3)
+    }
+  })
+
+  it('crosses no street', () => {
+    for (const s of segments) for (const p of points(s)) expect(onStreet(p.x, p.z), `${p.x},${p.z}`).toBe(false)
   })
 })
 
@@ -180,9 +300,10 @@ describe('the camera in the real town', () => {
     scene.traverse(o => {
       const mesh = o as THREE.Mesh
       const type = mesh.geometry?.type
-      // Door frames and leaves are boxes; the houses are merged boxes, coloured by their corners. Trees (instanced)
-      // may cover her for a moment: the camera doesn't dodge them, so it doesn't jump at every tree
-      const merged = (mesh.material as THREE.MeshStandardMaterial | undefined)?.vertexColors === true
+      // Door frames and leaves are boxes; the houses are merged boxes, coloured by their corners (the ground is
+      // coloured by its corners too, but is no wall). Trees (instanced) may cover her for a moment: the camera
+      // doesn't dodge them, so it doesn't jump at every tree
+      const merged = (mesh.material as THREE.MeshStandardMaterial | undefined)?.vertexColors === true && o.name !== 'ground'
       if (((type === 'BoxGeometry' && !(o as THREE.InstancedMesh).isInstancedMesh)) || merged) walls.push(o)
     })
     expect(walls.length).toBeGreaterThan(20)
