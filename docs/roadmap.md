@@ -33,7 +33,7 @@ These were tested with automated tests and in a desktop browser, but not where t
 
 - **Hüpfhalle and Tanzsaal with a real child and camera.** The rules are tested against made-up bodies. A separate camera is planned because the laptop's built-in one needs too much distance. If moves count too easily or not at all, the thresholds are in `src/core/moves/reps.ts` (Hüpfhalle) and `src/core/moves/dance.ts` (Tanzsaal).
 - **Everything on a real iPad:** turn buttons, swiping, drawing, Schreiben with the pen, the camera buildings, and the bigger town's speed (Chrome on a laptop's Intel graphics draws it at about 56 frames a second at double pixel density, dropping itself to 1.5).
-- **The grown town on the iPad:** a ride stopped with a finger on the stick; the frame rate on the longest ride (the workshop's far end to the forest); the map at portrait size; the mountains, and the bicycle seen from behind, on the iPad's screen.
+- **The grown town on the iPad:** a ride stopped with a finger on the stick; the frame rate on the longest ride (the workshop's far end to the forest); how the corners feel at 8.5 m/s; arrival at each stop (does the view turn with her); the map at portrait size; the mountains, and the bicycle seen from behind, on the iPad's screen.
 - **A Cinema film played to its end** (only tested with the player's messages).
 - **The DSM reverse proxy's upload limit** for paintings: if paintings keep showing ⏳ on the NAS, see the troubleshooting table in `docs/deploy-nas.md`.
 
@@ -111,7 +111,7 @@ Measured and fine: the play button after 1.1–1.4 s and the town 0.3–0.8 s af
 
 So the joined districts stay: in the runs as shipped (the sharpness adapting), no part is below 45 fps or above 34 ms, and nothing was simplified. The old town lost a few frames a second (about 10 % at full sharpness) from drawing the districts behind it; if a later stage adds more, hiding a district's drawing when she is far from it is the first thing to try.
 
-**Performance with the map and the bicycle (checkpoint 2, Nov 21, 2026).** Same laptop and method. The longest ride by the map, from the workshop's far end (95, 0) to the forest stop, 17 s, as shipped: 57.3 and 56.9 fps (p95 17 and 33 ms, no frame over 50 ms; the sharpness had settled at ratio 1). The longest ride the streets allow, to the end of the forest path (19 s): 58.8 and 57.3 fps (p95 17 ms, none over 50 ms). Held at full sharpness, the same rides run at 32–35 fps (p95 33–50 ms, up to 8 frames just over 50 ms), close to the old streets' 34 at checkpoint 1. The old-town walk measured the same day: 55 fps (p95 33 ms). So the rides meet the yardstick as shipped, and nothing was hidden or simplified.
+**Performance with the map and the bicycle (checkpoint 2, Nov 21, 2026).** Same laptop and method. The longest ride by the map, from the workshop's far end (95, 0) to the forest stop, 17 s, as shipped: 57.3 and 56.9 fps (p95 17 and 33 ms, no frame over 50 ms; the sharpness had settled at ratio 1). The longest ride the streets allow, to the end of the forest path (19 s): 58.8 and 57.3 fps (p95 17 ms, none over 50 ms). Held at full sharpness (ratio 2), the same rides run at only 32–35 fps (p95 33–50 ms, up to 8 frames over 50 ms, the slowest 67 ms), close to the old streets' 34 at checkpoint 1. The old-town walk measured the same day, in one run under load: 55 fps (p95 33 ms). So the rides meet the yardstick as shipped, but not held at full sharpness: they miss the 45 fps mark there. Nothing was hidden or simplified.
 
 ## Calls made without asking, which may be worth revisiting
 
