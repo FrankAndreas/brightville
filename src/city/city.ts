@@ -29,7 +29,11 @@ export interface CityOptions {
   onNearDoor(id: string | null): void
   /** Interact pressed at an open door */
   onEnter(id: string): void
-  /** A bicycle ride ended: at its target, or stopped by her keys or by being stuck (never by pause or stopRide) */
+  /**
+   * A bicycle ride ended: at its target, or stopped by her keys or by being stuck (never by pause or stopRide). The app
+   * doesn't use it today (the voice speaks when the ride starts, and the door when she arrives); the tests do, and it is
+   * here for later use.
+   */
   onRideEnd?(how: 'arrived' | 'stopped'): void
 }
 

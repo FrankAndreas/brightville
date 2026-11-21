@@ -49,7 +49,8 @@ const peaks = computed(() => {
   return list
 })
 
-const CLOSED_SIGN: Partial<Record<MapMarker['state'], string>> = { locked: '🔒', timeUp: '🌙' }
+/** Why a building can't be gone into now: still to learn, played enough today, or (at the door, the price) short of stars */
+const CLOSED_SIGN: Partial<Record<MapMarker['state'], string>> = { locked: '🔒', timeUp: '🌙', poor: '⭐' }
 
 function onKey(e: KeyboardEvent) {
   if (e.code === 'Escape' || e.key === 'Escape') emit('close')

@@ -29,6 +29,16 @@ describe('TownMap', () => {
     w.unmount()
   })
 
+  it('shows a building she lacks the stars for with a star, not the lock: she has done her learning', () => {
+    const poor = mapPicture([{ id: 'arcade', icon: '🃏', name: 'Spielhalle', door: { x: -3.5, z: -13, side: 'left' }, state: 'poor' }])
+    const w = mount(TownMap, { props: { picture: poor, her: { x: 0, z: 5 }, color: '#e91e63' }, attachTo: document.body })
+    const arcade = w.find('[data-test="map-marker-arcade"]')
+    expect(arcade.attributes('data-state')).toBe('poor')
+    expect(arcade.find('.closed-sign').text()).toBe('⭐')
+    expect(arcade.text()).not.toContain('🔒')
+    w.unmount()
+  })
+
   it('shows her in her colour', () => {
     const w = mountMap()
     expect(w.find('[data-test="map-her"]').attributes('style')).toContain('background: rgb(233, 30, 99)')

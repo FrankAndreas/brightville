@@ -164,8 +164,8 @@ function joints(p: Point, g: StreetGraph): { joints: Joint[]; piece: number; via
   return { joints: out, piece: best, via, onPlaza }
 }
 
-/** The shortest way along the streets from `a` (on or by a street) to `b` */
-function alongStreets(a: Point, b: Point): Point[] {
+/** The shortest way along the streets from `a` (on or by a street) to `b`; null when the streets don't lead there */
+function alongStreets(a: Point, b: Point): Point[] | null {
   const g = streetGraph()
   const start = joints(a, g)
   const end = joints(b, g)
@@ -211,6 +211,7 @@ function alongStreets(a: Point, b: Point): Point[] {
       last = j
     }
   }
+  if (direct === Infinity && total === Infinity) return null
   if (!last || direct <= total) return directPath
 
   const chain: number[] = []
@@ -403,7 +404,8 @@ function tidy(path: Point[]): Point[] {
 
 /**
  * The way from `from` to `to`: the first stretch to the nearest street, then the streets, then the door. Null when she
- * is already there (within DOOR_RADIUS), or (never in this town: the map checks see to it) when no street can be reached.
+ * is already there (within DOOR_RADIUS), or (never in this town: the map checks see to it) when no street can be reached
+ * or the streets don't lead to `to`.
  */
 export function planRide(from: Point, to: RideTarget, grid: WalkGrid): Point[] | null {
   if (dist(from, to) <= DOOR_RADIUS) return null
@@ -411,6 +413,7 @@ export function planRide(from: Point, to: RideTarget, grid: WalkGrid): Point[] |
   if (!first) return null
   const onto = first[first.length - 1]
   const streets = alongStreets(onto, { x: to.x, z: to.z })
+  if (!streets) return null
   return tidy([...first, ...streets.slice(1)])
 }
 
