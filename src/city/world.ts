@@ -1,11 +1,17 @@
 import * as THREE from 'three'
 import type RAPIER from '@dimforge/rapier3d-compat'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { HOUSE_DEPTH, HOUSE_WIDTH, facingAngle, footprint, type DoorDef } from './doors'
 import { houseParts, wallHeight, type HouseSpec } from './houseKit'
 import { mergeParts, type PlacedPart } from './merge'
 import { CAMERA_RAY_GROUPS, UNSEEN_GROUPS } from './groups'
 import { NATURE_SEED, buildNature, placeNature } from './nature'
-import { EMPTY_LOTS, JETTY, LAKE, PLAZA, SCENERY_HOUSES, STREETS, TOWN_HALF, heightAt, sceneryArea } from './map'
+import { buildDistrictProps } from './districtLook'
+import {
+  ALL_SCENERY, ALL_STREETS, BOUNDS, DISTRICTS, EMPTY_LOTS, JETTY, LAKE, OUTLINE, PLAZA, hedgeSegments, heightAt, sceneryArea, streetDistance,
+} from './map'
+
+export { hedgeSegments }
 
 type Rapier = typeof RAPIER
 
@@ -21,6 +27,7 @@ const COLORS = {
   sky: 0xbfe7ff,
   grass: 0xb8e6a3,
   path: 0xe9dcc0,
+  dirt: 0xb98f5e,
   plaza: 0xf6e7c1,
   hedge: 0x5fa35a,
   water: 0x5fb3e8,
@@ -257,6 +264,8 @@ function doorBuilding(
 export interface Town {
   scene: THREE.Scene
   doorVisuals: DoorVisual[]
+  /** Moves what moves by itself in the town (the workshop's crane), `timeS` seconds in */
+  update(timeS: number): void
   sun: THREE.DirectionalLight
   /** Moves the sun with her: its shadows cover only the town around her, sharp enough on a tablet */
   followSun(x: number, z: number): void
@@ -267,40 +276,48 @@ const SUN_OFFSET = { x: 14, y: 26, z: 12 }
 const SHADOW_HALF = 22
 const SHADOW_MAP = 2048
 
-/** The ground: a heightfield for the physics and a matching mesh, both sampled from `heightAt` */
+/**
+ * The ground: a heightfield for the physics and a matching mesh, both sampled from `heightAt`, over the town's whole
+ * bounding box. Each area of the town is coloured its own (from the districts' data), grass beyond the outline.
+ */
 function ground(R: Rapier, world: RAPIER.World, scene: THREE.Scene) {
-  const n = Math.round((TOWN_HALF * 2) / GROUND_STEP)
-  const size = TOWN_HALF * 2
-  const geometry = new THREE.PlaneGeometry(size, size, n, n)
-  // The plane lies in x/y and is turned to lie flat: its y becomes -z, its z the height
+  const nx = Math.round((BOUNDS.maxX - BOUNDS.minX) / GROUND_STEP)
+  const nz = Math.round((BOUNDS.maxZ - BOUNDS.minZ) / GROUND_STEP)
+  const sizeX = nx * GROUND_STEP
+  const sizeZ = nz * GROUND_STEP
+  const cx = BOUNDS.minX + sizeX / 2
+  const cz = BOUNDS.minZ + sizeZ / 2
+  const geometry = new THREE.PlaneGeometry(sizeX, sizeZ, nx, nz)
+  // The plane lies in x/y around its middle and is turned to lie flat: its y becomes -z, its z the height
   const position = geometry.attributes.position
-  for (let i = 0; i < position.count; i++) position.setZ(i, heightAt(position.getX(i), -position.getY(i)))
-  geometry.computeVertexNormals()
-  const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: COLORS.grass, roughness: 1 }))
-  mesh.rotation.x = -Math.PI / 2
-  mesh.receiveShadow = true
-  scene.add(mesh)
-
-  // Rapier's heightfield: (n + 1)² heights centred on 0, the one at i · (n + 1) + j at x step i and z step j
-  // (checked by world.test.ts on every hill)
-  const heights = new Float32Array((n + 1) * (n + 1))
-  for (let i = 0; i <= n; i++) {
-    for (let j = 0; j <= n; j++) heights[i * (n + 1) + j] = heightAt(-TOWN_HALF + i * GROUND_STEP, -TOWN_HALF + j * GROUND_STEP)
+  const colors = new Float32Array(position.count * 3)
+  const color = new THREE.Color()
+  for (let i = 0; i < position.count; i++) {
+    const x = cx + position.getX(i)
+    const z = cz - position.getY(i)
+    position.setZ(i, heightAt(x, z))
+    const area = OUTLINE.find(a => x >= a.minX && x <= a.maxX && z >= a.minZ && z <= a.maxZ)
+    color.setHex(area?.ground ?? COLORS.grass)
+    colors.set([color.r, color.g, color.b], i * 3)
   }
-  world.createCollider(R.ColliderDesc.heightfield(n, n, heights, { x: size, y: 1, z: size }))
-  // A floor under it all, so nothing that slips through falls forever
-  staticBox(R, world, 0, -0.5, 0, size, 1, size)
-}
-
-/** A flat strip from a to b, `width` wide, lying just above the grass */
-function strip(scene: THREE.Scene, a: { x: number; z: number }, b: { x: number; z: number }, width: number, color: number, y: number) {
-  const length = Math.hypot(b.x - a.x, b.z - a.z)
-  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(width, length), new THREE.MeshStandardMaterial({ color, roughness: 1 }))
+  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+  geometry.computeVertexNormals()
+  const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 }))
+  mesh.name = 'ground'
   mesh.rotation.x = -Math.PI / 2
-  mesh.rotation.z = -Math.atan2(b.x - a.x, -(b.z - a.z))
-  mesh.position.set((a.x + b.x) / 2, y, (a.z + b.z) / 2)
+  mesh.position.set(cx, 0, cz)
   mesh.receiveShadow = true
   scene.add(mesh)
+
+  // Rapier's heightfield: its rows run along z and its columns along x, the heights column by column, so the one at
+  // i · (nz + 1) + j is at x step i and z step j (checked by world.test.ts on every hill)
+  const heights = new Float32Array((nx + 1) * (nz + 1))
+  for (let i = 0; i <= nx; i++) {
+    for (let j = 0; j <= nz; j++) heights[i * (nz + 1) + j] = heightAt(BOUNDS.minX + i * GROUND_STEP, BOUNDS.minZ + j * GROUND_STEP)
+  }
+  world.createCollider(R.ColliderDesc.heightfield(nz, nx, heights, { x: sizeX, y: 1, z: sizeZ }).setTranslation(cx, 0, cz))
+  // A floor under it all, so nothing that slips through falls forever
+  staticBox(R, world, cx, -0.5, cz, sizeX, 1, sizeZ)
 }
 
 function disc(scene: THREE.Scene, x: number, z: number, rx: number, rz: number, color: number, y: number, material?: THREE.Material) {
@@ -312,12 +329,41 @@ function disc(scene: THREE.Scene, x: number, z: number, rx: number, rz: number, 
   scene.add(mesh)
 }
 
+/** A flat strip from a to b, `width` wide, as a geometry lying at height `y` */
+function stripGeometry(a: { x: number; z: number }, b: { x: number; z: number }, width: number, y: number): THREE.BufferGeometry {
+  const length = Math.hypot(b.x - a.x, b.z - a.z)
+  return new THREE.PlaneGeometry(width, length)
+    .rotateX(-Math.PI / 2)
+    .rotateY(Math.atan2(b.x - a.x, b.z - a.z))
+    .translate((a.x + b.x) / 2, y, (a.z + b.z) / 2)
+}
+
+/** A round patch at (x, z), as a geometry lying at height `y` */
+function discGeometry(x: number, z: number, radius: number, y: number): THREE.BufferGeometry {
+  return new THREE.CircleGeometry(radius, 32).rotateX(-Math.PI / 2).translate(x, y, z)
+}
+
+/**
+ * Every district's streets, paved or dirt, each kind in one mesh; dirt lies just under the paving where they meet.
+ * Bends are rounded, and so is a street's end where it runs into another (the back avenue's end at the forest
+ * crossing); dead ends stay square.
+ */
 function streets(scene: THREE.Scene) {
   disc(scene, PLAZA.x, PLAZA.z, PLAZA.radius, PLAZA.radius, COLORS.plaza, 0.014)
-  for (const s of STREETS) {
-    for (let i = 1; i < s.points.length; i++) strip(scene, s.points[i - 1], s.points[i], s.width, COLORS.path, 0.012)
-    // Round corners where a street bends
-    for (const p of s.points.slice(1, -1)) disc(scene, p.x, p.z, s.width / 2, s.width / 2, COLORS.path, 0.012)
+  for (const kind of [undefined, 'dirt'] as const) {
+    const y = kind === 'dirt' ? 0.011 : 0.012
+    const pieces: THREE.BufferGeometry[] = []
+    for (const s of ALL_STREETS.filter(s => s.kind === kind)) {
+      for (let i = 1; i < s.points.length; i++) pieces.push(stripGeometry(s.points[i - 1], s.points[i], s.width, y))
+      const others = ALL_STREETS.filter(o => o !== s).map(o => ({ ...o, width: 0 }))
+      const ends = [s.points[0], s.points[s.points.length - 1]].filter(p => streetDistance(p.x, p.z, others) < 1e-6)
+      for (const p of [...s.points.slice(1, -1), ...ends]) pieces.push(discGeometry(p.x, p.z, s.width / 2, y))
+    }
+    const geometry = mergeGeometries(pieces)
+    for (const p of pieces) p.dispose()
+    const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: kind === 'dirt' ? COLORS.dirt : COLORS.path, roughness: 1 }))
+    mesh.receiveShadow = true
+    scene.add(mesh)
   }
 }
 
@@ -362,18 +408,28 @@ function lake(R: Rapier, world: RAPIER.World, scene: THREE.Scene) {
   staticBox(R, world, (JETTY.minX + JETTY.maxX) / 2, BARRIER_HEIGHT / 2, JETTY.maxZ + 0.2, JETTY.maxX - JETTY.minX + 0.8, BARRIER_HEIGHT, 0.4, true)
 }
 
-/** Low hedge you see, tall barrier you don't */
+/**
+ * Low hedge you see, tall barrier you don't: along `hedgeSegments`, round the outline and between the old town and
+ * each district, open at the gates. The hedge's pieces are one merged mesh. Each piece reaches half its thickness past
+ * its ends to close the corners, but not into a gate.
+ */
 function edge(R: Rapier, world: RAPIER.World, scene: THREE.Scene) {
-  const sides: [number, number, number, number][] = [
-    [0, -TOWN_HALF, TOWN_HALF * 2, 1], [0, TOWN_HALF, TOWN_HALF * 2, 1],
-    [-TOWN_HALF, 0, 1, TOWN_HALF * 2], [TOWN_HALF, 0, 1, TOWN_HALF * 2],
-  ]
-  for (const [x, z, w, d] of sides) {
-    const hedge = box(w, HEDGE_HEIGHT, d, COLORS.hedge)
-    hedge.position.set(x, HEDGE_HEIGHT / 2, z)
-    scene.add(hedge)
+  const thick = 1
+  const gates = DISTRICTS.flatMap(d => (d.gate ? [d.gate] : []))
+  const gateEnd = (p: { x: number; z: number }) => gates.some(g => Math.abs(Math.hypot(p.x - g.x, p.z - g.z) - g.width / 2) < 1e-6)
+  const parts: PlacedPart[] = []
+  const at = new THREE.Matrix4()
+  for (const { a, b } of hedgeSegments()) {
+    const alongX = a.z === b.z
+    const from = (alongX ? a.x : a.z) - (gateEnd(a) ? 0 : thick / 2)
+    const to = (alongX ? b.x : b.z) + (gateEnd(b) ? 0 : thick / 2)
+    const mid = (from + to) / 2
+    const [x, z] = alongX ? [mid, a.z] : [a.x, mid]
+    const [w, d] = alongX ? [to - from, thick] : [thick, to - from]
+    parts.push({ kind: 'trim', x, y: HEDGE_HEIGHT / 2, z, w, h: HEDGE_HEIGHT, d, color: COLORS.hedge, at })
     staticBox(R, world, x, BARRIER_HEIGHT / 2, z, w, BARRIER_HEIGHT, d, true)
   }
+  for (const mesh of mergeParts(parts, Infinity)) scene.add(mesh)
 }
 
 /** Builds the town from the map: ground, streets, lake, hedge, lights, scenery houses and one building per door. */
@@ -426,21 +482,22 @@ export function buildTown(R: Rapier, world: RAPIER.World, doors: DoorDef[]): Tow
     scene.add(garden)
   }
 
-  // Every house's boxes, merged into a few meshes once all are placed
+  // Every house's boxes, and the districts' props, merged into a few meshes once all are placed
   const parts: PlacedPart[] = []
-  SCENERY_HOUSES.forEach((h, i) => {
+  ALL_SCENERY.forEach((h, i) => {
     const f = sceneryArea(h)
-    const [wall, roof] = COLORS.houses[i % COLORS.houses.length]
+    const [wall, roof] = h.look ? [h.look.wall, h.look.roof] : COLORS.houses[i % COLORS.houses.length]
     house(
       R, world, scene, parts, (f.minX + f.maxX) / 2, (f.minZ + f.maxZ) / 2,
       { w: h.w, d: h.d, floors: h.floors, wall, roof, seed: i + 1, door: false }, facingAngle(h.spot.side ?? 'back'),
     )
   })
   const doorVisuals = doors.map(door => doorBuilding(R, world, scene, parts, door))
+  const props = buildDistrictProps(R, world, scene, parts)
   for (const mesh of mergeParts(parts)) scene.add(mesh)
   buildNature(R, world, scene, placeNature(NATURE_SEED, doors))
 
-  return { scene, doorVisuals, sun, followSun }
+  return { scene, doorVisuals, sun, followSun, update: props.update }
 }
 
 /** Frees everything the town drew: geometries, materials, their textures and the signs' spare textures */

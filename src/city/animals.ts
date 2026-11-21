@@ -1,7 +1,8 @@
 import * as THREE from 'three'
 import { DOOR_RADIUS, footprint, type DoorSpot } from './doors'
 import type { Part } from './houseKit'
-import { EMPTY_LOTS, LAKE, TOWN_HALF, heightAt, inLake, solidAreas } from './map'
+import { EMPTY_LOTS, LAKE, hedgeDistance, heightAt, inLake, inTown, solidAreas } from './map'
+import { createFarmLife } from './farm'
 import { mergeParts } from './merge'
 import { NATURE_SEED, SOLID_KINDS, natureArea, placeNature } from './nature'
 
@@ -77,7 +78,7 @@ export function spotForBird(doors: DoorSpot[]): (x: number, z: number) => boolea
     ...placeNature(NATURE_SEED, doors).filter(i => SOLID_KINDS.has(i.kind)).map(natureArea),
   ]
   return (x, z) =>
-    Math.max(Math.abs(x), Math.abs(z)) < TOWN_HALF - 3 &&
+    inTown(x, z, 3) && hedgeDistance(x, z) >= 3 &&
     !inLake(x, z) && ((x - LAKE.x) / (LAKE.rx + 1.5)) ** 2 + ((z - LAKE.z) / (LAKE.rz + 1.5)) ** 2 > 1 &&
     doors.every(d => Math.hypot(d.x - x, d.z - z) >= DOOR_RADIUS + 2) &&
     !solids.some(f => x >= f.minX - 1 && x <= f.maxX + 1 && z >= f.minZ - 1 && z <= f.maxZ + 1)
@@ -169,6 +170,7 @@ export function createAnimals(scene: THREE.Scene, doors: DoorSpot[]): Animals {
   const birdMeshes = make(SHAPES.bird, birds.length)
   const [cat] = make(SHAPES.cat, 1)
   const [dog] = make(SHAPES.dog, 1)
+  const farm = createFarmLife(scene)
   const place = (mesh: THREE.Object3D, p: Facing, y: number) => {
     mesh.position.set(p.x, y, p.z)
     mesh.rotation.y = p.heading
@@ -192,6 +194,7 @@ export function createAnimals(scene: THREE.Scene, doors: DoorSpot[]): Animals {
       cat.scale.set(1, c.scale, 1)
       const d = dogAt(time)
       place(dog, d, heightAt(d.x, d.z))
+      farm.update(time, dt, her)
     },
   }
 }

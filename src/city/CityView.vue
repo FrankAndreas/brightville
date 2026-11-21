@@ -5,8 +5,10 @@ import { keyboardIntents, type IntentSource } from '@/input/intents'
 import { mergeIntents } from '@/input/merge'
 import { touchIntents } from '@/input/touch'
 import { createCity, type City } from './city'
+import { START } from './map'
 import type { DoorDef } from './doors'
 import type { Dress } from '@/core/look'
+import type { RideTarget } from './ride'
 
 const props = defineProps<{
   doors: DoorDef[]
@@ -54,6 +56,16 @@ watch(() => props.paused, paused => {
 
 watch(() => props.doors, doors => city?.setDoors(doors))
 watch(() => props.dress, dress => { if (dress) city?.setDress(dress) }, { deep: true })
+
+/** Rides her there on the bicycle; 'there' when she already is, or before the town has loaded */
+function rideTo(target: RideTarget): 'riding' | 'there' {
+  return city?.rideTo(target) ?? 'there'
+}
+/** Where she is in the town; the start before it has loaded */
+function position(): { x: number; z: number } {
+  return city?.position() ?? { x: START.x, z: START.z }
+}
+defineExpose({ rideTo, position })
 
 onBeforeUnmount(() => {
   unmounted = true

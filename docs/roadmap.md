@@ -23,6 +23,7 @@ The six stages of the roadmap in [the stage 1 design](superpowers/specs/2026-11-
 15. Kalender (#36): the order of a day, morning to night, the week, yesterday and tomorrow from the real day, the seasons and the clock on a fifth ladder, Zeit, see [the design](superpowers/specs/2026-11-20-brightville-kalender-design.md). It took the plain house at (3.5, −24)
 16. Spielwelt (#37): a wide 2D world for position words on a sixth ladder, Raum, with free play after the five tasks, see [the design](superpowers/specs/2026-11-20-brightville-spielwelt-design.md). It took the plain house at (−16, 35.5) by the playground
 17. Trommelhaus (#38): rhythm by tapping or clapping (microphone), on a seventh ladder, Rhythmus, under Musik, see [the design](superpowers/specs/2026-11-20-brightville-trommelhaus-design.md). It took the plain house at (24, −3.5). All Lehrplan issues (#32–#38) are done
+18. The grown town: a forest with deer and a farm with cows, chickens and sheep behind the old town, a workshop yard to its right, and mountains behind it all. A map (🗺️ or M) shows every building and four stops (Platz, Bauernhof, Wald, Werkstatt); a tap on one rides her there on a bicycle along the streets, and a push on the stick stops the ride. See [the design](superpowers/specs/2026-11-21-brightville-town-growth-design.md)
 
 Each stage has its design in `docs/superpowers/specs/`; what the game does now is in the README.
 
@@ -32,6 +33,7 @@ These were tested with automated tests and in a desktop browser, but not where t
 
 - **Hüpfhalle and Tanzsaal with a real child and camera.** The rules are tested against made-up bodies. A separate camera is planned because the laptop's built-in one needs too much distance. If moves count too easily or not at all, the thresholds are in `src/core/moves/reps.ts` (Hüpfhalle) and `src/core/moves/dance.ts` (Tanzsaal).
 - **Everything on a real iPad:** turn buttons, swiping, drawing, Schreiben with the pen, the camera buildings, and the bigger town's speed (Chrome on a laptop's Intel graphics draws it at about 56 frames a second at double pixel density, dropping itself to 1.5).
+- **The grown town on the iPad:** a ride stopped with a finger on the stick; the frame rate on the longest ride (the workshop's far end to the forest); how the corners feel at 8.5 m/s; arrival at each stop (does the view turn with her); the map at portrait size; the mountains, and the bicycle seen from behind, on the iPad's screen.
 - **A Cinema film played to its end** (only tested with the player's messages).
 - **The DSM reverse proxy's upload limit** for paintings: if paintings keep showing ⏳ on the NAS, see the troubleshooting table in `docs/deploy-nas.md`.
 
@@ -101,6 +103,16 @@ Not checked this way: clapping into a real microphone, real speech timing, and w
 
 Measured and fine: the play button after 1.1–1.4 s and the town 0.3–0.8 s after the tap (1.9 MB compressed to download; of the main file's 5.2 MB uncompressed, 4.1 MB is the physics engine; split it out if start-up ever feels slow); the town at about 50 frames a second whatever the processor speed (the graphics chip sets the pace), with a few slow frames only in the first steps while the graphics card prepares what it sees for the first time; the Spielwelt at 60 frames a second while dragging, even 6 times slower (276 drawn things); 66 visits to every building leave no camera, microphone, timer, sound or 3D picture running.
 
+**Performance after the town grew (checkpoint 1, Nov 21, 2026).** Same laptop and method, with the nature and workshop districts joined on, the processor at normal speed. A walk from the plaza up the back avenue, through the nature gate into the farm (standing 10 s looking at the pens), into the forest, then round to the workshop, two runs each, frames a second on average and the slowest 5 % of frames:
+
+- town 59 / 49 fps (p95 17 / 33 ms), gate 60 / 54 (17 / 33), farm 59 / 59 (17 / 17), standing at the pens 60 / 60 (17 / 17), forest 59 / 56 (17 / 33), workshop 60 / 59 (17 / 17); at most 2 frames over 50 ms in any part.
+- The usual 25-second walk in the old town: 46, 48, 56 and 48 fps (p95 33 ms), so it mostly sits at 46–48, near the 45 floor; the town without the districts measured the same day: 54 and 53.
+- The picture gets less sharp on its own when frames are slow (it settled at pixel ratio 1–1.5 within the first minute), which is partly why the districts run near 60. At ratio 1 the picture is visibly softer. Held at full sharpness, every part is slower and the old streets the slowest: town 34 fps (37 without the districts), gate 37, forest 40, farm 44, workshop 45, standing at the pens 50.
+
+So the joined districts stay: in the runs as shipped (the sharpness adapting), no part is below 45 fps or above 34 ms, and nothing was simplified. The old town lost a few frames a second (about 10 % at full sharpness) from drawing the districts behind it; if a later stage adds more, hiding a district's drawing when she is far from it is the first thing to try.
+
+**Performance with the map and the bicycle (checkpoint 2, Nov 21, 2026).** Same laptop and method. The longest ride by the map, from the workshop's far end (95, 0) to the forest stop, 17 s, as shipped: 57.3 and 56.9 fps (p95 17 and 33 ms, no frame over 50 ms; the sharpness had settled at ratio 1). The longest ride the streets allow, to the end of the forest path (19 s): 58.8 and 57.3 fps (p95 17 ms, none over 50 ms). Held at full sharpness (ratio 2), the same rides run at only 32–35 fps (p95 33–50 ms, up to 8 frames over 50 ms, the slowest 67 ms), close to the old streets' 34 at checkpoint 1. The old-town walk measured the same day, in one run under load: 55 fps (p95 33 ms). So the rides meet the yardstick as shipped, but not held at full sharpness: they miss the 45 fps mark there. Nothing was hidden or simplified.
+
 ## Calls made without asking, which may be worth revisiting
 
 - The Cinema costs 3 Stars per film, not per minute; one film list for all children.
@@ -124,6 +136,8 @@ Measured and fine: the play button after 1.1–1.4 s and the town 0.3–0.8 s af
 - Flatterflug: 15 gates a round, three hearts, the meadow never ends the round, gap sizes and cloud speeds are first guesses for a five-year-old (`SPEEDS` in `src/core/flight.ts`). Its door is at the front (the right side is full), and the playground's staircase was turned to climb towards the front edge for it.
 - Schreiben: three in a row up or down and the pacing (two new letters a day, one from three letters at level 1, none from five) are Andreas's; that a text's letters are introduced first, that a known letter shows its start dot after a miss, and the limits (30 characters, 20 texts) are first guesses. **Next:** lowercase letters, once she knows the capitals (the paths need generating with Spielzeugkiste's `scripts/letters/generate.py`).
 - The path to the Kleiderladen runs over the big trampoline at (−14, 18) (since stage 7): she may bounce on the way. Left as it is: moving the trampoline is a playground change of its own.
+- The grown town: a pause, the help or opening the map ends a ride, and closing them doesn't take it up again; the farm has sheep rather than pigs; corners are taken at 8.5 m/s (12 · cos 45°) at most; the squirrel from the design was left out; a ride starts with one tap on the map (no second tap to confirm); the bicycle's frame is in her body colour, with its other parts in a contrasting one.
+- The grown town, if a district is ever to become a scene of its own (fallback B in the design): first gather what of it still lives in the town's global data into the district's own data: its forest hills (`HILLS` in `map.ts`), `PENS`, `FIELD` and `CLEARING`, the farm animals (`startPenAnimals` in `farm.ts`) and its walkers' routes (`ROUTES`).
 
 ## Left from the gameplay document
 
@@ -134,7 +148,7 @@ Not planned as stages yet. Roughly by how much they would add for a five-year-ol
 3. **Harder tasks as she grows:** done for the School (Zählen, Rechnen), the Reimhaus (Reimen), the Musterwerkstatt (Muster), the Kalender (Zeit), the Spielwelt (Raum) and the Trommelhaus (Rhythmus) as Lehrplan 21 ladders that move up by themselves and that parents can set (#32, #34). Still open for the other buildings: age tiers, and difficulty that adapts (three right in a row step up, two misses step down). The hub knows no age or birthday: the child's age (or tier) becomes a per-child setting in Brightville's parent area, next to the daily goal, not a field in the hub (decided in the architecture review).
 4. **More learning buildings:** Language Café (first English words), World Tower (flags, animals of the world), Building Yard (physics blocks to stack and knock over), Code Workshop (for older children).
 5. **For parents:** a weekly report, playing hours (e.g. not after 19:30), the camera on or off per child.
-6. **Polish:** day and night in the town, background music; in the town, carrying things (Q), a map (M), a quest board.
+6. **Polish:** day and night in the town, background music; in the town, carrying things (Q), ~~a map (M)~~ (done with the grown town), a quest board.
 
 Suggested order: let the child play stage 6 first (especially the camera buildings with the new camera), fix what that turns up, then the character's outfits.
 
@@ -148,5 +162,5 @@ A second architecture review after the Lehrplan work. Fixed so far:
 - The learning buildings share their visit lifecycle (`src/buildings/visit.ts`: timers, numbered runs, leaving, the ladder snapshot, scoring; `ProgressStars.vue`); each keeps its own effects (#53–#58).
 - Small things: the app's ladder store is `useLaddersStore` (`src/stores/ladders.ts`; the API path, the tables and the device keys still say "school"), `pick`/`shuffle` live once in `src/core/random.ts`, stale comments and README lines fixed, the School's random screen test is seeded.
 
-Left for later: the two offline queues (merge them when a third is needed), a growth plan for the town (no free lots). The Spielwelt's triple drawing was measured in the performance review and is fine. The cool-down guesses for the new buildings: Reimhaus, Musterwerkstatt, Kalender and Spielwelt 2 s per Star, Trommelhaus 3.
+Left for later: the two offline queues (merge them when a third is needed). The Spielwelt's triple drawing was measured in the performance review and is fine. The cool-down guesses for the new buildings: Reimhaus, Musterwerkstatt, Kalender and Spielwelt 2 s per Star, Trommelhaus 3.
 

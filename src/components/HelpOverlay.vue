@@ -18,6 +18,7 @@ const SPOKEN = [
   'Mit Enter gehst du durch die leuchtende Tür.',
   'Mit Escape gehst du wieder hinaus.',
   'Mit J und L drehst du dich. Mit K schaust du nach hinten.',
+  'Mit M öffnest du die Karte.',
 ]
 
 const SPOKEN_TOUCH = [
@@ -26,6 +27,7 @@ const SPOKEN_TOUCH = [
   'Tipp auf das Bild an der leuchtenden Tür, dann gehst du hinein.',
   'Mit der Tür oben links gehst du wieder hinaus.',
   'Halte einen runden Pfeil, dann drehst du dich.',
+  'Tipp auf die Karte, dann fährst du mit dem Velo.',
 ]
 // A breath between two lines
 const PAUSE_MS = 500
@@ -138,7 +140,7 @@ onBeforeUnmount(() => {
         <span class="word">Hinausgehen</span>
       </div>
 
-      <div class="row wide" data-test="help-row" :data-active="active === 4" :data-dim="active >= 0 && active !== 4">
+      <div class="row" data-test="help-row" :data-active="active === 4" :data-dim="active >= 0 && active !== 4">
         <svg v-if="touch" class="keys" data-test="help-touch" viewBox="0 0 150 100" aria-hidden="true">
           <circle cx="45" cy="50" r="34" class="pad" /><circle cx="105" cy="50" r="34" class="pad" />
           <path d="M57 38 A16 16 0 1 0 61 56 M57 26 V38 H45" class="dash" />
@@ -155,6 +157,20 @@ onBeforeUnmount(() => {
           <path d="M18 70 A36 18 0 0 0 82 70 M74 60 L82 70 L70 76" class="dash" />
         </svg>
         <span class="word">Umdrehen</span>
+      </div>
+
+      <div class="row" data-test="help-row" :data-active="active === 5" :data-dim="active >= 0 && active !== 5">
+        <svg v-if="touch" class="keys" data-test="help-touch" viewBox="0 0 150 100" aria-hidden="true">
+          <rect x="20" y="18" width="110" height="64" rx="20" class="pad" />
+          <circle cx="75" cy="46" r="17" class="ripple" /><circle cx="75" cy="46" r="6" class="eye" />
+          <path d="M75 46 v30" class="dash" />
+        </svg>
+        <svg v-else class="keys" data-test="help-keys" viewBox="0 0 150 100" aria-hidden="true">
+          <g class="cap"><rect x="52" y="24" width="46" height="52" rx="9" /></g>
+          <text x="75" y="58" class="label">M</text>
+        </svg>
+        <span class="what map" data-test="help-map" aria-hidden="true">🗺️</span>
+        <span class="word">Karte</span>
       </div>
     </div>
   </div>
@@ -179,7 +195,6 @@ onBeforeUnmount(() => {
   background: #fffdf5;
   box-shadow: 0 10px 0 rgb(0 0 0 / 15%);
 }
-.row.wide { grid-column: 1 / -1; }
 /* The row being explained stands out; the others step back until the voice is done */
 .row { transition: opacity 0.25s ease, transform 0.25s ease; border-radius: 18px; }
 .row[data-dim='true'] { opacity: 0.35; }
@@ -187,6 +202,7 @@ onBeforeUnmount(() => {
 .row { display: grid; grid-template-columns: auto auto; grid-template-rows: auto auto; align-items: center; justify-items: center; gap: 4px 18px; }
 .keys { width: min(17vw, 190px); }
 .what { width: min(11vw, 120px); }
+.what.map { display: grid; place-items: center; aspect-ratio: 1; font-size: min(7vw, 76px); line-height: 1; }
 .word { grid-column: 1 / -1; font-size: clamp(16px, 2.2vw, 26px); font-weight: 700; color: #6b4a00; }
 .cap rect { fill: #fff; stroke: #6b4a00; stroke-width: 4; filter: drop-shadow(0 5px 0 #c9a800); }
 .glyph path, .dash { fill: none; stroke: #6b4a00; stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; }

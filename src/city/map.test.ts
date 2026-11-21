@@ -1,20 +1,23 @@
+import * as THREE from 'three'
 import { describe, expect, it } from 'vitest'
 import { BUILDINGS } from '@/buildings/registry'
-import { footprint, type Footprint } from './doors'
+import { DOOR_RADIUS, footprint, type Footprint } from './doors'
 import { BLOCKS, TRAMPOLINES } from './props'
 import {
-  EMPTY_LOTS, HILLS, JETTY, LAKE, MAX_SLOPE_DEG, PLAZA, SCENERY_HOUSES, START, STREETS, TOWN_HALF,
-  heightAt, inLake, onStreet, sceneryArea, solidAreas, streetDistance,
+  ALL_PROPS, ALL_SCENERY, ALL_STREETS, BOUNDS, DISTRICTS, EMPTY_LOTS, HILLS, JETTY, LAKE, MAX_SLOPE_DEG, OUTLINE, PLAZA, SCENERY_HOUSES,
+  START, STOPS, STREETS, heightAt, inLake, inTown, onStreet, propArea, sceneryArea, solidAreas, streetDistance, type Street,
 } from './map'
+import { walkGrid } from './walkable'
+import { CLEARING, FIELD, PENS } from './districts/nature'
 
 const STEP = 0.5
 const gap = (a: Footprint, b: Footprint) => Math.max(a.minX - b.maxX, b.minX - a.maxX, a.minZ - b.maxZ, b.minZ - a.maxZ)
-const outside = (f: Footprint) => Math.max(-f.minX, f.maxX, -f.minZ, f.maxZ)
+const corners = (f: Footprint) => [[f.minX, f.minZ], [f.maxX, f.minZ], [f.minX, f.maxZ], [f.maxX, f.maxZ]] as const
 const doors = BUILDINGS.map(b => b.door)
 const houses: [string, Footprint][] = [
   ...BUILDINGS.map((b): [string, Footprint] => [b.id, footprint(b.door)]),
   ...EMPTY_LOTS.map((l, i): [string, Footprint] => [`lot ${i}`, footprint(l)]),
-  ...SCENERY_HOUSES.map((h, i): [string, Footprint] => [`house ${i}`, sceneryArea(h)]),
+  ...ALL_SCENERY.map((h, i): [string, Footprint] => [`house ${i}`, sceneryArea(h)]),
 ]
 const blocks: [string, Footprint][] = BLOCKS.map((b, i): [string, Footprint] =>
   [`${b.kind} ${i}`, { minX: b.x - b.w / 2, maxX: b.x + b.w / 2, minZ: b.z - b.d / 2, maxZ: b.z + b.d / 2 }])
@@ -25,10 +28,25 @@ const around = (x: number, z: number, r: number): Footprint => ({ minX: x - r, m
 function* cells(f: Footprint) {
   for (let x = f.minX; x <= f.maxX + 1e-9; x += STEP) for (let z = f.minZ; z <= f.maxZ + 1e-9; z += STEP) yield [x, z] as const
 }
+/** Every grid point of the town, on the 0.5 m grid over its bounding box */
+function* town() {
+  for (const [x, z] of cells(BOUNDS)) if (inTown(x, z)) yield [x, z] as const
+}
+
+/** The old town's streets as they were before the districts, to check they never move */
+const OLD_STREETS: Street[] = [
+  { points: [{ x: 0, z: -8 }, { x: 0, z: -56 }], width: 6 },
+  { points: [{ x: 0, z: 8 }, { x: 0, z: 56 }], width: 6 },
+  { points: [{ x: -8, z: 0 }, { x: -56, z: 0 }], width: 6 },
+  { points: [{ x: 8, z: 0 }, { x: 56, z: 0 }], width: 6 },
+  { points: [{ x: -32, z: 0 }, { x: -32, z: 32 }, { x: 32, z: 32 }, { x: 32, z: -32 }, { x: 0, z: -32 }], width: 6 },
+]
+const districtLots = DISTRICTS.flatMap(d => d.lots)
+const reach = walkGrid(doors).reachable(START)
 
 describe('the town map', () => {
   it('keeps every house, lot and prop inside the town, 2 m from the edge', () => {
-    for (const [name, f] of [...houses, ...blocks, ...pads]) expect(outside(f), name).toBeLessThanOrEqual(TOWN_HALF - 2)
+    for (const [name, f] of [...houses, ...blocks, ...pads]) for (const [x, z] of corners(f)) expect(inTown(x, z, 2), `${name} at ${x},${z}`).toBe(true)
   })
 
   it('keeps houses, lots and the playground from overlapping, with 1 m between', () => {
@@ -53,21 +71,17 @@ describe('the town map', () => {
       ...doors.map((d, i): [string, Footprint] => [`door ${BUILDINGS[i].id}`, around(d.x, d.z, 3)]),
     ]
     for (const [name, f] of flat) for (const [x, z] of cells(f)) expect(heightAt(x, z), `${name} at ${x},${z}`).toBe(0)
-    for (let x = -TOWN_HALF; x <= TOWN_HALF; x += STEP) {
-      for (let z = -TOWN_HALF; z <= TOWN_HALF; z += STEP) if (onStreet(x, z)) expect(heightAt(x, z), `street at ${x},${z}`).toBe(0)
-    }
+    for (const [x, z] of town()) if (onStreet(x, z)) expect(heightAt(x, z), `street at ${x},${z}`).toBe(0)
   })
 
   it(`has no slope steeper than ${MAX_SLOPE_DEG}°`, () => {
     const limit = Math.tan((MAX_SLOPE_DEG * Math.PI) / 180)
     const h = 0.1
     let steepest = 0
-    for (let x = -TOWN_HALF; x <= TOWN_HALF; x += STEP) {
-      for (let z = -TOWN_HALF; z <= TOWN_HALF; z += STEP) {
-        const gx = (heightAt(x + h, z) - heightAt(x - h, z)) / (2 * h)
-        const gz = (heightAt(x, z + h) - heightAt(x, z - h)) / (2 * h)
-        steepest = Math.max(steepest, Math.hypot(gx, gz))
-      }
+    for (const [x, z] of town()) {
+      const gx = (heightAt(x + h, z) - heightAt(x - h, z)) / (2 * h)
+      const gz = (heightAt(x, z + h) - heightAt(x, z - h)) / (2 * h)
+      steepest = Math.max(steepest, Math.hypot(gx, gz))
     }
     expect(steepest).toBeLessThanOrEqual(limit)
   })
@@ -77,34 +91,8 @@ describe('the town map', () => {
   })
 
   it('reaches every door and every empty lot from the start on foot', () => {
-    // Her body is about 0.4 m round: walls and blocks are that much bigger for the walk
-    const solid = solidAreas(doors).map(f => ({ minX: f.minX - 0.4, maxX: f.maxX + 0.4, minZ: f.minZ - 0.4, maxZ: f.maxZ + 0.4 }))
-    const n = Math.round((2 * (TOWN_HALF - 1)) / STEP) + 1
-    const at = (i: number) => -(TOWN_HALF - 1) + i * STEP
-    const free = (i: number, j: number) => {
-      const x = at(i)
-      const z = at(j)
-      if (inLake(x, z) && !(x >= JETTY.minX && x <= JETTY.maxX && z >= JETTY.minZ && z <= JETTY.maxZ)) return false
-      return !solid.some(f => x >= f.minX && x <= f.maxX && z >= f.minZ && z <= f.maxZ)
-    }
-    const index = (v: number) => Math.round((v + TOWN_HALF - 1) / STEP)
-    const seen = new Uint8Array(n * n)
-    const queue = [index(START.x) * n + index(START.z)]
-    seen[queue[0]] = 1
-    while (queue.length) {
-      const c = queue.pop()!
-      const i = Math.floor(c / n)
-      const j = c % n
-      for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-        const a = i + di
-        const b = j + dj
-        if (a < 0 || b < 0 || a >= n || b >= n || seen[a * n + b] || !free(a, b)) continue
-        seen[a * n + b] = 1
-        queue.push(a * n + b)
-      }
-    }
     for (const [name, spot] of [...BUILDINGS.map(b => [b.id, b.door] as const), ...EMPTY_LOTS.map((l, i) => [`lot ${i}`, l] as const)]) {
-      expect(seen[index(spot.x) * n + index(spot.z)], name).toBe(1)
+      expect(reach(spot.x, spot.z), name).toBe(true)
     }
   })
 
@@ -112,13 +100,11 @@ describe('the town map', () => {
     const keep: [string, Footprint][] = [
       ...houses, ...blocks, ...pads, ...doors.map((d, i): [string, Footprint] => [`door ${BUILDINGS[i].id}`, around(d.x, d.z, 0)]),
     ]
-    for (let x = -TOWN_HALF; x <= TOWN_HALF; x += STEP) {
-      for (let z = -TOWN_HALF; z <= TOWN_HALF; z += STEP) {
-        if (!inLake(x, z)) continue
-        const cell = around(x, z, 0)
-        for (const [name, f] of keep) expect(gap(cell, f), `${name} at the lake (${x},${z})`).toBeGreaterThanOrEqual(3)
-        expect(streetDistance(x, z), `street at the lake (${x},${z})`).toBeGreaterThanOrEqual(3)
-      }
+    for (const [x, z] of town()) {
+      if (!inLake(x, z)) continue
+      const cell = around(x, z, 0)
+      for (const [name, f] of keep) expect(gap(cell, f), `${name} at the lake (${x},${z})`).toBeGreaterThanOrEqual(3)
+      expect(streetDistance(x, z), `street at the lake (${x},${z})`).toBeGreaterThanOrEqual(3)
     }
     expect(inLake(LAKE.x, LAKE.z)).toBe(true)
     // The jetty reaches from the street into the water
@@ -127,7 +113,7 @@ describe('the town map', () => {
   })
 
   it('mixes the buildings: no street has more than 3 learning buildings, and play and shops are spread out', () => {
-    for (const [i, street] of STREETS.entries()) {
+    for (const [i, street] of ALL_STREETS.entries()) {
       const learning = BUILDINGS.filter(b => b.kind === 'earn' && streetDistance(b.door.x, b.door.z, [street]) <= 1)
       expect(learning.length, `street ${i}: ${learning.map(b => b.id).join(', ')}`).toBeLessThanOrEqual(3)
     }
@@ -144,7 +130,7 @@ describe('the town map', () => {
   it('keeps every trampoline 8 m from the lake and the edge, 4 m from every house and door', () => {
     for (const [i, t] of TRAMPOLINES.entries()) {
       const pad = pads[i][1]
-      expect(TOWN_HALF - outside(pad), `trampoline ${i} / edge`).toBeGreaterThanOrEqual(8)
+      for (const [x, z] of corners(pad)) expect(inTown(x, z, 8), `trampoline ${i} / edge`).toBe(true)
       for (let a = 0; a < Math.PI * 2; a += 0.05) {
         for (let r = 0; r <= t.radius + 8; r += STEP) expect(inLake(t.x + Math.cos(a) * r, t.z + Math.sin(a) * r), `trampoline ${i} / lake`).toBe(false)
       }
@@ -154,7 +140,7 @@ describe('the town map', () => {
   })
 
   it('faces every door and every empty lot onto a street', () => {
-    for (const street of STREETS) expect(street.width).toBeGreaterThan(0)
+    for (const street of ALL_STREETS) expect(street.width).toBeGreaterThan(0)
     for (const [name, spot] of [...BUILDINGS.map(b => [b.id, b.door] as const), ...EMPTY_LOTS.map((l, i) => [`lot ${i}`, l] as const)]) {
       expect(streetDistance(spot.x, spot.z), name).toBeLessThanOrEqual(1)
     }
@@ -163,5 +149,100 @@ describe('the town map', () => {
   it('starts her on the plaza, and keeps the playground off the streets', () => {
     expect(Math.hypot(START.x - PLAZA.x, START.z - PLAZA.z)).toBeLessThan(PLAZA.radius)
     for (const [name, f] of [...blocks, ...pads]) for (const [x, z] of cells(f)) expect(onStreet(x, z), `${name} at ${x},${z}`).toBe(false)
+  })
+
+  it('joins the nature district behind and the workshop district to the right, each through a gate on its avenue', () => {
+    const nature = DISTRICTS.find(d => d.id === 'nature')!, workshop = DISTRICTS.find(d => d.id === 'workshop')!
+    expect(nature.areas.every(a => a.maxZ <= -60)).toBe(true)
+    expect(workshop.areas.every(a => a.minX >= 60)).toBe(true)
+    expect(onStreet(0, -60) && onStreet(0, -62)).toBe(true) // the back avenue goes through
+    expect(onStreet(60, 0) && onStreet(62, 0)).toBe(true) // the right avenue goes through
+    for (const d of [nature, workshop]) expect(onStreet(d.gate!.x, d.gate!.z), d.id).toBe(true)
+  })
+
+  it('makes the outline of areas that never overlap, inside its bounding box', () => {
+    expect(OUTLINE).toEqual(DISTRICTS.flatMap(d => d.areas))
+    for (const [i, a] of OUTLINE.entries()) {
+      expect(a.minX >= BOUNDS.minX && a.maxX <= BOUNDS.maxX && a.minZ >= BOUNDS.minZ && a.maxZ <= BOUNDS.maxZ).toBe(true)
+      for (const [j, b] of OUTLINE.entries()) if (i !== j) expect(gap(a, b), `area ${i} / ${j}`).toBeGreaterThanOrEqual(0)
+    }
+    // Margins count from the outline's edge, not from where two areas meet
+    expect(inTown(0, -60, 2)).toBe(true)
+    expect(inTown(60, 0, 2)).toBe(true)
+    expect(inTown(-40, -60, 0)).toBe(true)
+    expect(inTown(-40, -60, 0.5)).toBe(false)
+    expect(inTown(-40, -61)).toBe(false)
+    expect(inTown(61, 30)).toBe(false)
+  })
+
+  it('keeps the old town as it was', () => {
+    expect(STREETS).toEqual(OLD_STREETS)
+    expect(SCENERY_HOUSES.length).toBe(18)
+    expect(EMPTY_LOTS.slice(0, 2)).toEqual([{ x: -3.5, z: -40, side: 'left' }, { x: -51, z: 3.5, side: 'front' }])
+    expect(EMPTY_LOTS.slice(2)).toEqual(districtLots.map(l => l.spot))
+  })
+
+  it('has a lot for the NMG house within 20 m of the nature gate, one for the Bee-Bot house, and three spare', () => {
+    const nmg = districtLots.filter(l => l.use === 'nmg'), beebot = districtLots.filter(l => l.use === 'beebot')
+    expect(nmg).toHaveLength(1)
+    expect(beebot).toHaveLength(1)
+    expect(districtLots.filter(l => l.use === 'spare')).toHaveLength(3)
+    expect(Math.hypot(nmg[0].spot.x - 0, nmg[0].spot.z + 60)).toBeLessThanOrEqual(20)
+    expect(DISTRICTS.find(d => d.id === 'nature')!.lots).toContain(nmg[0])
+    expect(DISTRICTS.find(d => d.id === 'workshop')!.lots).toContain(beebot[0])
+  })
+
+  it('has one stop in each district, on a street or the plaza, reachable on foot', () => {
+    expect(STOPS.map(s => s.id).sort()).toEqual(['bauernhof', 'platz', 'wald', 'werkstatt'])
+    expect(STOPS).toEqual(DISTRICTS.flatMap(d => d.stops))
+    expect(DISTRICTS.map(d => d.stops.length)).toEqual([1, 2, 1])
+    for (const s of STOPS) {
+      expect(streetDistance(s.x, s.z), s.id).toBeLessThanOrEqual(1)
+      expect(reach(s.x, s.z), s.id).toBe(true)
+    }
+    expect(Object.fromEntries(STOPS.map(s => [s.id, s.line]))).toEqual({
+      platz: 'Wir fahren zum Platz!', bauernhof: 'Wir fahren zum Bauernhof!', wald: 'Wir fahren in den Wald!', werkstatt: 'Wir fahren zur Werkstatt!',
+    })
+  })
+
+  it('keeps every stop clear of doors and of the lots still to be built on, so arriving there shows no door prompt', () => {
+    for (const s of STOPS) {
+      for (const d of [...doors, ...districtLots.map(l => l.spot)]) {
+        expect(Math.hypot(s.x - d.x, s.z - d.z), s.id).toBeGreaterThan(DOOR_RADIUS + 1)
+      }
+    }
+  })
+
+  it('colours the ground of each area: the old town light, the forest green, the farm yellow-brown, the workshop grey', () => {
+    const colour = (x: number, z: number) => OUTLINE.find(a => x > a.minX && x < a.maxX && z > a.minZ && z < a.maxZ)!.ground
+    const [town, forest, farm, workshop] = [colour(0, 0), colour(-20, -80), colour(20, -80), colour(80, 0)]
+    expect(new Set([town, forest, farm, workshop]).size).toBe(4)
+    const hsl = (hex: number) => new THREE.Color(hex).getHSL({ h: 0, s: 0, l: 0 })
+    expect(hsl(forest).h * 360).toBeGreaterThan(80)
+    expect(hsl(forest).l).toBeLessThan(hsl(town).l)
+    expect(hsl(farm).h * 360).toBeLessThan(60)
+    expect(hsl(workshop).s).toBeLessThan(0.2)
+  })
+
+  it('marks the forest path and the farm lane as dirt, and no street of the old town', () => {
+    const nature = DISTRICTS.find(d => d.id === 'nature')!
+    expect(nature.streets.filter(s => s.kind === 'dirt')).toHaveLength(2)
+    expect(STREETS.some(s => s.kind)).toBe(false)
+  })
+
+  it('keeps the props, pens, field and clearing in town and off the streets, 1 m from every house and lot', () => {
+    const things: [string, Footprint][] = [
+      ...ALL_PROPS.map((p, i): [string, Footprint] => [`${p.kind} ${i}`, propArea(p)]),
+      ...PENS.map((p, i): [string, Footprint] => [`pen ${i}`, p]), ['field', FIELD],
+      ['clearing', around(CLEARING.x, CLEARING.z, CLEARING.radius)],
+    ]
+    expect(ALL_PROPS.map(p => p.kind).sort()).toEqual(expect.arrayContaining(['crane', 'crate', 'tractor']))
+    for (const [name, f] of things) {
+      for (const [x, z] of corners(f)) expect(inTown(x, z, 1.5), `${name} at ${x},${z}`).toBe(true)
+      for (const [x, z] of cells(f)) expect(onStreet(x, z), `${name} at ${x},${z}`).toBe(false)
+      for (const [h, fh] of houses) expect(gap(f, fh), `${name} / ${h}`).toBeGreaterThanOrEqual(1)
+    }
+    // She bumps into the props, so the walking checks see them
+    for (const p of ALL_PROPS) expect(solidAreas(doors)).toContainEqual(propArea(p))
   })
 })

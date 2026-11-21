@@ -9,7 +9,10 @@ vi.mock('./city', () => ({ createCity: vi.fn() }))
 const doors: DoorDef[] = [{ id: 'yoga', x: 0, z: -14, open: true }]
 
 describe('CityView', () => {
-  const city = { pause: vi.fn(), resume: vi.fn(), dispose: vi.fn(), setDoors: vi.fn(), setDress: vi.fn() }
+  const city = {
+    pause: vi.fn(), resume: vi.fn(), dispose: vi.fn(), setDoors: vi.fn(), setDress: vi.fn(),
+    rideTo: vi.fn(() => 'riding' as const), stopRide: vi.fn(), position: vi.fn(() => ({ x: 3, z: 4 })),
+  }
   let options: CityOptions
 
   beforeEach(() => {
@@ -92,6 +95,29 @@ describe('CityView', () => {
     finish(city)
     await flushPromises()
     expect(city.dispose).toHaveBeenCalledTimes(1)
+  })
+
+  describe('the ride', () => {
+    it('forwards rideTo and position to the town', async () => {
+      const w = mount(CityView, { props: { doors, paused: false } })
+      await flushPromises()
+      const target = { x: 1, z: 2, face: 0.5 }
+      const exposed = w.vm as unknown as { rideTo(t: typeof target): string; position(): { x: number; z: number } }
+      expect(exposed.rideTo(target)).toBe('riding')
+      expect(city.rideTo).toHaveBeenCalledWith(target)
+      expect(exposed.position()).toEqual({ x: 3, z: 4 })
+      w.unmount()
+    })
+
+    it('answers "there" to a ride before the town has loaded', async () => {
+      vi.mocked(createCity).mockImplementation(() => new Promise(() => {}))
+      city.rideTo.mockClear()
+      const w = mount(CityView, { props: { doors, paused: false } })
+      const exposed = w.vm as unknown as { rideTo(t: object): string }
+      expect(exposed.rideTo({ x: 1, z: 2, face: 0 })).toBe('there')
+      expect(city.rideTo).not.toHaveBeenCalled()
+      w.unmount()
+    })
   })
 
   describe('touch controls', () => {

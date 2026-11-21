@@ -19,6 +19,8 @@ export interface BuildingDef {
   id: string
   /** German, spoken at the door */
   spokenName: string
+  /** Where the bicycle goes, German with its little word, said as `Wir fahren ${toName}!` ("zur Schule", "ins Kino") */
+  toName: string
   /** Picture on the sign and in the door prompt */
   icon: string
   /**

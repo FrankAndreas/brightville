@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { BUILDINGS, stateOf, toDoors } from '@/buildings/registry'
 import type { BuildingDef, BuildingResult } from '@/buildings/types'
 import CityView from '@/city/CityView.vue'
+import { mapPicture, type MapMarker, type MapPicture } from '@/city/mapPicture'
+import { doorTarget, type RideTarget } from '@/city/ride'
+import { STOPS } from '@/city/map'
 import Confetti from '@/components/Confetti.vue'
 import DoorPrompt from '@/components/DoorPrompt.vue'
 import GoalBar from '@/components/GoalBar.vue'
@@ -16,6 +19,7 @@ import ServerScreen from '@/components/ServerScreen.vue'
 import StarCounter from '@/components/StarCounter.vue'
 import StartGate from '@/components/StartGate.vue'
 import StickerParade from '@/components/StickerParade.vue'
+import TownMap from '@/components/TownMap.vue'
 import WhoPlays from '@/components/WhoPlays.vue'
 import { DEFAULT_LOOK, type Look } from '@/core/look'
 import { numberWord } from '@/core/numbers'
@@ -131,10 +135,64 @@ watch(() => (session.status === 'ready' ? session.person?.id : undefined), async
   offerHelp()
 }, { immediate: true })
 
+// The town's own keys (walking, the door) are the city's intents; these open App's overlays over the paused town
 function onKey(e: KeyboardEvent) {
-  if (e.repeat || (e.code !== 'KeyH' && e.code !== 'F1') || !inTown.value || helpOpen.value) return
-  e.preventDefault()
-  helpOpen.value = true
+  if (e.repeat || !inTown.value || helpOpen.value || mapOpen.value) return
+  if (e.code === 'KeyH' || e.code === 'F1') {
+    e.preventDefault()
+    helpOpen.value = true
+  } else if (e.code === 'KeyM') {
+    e.preventDefault()
+    openMap()
+  }
+}
+
+/** The map, over the paused town: she taps where the bicycle takes her */
+const mapOpen = ref(false)
+const cityView = ref<InstanceType<typeof CityView> | null>(null)
+const picture = shallowRef<MapPicture | null>(null)
+const herOnMap = ref({ x: 0, z: 0 })
+
+function openMap() {
+  if (!inTown.value || helpOpen.value || mapOpen.value) return
+  // Drawn as the doors are now; unavailable buildings are left off
+  picture.value = mapPicture(props.buildings.map(b => ({ id: b.id, icon: b.icon, name: b.spokenName, door: b.door, state: stateFor(b) })))
+  herOnMap.value = cityView.value?.position() ?? { x: 0, z: 0 }
+  mapOpen.value = true
+  void speak('Wohin willst du fahren?')
+}
+
+// Leaving the town (the parents, another player) takes the map with it, and with it the hold on the town
+watch(inTown, here => { if (!here) mapOpen.value = false })
+
+async function chooseOnMap(marker: MapMarker) {
+  let target: RideTarget
+  let line: string
+  let building: BuildingDef | null = null
+  if (marker.kind === 'stop') {
+    const stop = STOPS.find(s => s.id === marker.id)
+    if (!stop) return
+    target = { x: stop.x, z: stop.z, face: stop.face }
+    line = stop.line
+  } else {
+    building = find(marker.id)
+    if (!building) return
+    // Closed: the door's own line, and she stays on the map; she couldn't go in when she got there
+    if (stateFor(building) !== 'open') {
+      void speak(doorLine(building))
+      return
+    }
+    target = doorTarget(building.door)
+    line = `Wir fahren ${building.toName}!`
+  }
+  mapOpen.value = false
+  // Pausing ends a ride: the town goes on first (the map held it), then she rides
+  await nextTick()
+  if (!inTown.value || helpOpen.value) return
+  const ride = cityView.value?.rideTo(target)
+  if (ride === 'riding') void speak(line)
+  // Already there: no ride, and no door comes near (she is near it already), so say where she is
+  else if (ride === 'there') void speak(building ? doorLine(building) : marker.name)
 }
 
 /** What the voice says in front of a door, by what the door is right now */
@@ -313,7 +371,7 @@ onBeforeUnmount(() => {
   <LookScreen v-else-if="designing" :start="DEFAULT_LOOK" @done="lookChosen" />
   <main v-else-if="playing" class="game" data-test="game">
     <CityView
-      :doors="doors" :paused="inside !== null || helpOpen || parentsOpen" :touch="device.touch" :dress="wardrobe.dress"
+      ref="cityView" :doors="doors" :paused="inside !== null || helpOpen || parentsOpen || mapOpen" :touch="device.touch" :dress="wardrobe.dress"
       @near-door="onNearDoor" @enter="onEnter"
     />
     <div class="hud">
@@ -326,19 +384,24 @@ onBeforeUnmount(() => {
       <GoalBar :visits="player.visitsToday" :goal="player.dailyGoal" :prize="prize" />
     </div>
     <DoorPrompt
-      v-if="near && !inside && !helpOpen && !parentsOpen && near.id !== restingId"
+      v-if="near && !inside && !helpOpen && !parentsOpen && !mapOpen && near.id !== restingId"
       :icon="near.icon" :state="stateFor(near)" :cost="near.cost" :visits="player.visitsToday" :goal="player.dailyGoal"
       :touch="fingersOnly" @enter="onEnter(near.id)"
     />
     <Confetti v-if="celebrating && !inside" />
     <StickerParade
-      v-if="inTown && !celebrating && !helpOpen && player.toCelebrate.length"
+      v-if="inTown && !celebrating && !helpOpen && !mapOpen && player.toCelebrate.length"
       :ids="player.toCelebrate.slice(0, 3)" @done="stickersShown"
     />
-    <div v-if="inTown && !helpOpen" class="corner">
+    <div v-if="inTown && !helpOpen && !mapOpen" class="corner">
       <ParentGate v-if="session.isParent" @open="parentsOpen = true" />
+      <button class="round" data-test="map-button" aria-label="Karte" @pointerdown="openMap">🗺️</button>
       <button class="round" data-test="help-button" aria-label="Hilfe" @pointerdown="helpOpen = true">?</button>
     </div>
+    <TownMap
+      v-if="mapOpen && inTown && picture" :picture="picture" :her="herOnMap" :color="session.person?.color ?? '#ff9a3c'"
+      @choose="chooseOnMap" @close="mapOpen = false"
+    />
     <HelpOverlay v-if="helpOpen && inTown" :touch="fingersOnly" @close="closeHelp" />
     <ParentArea
       v-if="parentsOpen && session.api" :api="session.api" :logout-url="session.me?.logout_url" :can-switch="session.canSwitch"
@@ -408,5 +471,5 @@ body {
   color: #6b4a00;
   cursor: pointer;
 }
-.round[data-test='parents-button'] { font-size: 28px; }
+.round[data-test='parents-button'], .round[data-test='map-button'] { font-size: 28px; }
 </style>

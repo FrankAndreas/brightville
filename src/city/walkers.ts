@@ -28,6 +28,9 @@ export const ROUTES: Point[][] = [
   [{ x: 0, z: -34 }, { x: 0, z: -54 }],
   [{ x: -34, z: 0 }, { x: -54, z: 0 }],
   [{ x: 32, z: 30 }, { x: 32, z: -30 }],
+  // Along the farm lane and back, and across the workshop yard
+  [{ x: 4, z: -82 }, { x: 28, z: -82 }],
+  [{ x: 80, z: -12 }, { x: 80, z: 12 }],
 ]
 
 export interface Walker {

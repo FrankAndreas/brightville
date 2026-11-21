@@ -1,6 +1,6 @@
 import type RAPIER from '@dimforge/rapier3d-compat'
 import type { Intents } from '@/input/intents'
-import { JUMP_SPEED, desiredVelocity } from './movement'
+import { JUMP_SPEED, WALK_SPEED, desiredVelocity } from './movement'
 import { TUMBLE_MS, shouldTumble } from './tumble'
 import { GRAVITY } from './world'
 import type { Trampoline } from './props'
@@ -39,7 +39,11 @@ export interface CharacterFrame {
 }
 
 export interface Character {
-  step(intents: Pick<Intents, 'moveX' | 'moveZ' | 'jump'>, dt: number): CharacterFrame
+  /**
+   * `speed`: the top speed the move keys ask for (walking by default; the bicycle's speed while riding). `face`: a
+   * heading to turn to while she stands still (where a ride ended), or null.
+   */
+  step(intents: Pick<Intents, 'moveX' | 'moveZ' | 'jump'>, dt: number, speed?: number, face?: number | null): CharacterFrame
 }
 
 export function createCharacter(
@@ -103,7 +107,7 @@ export function createCharacter(
   }
 
   return {
-    step(intents, dt) {
+    step(intents, dt, top = WALK_SPEED, face = null) {
       if (dt <= 0) return frame(null)
 
       if (tumbleLeftMs > 0) {
@@ -122,12 +126,13 @@ export function createCharacter(
         return frame(null)
       }
 
-      const want = desiredVelocity(intents)
+      const want = desiredVelocity(intents, top)
       const blend = 1 - Math.exp(-ACCELERATION * dt)
       v.x += (want.x - v.x) * blend
       v.z += (want.z - v.z) * blend
-      if (Math.hypot(want.x, want.z) > 0.1) {
-        const target = Math.atan2(want.x, want.z)
+      const moving = Math.hypot(want.x, want.z) > 0.1
+      if (moving || face !== null) {
+        const target = moving ? Math.atan2(want.x, want.z) : (face ?? heading)
         const diff = Math.atan2(Math.sin(target - heading), Math.cos(target - heading))
         heading += diff * (1 - Math.exp(-TURN_RATE * dt))
       }
@@ -148,11 +153,17 @@ export function createCharacter(
 
       // Speed actually achieved; what was lost is the bump. Sideways bumps and
       // landings are judged separately, so a jump against a wall is not a crash.
-      // (Walking is slower than TUMBLE_IMPACT_SPEED: bumps only tumble once
-      // something faster exists, such as running or a scooter.)
+      // (Walking is slower than TUMBLE_IMPACT_SPEED.) Faster than walking (the
+      // bicycle, and while she slows down after it) a bump never knocks her
+      // over: she is held up or slides along. At its speed the ground's own
+      // seams can stop the controller for a frame, which would throw her off on
+      // an open street. So a bump is at most WALK_SPEED + 0.5 < TUMBLE_IMPACT_SPEED,
+      // and the bump tumbles below can't happen today: they are kept for
+      // something faster that should knock her over.
       const got = { x: move.x / dt, y: move.y / dt, z: move.z / dt }
       speed = Math.hypot(got.x, got.z)
-      const bump = Math.hypot(before.x - got.x, before.z - got.z)
+      const fast = Math.hypot(before.x, before.z) > WALK_SPEED + 0.5
+      const bump = fast ? 0 : Math.hypot(before.x - got.x, before.z - got.z)
       const landing = Math.abs(Math.min(0, before.y) - Math.min(0, got.y))
       const impact = Math.max(bump, landing)
       const next = { x: p.x + move.x, y: p.y + move.y, z: p.z + move.z }

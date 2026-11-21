@@ -59,6 +59,42 @@ describe('character', () => {
     expect(f.heading).toBeCloseTo(Math.PI / 2, 1)
   })
 
+  it('goes at the top speed it is given, as on the bicycle', () => {
+    const world = new RAPIER.World({ x: 0, y: -GRAVITY, z: 0 })
+    world.createCollider(RAPIER.ColliderDesc.cuboid(100, 0.5, 100).setTranslation(0, -0.5, 0))
+    const character = createCharacter(RAPIER, world, { x: -40, z: 0 }, [])
+    const step = (seconds: number, intents = still, speed?: number, face?: number | null) => {
+      let f!: CharacterFrame
+      for (let t = 0; t < seconds; t += DT) {
+        world.timestep = DT
+        f = character.step(intents, DT, speed, face)
+        world.step()
+      }
+      return f
+    }
+    step(0.5)
+    expect(step(1, { ...still, moveX: 1 }, 12).speed).toBeGreaterThan(11.5)
+    // Standing, she turns to the heading she is given
+    const f = step(1, still, undefined, -Math.PI / 2)
+    expect(f.speed).toBeLessThan(0.1)
+    expect(Math.cos(f.heading + Math.PI / 2)).toBeCloseTo(1, 3)
+  })
+
+  it('is never knocked over riding into a wall at the bicycle\'s speed, nor slowing down after it', () => {
+    const world = new RAPIER.World({ x: 0, y: -GRAVITY, z: 0 })
+    world.createCollider(RAPIER.ColliderDesc.cuboid(100, 0.5, 100).setTranslation(0, -0.5, 0))
+    world.createCollider(RAPIER.ColliderDesc.cuboid(0.5, 2, 10).setTranslation(-30, 2, 0))
+    const character = createCharacter(RAPIER, world, { x: -40, z: 0 }, [])
+    const frames: CharacterFrame[] = []
+    for (let t = 0; t < 2; t += DT) {
+      world.timestep = DT
+      frames.push(character.step({ ...still, moveX: 1 }, DT, t < 1.5 ? 12 : undefined))
+      world.step()
+    }
+    expect(frames.at(-1)!.x).toBeGreaterThan(-31)
+    expect(events(frames)).not.toContain('tumble')
+  })
+
   it('jumps about 1.2 metres and lands without tumbling', () => {
     const { run } = setup()
     const rest = settle(run).y
@@ -78,28 +114,28 @@ describe('character', () => {
   })
 
   it.each([DT, 0.05])('stops at the town\'s edge at %s s steps', dt => {
-    // Along the avenue to the right, where nothing stands in the way
+    // Along the avenue to the left, where nothing stands in the way (the one to the right goes on to the workshop)
     const { run } = setup({ x: 0, z: 0 })
     settle(run)
-    const f = run(18, { ...still, moveX: 1 }, dt).at(-1)!
-    expect(f.x).toBeGreaterThan(TOWN_HALF - 2)
-    expect(f.x).toBeLessThan(TOWN_HALF)
+    const f = run(18, { ...still, moveX: -1 }, dt).at(-1)!
+    expect(f.x).toBeLessThan(-(TOWN_HALF - 2))
+    expect(f.x).toBeGreaterThan(-TOWN_HALF)
   })
 
   it('reports the speed it really moves at, not the speed it wants', () => {
     const { run } = setup({ x: 0, z: 0 })
     settle(run)
-    const f = run(18, { ...still, moveX: 1 }).at(-1)!
+    const f = run(18, { ...still, moveX: -1 }).at(-1)!
     expect(f.speed).toBeLessThan(0.5)
   })
 
   it('never tumbles from jumping against a wall', () => {
     const { run } = setup({ x: 0, z: 0 })
     settle(run)
-    run(16, { ...still, moveX: 1 })
+    run(16, { ...still, moveX: -1 })
     const seen: unknown[] = []
     for (let i = 0; i < 12; i++) {
-      seen.push(...events(run(DT, { moveX: 1, moveZ: 0, jump: true })), ...events(run(1.1 + i * 0.013, { ...still, moveX: 1 })))
+      seen.push(...events(run(DT, { moveX: -1, moveZ: 0, jump: true })), ...events(run(1.1 + i * 0.013, { ...still, moveX: -1 })))
     }
     expect(seen).not.toContain('tumble')
     expect(seen).toContain('jump')

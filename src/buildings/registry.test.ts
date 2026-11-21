@@ -6,12 +6,16 @@ import { BUILDINGS, canServe, toDoors } from './registry'
 import type { BuildingDef } from './types'
 
 const component = defineComponent({ render: () => null })
-const yoga: BuildingDef = { id: 'yoga', spokenName: 'Yoga', icon: '🧘', kind: 'earn', needs: ['camera'], door: { x: 0, z: -14 }, component }
-const write: BuildingDef = { id: 'write', spokenName: 'Schreiben', icon: '✏️', kind: 'earn', needs: ['touch'], door: { x: 5, z: 5 }, component }
-const open: BuildingDef = { id: 'open', spokenName: 'Offen', icon: '🚪', kind: 'earn', needs: [], door: { x: 1, z: 1 }, component }
-const play: BuildingDef = { id: 'play', spokenName: 'Spielhalle', icon: '🃏', kind: 'play', cost: 3, needs: [], door: { x: 9, z: 9 }, component }
+const yoga: BuildingDef = { id: 'yoga', spokenName: 'Yoga', toName: 'zum Yoga', icon: '🧘', kind: 'earn', needs: ['camera'], door: { x: 0, z: -14 }, component }
+const write: BuildingDef = { id: 'write', spokenName: 'Schreiben', toName: 'zum Schreiben', icon: '✏️', kind: 'earn', needs: ['touch'], door: { x: 5, z: 5 }, component }
+const open: BuildingDef = { id: 'open', spokenName: 'Offen', toName: 'zur Tür', icon: '🚪', kind: 'earn', needs: [], door: { x: 1, z: 1 }, component }
+const play: BuildingDef = { id: 'play', spokenName: 'Spielhalle', toName: 'zur Spielhalle', icon: '🃏', kind: 'play', cost: 3, needs: [], door: { x: 9, z: 9 }, component }
 
 describe('building registry', () => {
+  it('names where the bicycle goes for every building, with its little word', () => {
+    for (const b of BUILDINGS) expect(b.toName, b.id).toMatch(/^(zum|zur|zu den|ins|nach) \S/)
+  })
+
   it('serves a building only when every need is met', () => {
     expect(canServe(yoga, { camera: true, touch: false, keyboard: true })).toBe(true)
     expect(canServe(yoga, { camera: false, touch: true, keyboard: true })).toBe(false)
@@ -126,7 +130,8 @@ describe('building registry', () => {
     expect(b?.preload).toBeTypeOf('function')
     const shared = (sharedBuildings as { id: string }[]).find(x => x.id === 'muster')
     expect(shared).toEqual({ id: 'muster', kind: 'earn', maxStars: 10, minSecondsPerStar: 2 })
-    expect(EMPTY_LOTS).toEqual([{ x: -3.5, z: -40, side: 'left' }, { x: -51, z: 3.5, side: 'front' }])
+    // The old town's two lots left are gardens; the districts' lots come after them
+    expect(EMPTY_LOTS.slice(0, 2)).toEqual([{ x: -3.5, z: -40, side: 'left' }, { x: -51, z: 3.5, side: 'front' }])
   })
 
   it('lists the Kalender as an earning building in the plain house next to the Bibliothek', () => {
