@@ -95,6 +95,12 @@ Accepted: a logged-in child's page is trusted with her answers, so a hand-made r
 
 Not checked this way: clapping into a real microphone, real speech timing, and whether she understands „Silben“ or the coloured day cards. That is for watching her play.
 
+**Performance review (Nov 21, 2026).** The built game on the test server, in Chrome on a laptop's Intel UHD 620 (a weaker graphics chip than a recent iPad's), with the processor slowed 4–6 times and the network at 20 Mbit/s. Fixed:
+
+- Every visit to Yoga, the Hüpfhalle or the Tanzsaal made a new pose landmarker, and closing one never gave its memory back: about 50 MB more each visit, and after about 16 camera visits the town lost its picture (only the sky left). Now one is made on the first visit and kept for the session; from the second visit on it is ready at once. Measured: flat over 36 camera visits.
+
+Measured and fine: the play button after 1.1–1.4 s and the town 0.3–0.8 s after the tap (1.9 MB to download, 4.1 MB of the main file is the physics engine; split it out if start-up ever feels slow); the town at about 50 frames a second whatever the processor speed (the graphics chip sets the pace), with a few slow frames only in the first steps while the graphics card prepares what it sees for the first time; the Spielwelt at 60 frames a second while dragging, even 6 times slower (276 drawn things); 66 visits to every building leave no camera, microphone, timer, sound or 3D picture running.
+
 ## Calls made without asking, which may be worth revisiting
 
 - The Cinema costs 3 Stars per film, not per minute; one film list for all children.
@@ -142,5 +148,5 @@ A second architecture review after the Lehrplan work. Fixed so far:
 - The learning buildings share their visit lifecycle (`src/buildings/visit.ts`: timers, numbered runs, leaving, the ladder snapshot, scoring; `ProgressStars.vue`); each keeps its own effects (#53–#58).
 - Small things: the app's ladder store is `useLaddersStore` (`src/stores/ladders.ts`; the API path, the tables and the device keys still say "school"), `pick`/`shuffle` live once in `src/core/random.ts`, stale comments and README lines fixed, the School's random screen test is seeded.
 
-Left for later: the two offline queues (merge them when a third is needed), a growth plan for the town (no free lots), the Spielwelt's triple drawing (measure on the iPad first). The cool-down guesses for the new buildings: Reimhaus, Musterwerkstatt, Kalender and Spielwelt 2 s per Star, Trommelhaus 3.
+Left for later: the two offline queues (merge them when a third is needed), a growth plan for the town (no free lots). The Spielwelt's triple drawing was measured in the performance review and is fine. The cool-down guesses for the new buildings: Reimhaus, Musterwerkstatt, Kalender and Spielwelt 2 s per Star, Trommelhaus 3.
 
