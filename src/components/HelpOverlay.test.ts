@@ -17,8 +17,8 @@ describe('HelpOverlay', () => {
 
   it('explains the keys by default', () => {
     const w = mount(HelpOverlay)
-    expect(w.findAll('[data-test="help-row"]')).toHaveLength(5)
-    expect(w.findAll('[data-test="help-keys"]')).toHaveLength(5)
+    expect(w.findAll('[data-test="help-row"]')).toHaveLength(6)
+    expect(w.findAll('[data-test="help-keys"]')).toHaveLength(6)
     expect(w.findAll('[data-test="help-touch"]')).toHaveLength(0)
     expect(speak).toHaveBeenCalledWith('Mit den Pfeiltasten läufst du.')
     expect(w.text()).toContain('J')
@@ -32,12 +32,12 @@ describe('HelpOverlay', () => {
       const lit = () => w.findAll('[data-test="help-row"]').map(r => r.attributes('data-active'))
       await flushPromises()
       expect(speak).toHaveBeenCalledTimes(1)
-      expect(lit()).toEqual(['true', 'false', 'false', 'false', 'false'])
+      expect(lit()).toEqual(['true', 'false', 'false', 'false', 'false', 'false'])
       await vi.advanceTimersByTimeAsync(500)
       expect(vi.mocked(speak).mock.calls.map(c => c[0])).toEqual([
         'Zieh mit dem Finger, dann läufst du.', 'Tipp auf den Pfeil, dann springst du.',
       ])
-      expect(lit()).toEqual(['false', 'true', 'false', 'false', 'false'])
+      expect(lit()).toEqual(['false', 'true', 'false', 'false', 'false', 'false'])
       expect(w.findAll('[data-test="help-row"]')[0].attributes('data-dim')).toBe('true')
       w.unmount()
       await vi.advanceTimersByTimeAsync(5000)
@@ -49,11 +49,31 @@ describe('HelpOverlay', () => {
 
   it('explains the fingers on a touch screen, with no key in sight', () => {
     const w = mount(HelpOverlay, { props: { touch: true } })
-    expect(w.findAll('[data-test="help-row"]')).toHaveLength(5)
-    expect(w.findAll('[data-test="help-touch"]')).toHaveLength(5)
+    expect(w.findAll('[data-test="help-row"]')).toHaveLength(6)
+    expect(w.findAll('[data-test="help-touch"]')).toHaveLength(6)
     expect(w.findAll('[data-test="help-keys"]')).toHaveLength(0)
     expect(speak).toHaveBeenCalledWith('Zieh mit dem Finger, dann läufst du.')
     expect(w.text()).not.toContain('Esc')
     w.unmount()
+  })
+
+  it.each([
+    [false, 'Mit M öffnest du die Karte.'],
+    [true, 'Tipp auf die Karte, dann fährst du mit dem Velo.'],
+  ])('reads the map row last, with the map picture (touch: %s)', async (touch, line) => {
+    vi.useFakeTimers()
+    try {
+      const w = mount(HelpOverlay, { props: { touch } })
+      await vi.advanceTimersByTimeAsync(5 * 500)
+      const said = vi.mocked(speak).mock.calls.map(c => c[0])
+      expect(said).toHaveLength(6)
+      expect(said[5]).toBe(line)
+      const row = w.findAll('[data-test="help-row"]')[5]
+      expect(row.attributes('data-active')).toBe('true')
+      expect(row.find('[data-test="help-map"]').text()).toBe('🗺️')
+      w.unmount()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

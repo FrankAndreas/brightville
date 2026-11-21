@@ -3,7 +3,9 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { defineComponent, h, nextTick } from 'vue'
 import App from './App.vue'
+import { BUILDINGS } from './buildings/registry'
 import { createCity, type CityOptions } from './city/city'
+import { doorTarget } from './city/ride'
 import { unlockAudio } from './services/sound'
 import { forgetInstruction, speak } from './services/tts'
 import type { BuildingDef, BuildingResult } from './buildings/types'
@@ -40,7 +42,7 @@ const StubBuilding = defineComponent({
     return () => h('div', { 'data-test': 'stub-building' })
   },
 })
-const stub: BuildingDef = { id: 'stub', spokenName: 'Turnhalle', icon: '🤸', kind: 'earn', needs: [], door: { x: 2, z: 3 }, component: StubBuilding }
+const stub: BuildingDef = { id: 'stub', spokenName: 'Turnhalle', toName: 'zur Turnhalle', icon: '🤸', kind: 'earn', needs: [], door: { x: 2, z: 3 }, component: StubBuilding }
 const camOnly: BuildingDef = { ...stub, id: 'touchy', spokenName: 'Schreiben', needs: ['touch'], door: { x: 8, z: 8 } }
 const play: BuildingDef = { ...stub, id: 'play', spokenName: 'Spielhalle', icon: '🃏', kind: 'play', cost: 3, door: { x: -8, z: 8 } }
 
@@ -80,6 +82,8 @@ describe('App', () => {
     city.pause.mockClear()
     city.resume.mockClear()
     city.setDoors.mockClear()
+    city.rideTo.mockClear()
+    city.position.mockClear()
     vi.mocked(createCity).mockReset().mockImplementation(async opts => {
       cityOptions = opts
       return city
@@ -813,7 +817,7 @@ describe('App', () => {
       const w = await startedWithHelp()
       const help = w.find('[data-test="help"]')
       expect(help.exists()).toBe(true)
-      expect(help.findAll('[data-test="help-row"]')).toHaveLength(5)
+      expect(help.findAll('[data-test="help-row"]')).toHaveLength(6)
       expect(vi.mocked(speak).mock.calls[0][0]).toContain('Pfeiltasten')
       expect(city.pause).toHaveBeenCalledTimes(1)
       w.unmount()
@@ -903,6 +907,120 @@ describe('App', () => {
       key('KeyH')
       await nextTick()
       expect(w.find('[data-test="door-prompt"]').exists()).toBe(false)
+      w.unmount()
+    })
+  })
+
+  describe('map', () => {
+    const school = BUILDINGS.find(b => b.id === 'school')!
+    const order = (fn: { mock: { invocationCallOrder: number[] } }) => fn.mock.invocationCallOrder.at(-1) ?? 0
+
+    it('opens with the map button, says where to and holds the town while open', async () => {
+      const w = await started([school, play])
+      expect(w.find('[data-test="map"]').exists()).toBe(false)
+      await w.find('[data-test="map-button"]').trigger('pointerdown')
+      expect(w.find('[data-test="map"]').exists()).toBe(true)
+      expect(speak).toHaveBeenCalledWith('Wohin willst du fahren?')
+      expect(city.pause).toHaveBeenCalledTimes(1)
+      // Her dot is where the town says she is
+      expect(city.position).toHaveBeenCalled()
+      w.unmount()
+    })
+
+    it('rides to an open building: names it, closes the map and leaves the ride running', async () => {
+      const w = await started([school, play])
+      await w.find('[data-test="map-button"]').trigger('pointerdown')
+      vi.mocked(speak).mockClear()
+      await w.find('[data-test="map-marker-school"]').trigger('pointerdown')
+      await flushPromises()
+      expect(w.find('[data-test="map"]').exists()).toBe(false)
+      expect(city.rideTo).toHaveBeenCalledWith(doorTarget(school.door))
+      expect(speak).toHaveBeenCalledWith('Wir fahren zur Schule!')
+      // The town goes on first (a pause would end the ride), and nothing pauses it after
+      expect(order(city.resume)).toBeLessThan(order(city.rideTo))
+      expect(order(city.pause)).toBeLessThan(order(city.rideTo))
+      w.unmount()
+    })
+
+    it('rides to a stop with its own line', async () => {
+      const w = await started([school, play])
+      await w.find('[data-test="map-button"]').trigger('pointerdown')
+      await w.find('[data-test="map-marker-wald"]').trigger('pointerdown')
+      await flushPromises()
+      expect(city.rideTo).toHaveBeenCalledWith({ x: -8, z: -82, face: -Math.PI / 2 })
+      expect(speak).toHaveBeenCalledWith('Wir fahren in den Wald!')
+      w.unmount()
+    })
+
+    it('says nothing about a ride when she is already there', async () => {
+      city.rideTo.mockReturnValueOnce('there' as 'riding')
+      const w = await started([school, play])
+      await w.find('[data-test="map-button"]').trigger('pointerdown')
+      vi.mocked(speak).mockClear()
+      await w.find('[data-test="map-marker-school"]').trigger('pointerdown')
+      await flushPromises()
+      expect(city.rideTo).toHaveBeenCalledTimes(1)
+      expect(speak).not.toHaveBeenCalled()
+      w.unmount()
+    })
+
+    it('says the door line of a locked play building, rides nowhere and stays open', async () => {
+      const w = await started([school, play])
+      await w.find('[data-test="map-button"]').trigger('pointerdown')
+      vi.mocked(speak).mockClear()
+      await w.find('[data-test="map-marker-play"]').trigger('pointerdown')
+      await flushPromises()
+      expect(speak).toHaveBeenCalledWith('Erst lernen, dann spielen!')
+      expect(city.rideTo).not.toHaveBeenCalled()
+      expect(w.find('[data-test="map"]').exists()).toBe(true)
+      w.unmount()
+    })
+
+    it('leaves off the buildings this device can never go into', async () => {
+      const w = await started([school, camOnly])
+      await w.find('[data-test="map-button"]').trigger('pointerdown')
+      expect(w.find('[data-test="map-marker-school"]').exists()).toBe(true)
+      expect(w.find('[data-test="map-marker-touchy"]').exists()).toBe(false)
+      w.unmount()
+    })
+
+    it('closes with ✕ and lets the town go on', async () => {
+      const w = await started([school])
+      await w.find('[data-test="map-button"]').trigger('pointerdown')
+      await w.find('[data-test="map-close"]').trigger('pointerdown')
+      await nextTick()
+      expect(w.find('[data-test="map"]').exists()).toBe(false)
+      expect(city.resume).toHaveBeenCalledTimes(1)
+      expect(city.rideTo).not.toHaveBeenCalled()
+      w.unmount()
+    })
+
+    it('opens with M, but not with the help open or inside a building', async () => {
+      const w = await started([stub])
+      key('KeyM')
+      await nextTick()
+      expect(w.find('[data-test="map"]').exists()).toBe(true)
+      window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape', key: 'Escape' }))
+      await nextTick()
+      expect(w.find('[data-test="map"]').exists()).toBe(false)
+
+      key('KeyH')
+      await nextTick()
+      expect(w.find('[data-test="map-button"]').exists()).toBe(false)
+      window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyM', key: 'm' }))
+      await nextTick()
+      expect(w.find('[data-test="map"]').exists()).toBe(false)
+      w.unmount()
+    })
+
+    it('has no button inside a building, and M does nothing there', async () => {
+      const w = await started([stub])
+      cityOptions.onEnter('stub')
+      await flushPromises()
+      expect(w.find('[data-test="map-button"]').exists()).toBe(false)
+      key('KeyM')
+      await nextTick()
+      expect(w.find('[data-test="map"]').exists()).toBe(false)
       w.unmount()
     })
   })
