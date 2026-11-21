@@ -67,6 +67,8 @@ function run(effects: RhymeEffect[]): Promise<boolean> {
   // The 🔊 button says the question and the pictures' names again (the example: just itself)
   const named = effects.find(e => e.type === 'name')
   const asking = flow.state.phase === 'asking'
+  // A task over without a chime (a count given up on after three tries): 🔊 has nothing to ask either
+  if (flow.state.phase === 'cheering') forgetInstruction()
   for (const effect of effects) {
     if (effect.type === 'chime') {
       playBeat('chime')

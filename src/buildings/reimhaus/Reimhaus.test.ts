@@ -133,6 +133,22 @@ describe('Reimhaus', () => {
     wrapper.unmount()
   })
 
+  it('lets go of a count it gave up on after three tries, so 🔊 doesn\'t ask it again', async () => {
+    const wrapper = await open([COUNT, RHYME])
+    for (let n = 0; n < 3; n++) {
+      await wrapper.find('[data-test="drum"]').trigger('pointerdown')
+      await wrapper.find('[data-test="done"]').trigger('pointerdown')
+      await run(10)
+      if (n < 2) {
+        expect(instruction.value).toBe('Wie viele Silben hat Auto? Trommle mit!')
+        await run(CHEER)
+      }
+    }
+    expect(said().at(-2)).toBe('Hör zu, so geht’s.')
+    expect(instruction.value).toBeNull()
+    wrapper.unmount()
+  })
+
   it('fades a wrong picture and goes on after the right one', async () => {
     const wrapper = await open()
     await pick(wrapper, 'fisch').trigger('pointerdown')

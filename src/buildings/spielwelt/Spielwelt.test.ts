@@ -137,6 +137,33 @@ describe('Spielwelt', () => {
     w.unmount()
   })
 
+  it('shows where the thing to find hides at steps 1–3, so she need not know about swiping yet', async () => {
+    // The hiding place farthest from where the view starts
+    const first = await open([])
+    const start = viewX(first) + Number(first.find('[data-test="world"]').attributes('data-view-w')) / 2
+    first.unmount()
+    const away = (x: number) => Math.min(Math.abs(x - start), WORLD_WIDTH - Math.abs(x - start))
+    const far = [...OBJECTS].filter(o => o.id !== 'tisch').sort((a, b) => away(b.x) - away(a.x))[0]
+    const w = await open([{ type: 'find', thing: 'katze', clues: [{ word: 'neben', object: far.id }] }])
+    const x = Number(w.find('[data-test="thing-katze"]').attributes('data-x'))
+    const vw = Number(w.find('[data-test="world"]').attributes('data-view-w'))
+    expect(((x - viewX(w)) % WORLD_WIDTH + WORLD_WIDTH) % WORLD_WIDTH).toBeLessThan(vw)
+    w.unmount()
+  })
+
+  it('keeps the middle of the view where it was when the iPad is turned', async () => {
+    const w = await open([FIND])
+    const world = w.find('[data-test="world"]')
+    const middle = () => viewX(w) + Number(world.attributes('data-view-w')) / 2
+    const before = middle()
+    ;(world.element as HTMLElement).getBoundingClientRect = () => ({ left: 0, top: 0, width: 820, height: 1000 }) as DOMRect
+    window.dispatchEvent(new Event('resize'))
+    await run(10)
+    expect(Number(world.attributes('data-view-w'))).toBeCloseTo(82)
+    expect(middle() % WORLD_WIDTH).toBeCloseTo(before % WORLD_WIDTH)
+    w.unmount()
+  })
+
   it('draws the thing to find on top of any other thing', async () => {
     const w = await open([FIND])
     const texts = w.findAll('text.thing').slice(0, 8).map(t => t.attributes('data-test'))

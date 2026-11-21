@@ -112,8 +112,11 @@ const carried = ref<{ id: string; x: number; y: number } | null>(null)
 function measure() {
   const r = worldEl.value?.getBoundingClientRect()
   if (r && r.height > 0) {
+    // Turning the iPad keeps the middle of what she sees where it was (where a task was put in view)
+    const middle = viewX.value + viewW.value / 2
     scale.value = r.height / 100
     viewW.value = r.width / scale.value
+    centreOn(middle)
   }
 }
 
@@ -161,11 +164,17 @@ function run(effects: RaumEffect[]): Promise<boolean> {
       dropPress()
       arrangement.value = effect.arrangement
       save()
-      // At steps 1–3 a placing task shows its object (the thing waits next to it); later the thing starts where she
-      // looks and she carries it there. A finding task leaves her to look.
+      // At steps 1–3 a task happens on her screen: a placing task shows its object (the thing waits next to it), a
+      // finding task where the thing hides, so she needn't know yet that the world scrolls. Later the thing to carry
+      // starts where she looks and she carries it there, and a thing to find is hers to look for.
       const task = flow.state.task
-      const obj = task?.type === 'place' && step <= 3 ? OBJECTS.find(o => o.id === task.clues[0].object) : undefined
-      if (obj) centreOn(obj.x)
+      if (task && step <= 3) {
+        if (task.type === 'find') centreOn(effect.arrangement[task.thing].x)
+        else {
+          const obj = OBJECTS.find(o => o.id === task.clues[0].object)
+          if (obj) centreOn(obj.x)
+        }
+      }
     } else if (effect.type === 'show') {
       chain = chain.then(() => {
         if (!live()) return
