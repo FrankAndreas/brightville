@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { BUILDINGS } from '@/buildings/registry'
 import { DOOR_RADIUS, footprint } from './doors'
-import { EMPTY_LOTS, JETTY, LAKE, inLake, solidAreas } from './map'
+import { EMPTY_LOTS, JETTY, LAKE, hedgeDistance, inLake, solidAreas } from './map'
 import { NATURE_SEED, SOLID_KINDS, placeNature } from './nature'
 import * as THREE from 'three'
 import { CAT, DOG_GARDEN, boats, catAt, createAnimals, dogAt, ducks, spotForBird, startBirds, stepBird, type Bird } from './animals'
@@ -130,6 +130,22 @@ describe('animals', () => {
   })
 })
 
+describe('where birds sit', () => {
+  it('keeps 3 m from every hedge, also on the seams between the town and the districts', () => {
+    const ok = spotForBird(doors)
+    let tried = 0
+    for (let x = -40; x <= 110; x += 0.5) {
+      for (let z = -110; z <= 70; z += 0.5) {
+        if (hedgeDistance(x, z) < 3) {
+          tried++
+          expect(ok(x, z), `${x},${z}`).toBe(false)
+        }
+      }
+    }
+    expect(tried).toBeGreaterThan(100)
+  })
+})
+
 describe('the animals drawn', () => {
   it('draws every animal whole, with all its parts', () => {
     const scene = new THREE.Scene()
@@ -137,8 +153,8 @@ describe('the animals drawn', () => {
     const meshes: THREE.Mesh[] = []
     scene.traverse(o => { if ((o as THREE.Mesh).isMesh) meshes.push(o as THREE.Mesh) })
     const corners = new Set(meshes.map(m => m.geometry.attributes.position.count))
-    // duck 3 boxes, boat 4, bird 3, cat 5, dog 8: 24 corners each
-    expect([...corners].sort((a, b) => a - b), JSON.stringify(meshes.map(m => m.geometry.attributes.position.count))).toEqual([3, 4, 5, 8].map(boxes => boxes * 24))
+    // duck 3 boxes, boat 4, bird 3, cat 5, dog 8, sheep 6, deer 7 (cow 8, chicken 4): 24 corners each
+    expect([...corners].sort((a, b) => a - b), JSON.stringify(meshes.map(m => m.geometry.attributes.position.count))).toEqual([3, 4, 5, 6, 7, 8].map(boxes => boxes * 24))
     // Small enough not to need shadows: they would double the draw calls
     expect(meshes.filter(m => m.castShadow)).toEqual([])
   })

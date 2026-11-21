@@ -59,3 +59,10 @@ export function playBeat(kind: SoundKind): void {
   if (!ac) return
   SOUNDS[kind](ac)
 }
+
+/** A cow's moo: a low sawtooth gliding down, about 0.6 s; silent without Web Audio. */
+export function playMoo(): void {
+  const ac = ctx ?? unlockAudio()
+  if (!ac) return
+  tone(ac, { type: 'sawtooth', freq: 190, to: 95, length: 0.6, volume: 0.12 })
+}

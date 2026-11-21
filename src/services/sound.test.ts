@@ -74,4 +74,19 @@ describe('sound with Web Audio', () => {
       expect(ctx.started).toBeGreaterThan(before)
     }
   })
+
+  it('moos: one low sawtooth gliding down for about 0.6 s', async () => {
+    const { unlockAudio, playMoo } = await load()
+    const ctx = unlockAudio() as unknown as FakeAudioContext
+    const before = ctx.started
+    playMoo()
+    expect(ctx.started).toBe(before + 1)
+  })
+
+  it('stays silent for a moo without Web Audio', async () => {
+    vi.stubGlobal('AudioContext', undefined)
+    vi.stubGlobal('webkitAudioContext', undefined)
+    const { playMoo } = await load()
+    expect(() => playMoo()).not.toThrow()
+  })
 })

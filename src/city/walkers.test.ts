@@ -20,9 +20,16 @@ const pointsOf = (route: number) => {
 }
 
 describe('townsfolk', () => {
-  it('has 6 to 8 routes and one walker on each', () => {
+  it('has a walker on the farm lane and one in the workshop yard', () => {
+    const at = (x0: number, x1: number, z0: number, z1: number) =>
+      ROUTES.some((_, r) => pointsOf(r).every(p => p.x >= x0 && p.x <= x1 && p.z >= z0 && p.z <= z1))
+    expect(at(0, 35, -105, -60)).toBe(true)
+    expect(at(60, 100, -20, 20)).toBe(true)
+  })
+
+  it('has 6 to 10 routes and one walker on each', () => {
     expect(ROUTES.length).toBeGreaterThanOrEqual(6)
-    expect(ROUTES.length).toBeLessThanOrEqual(8)
+    expect(ROUTES.length).toBeLessThanOrEqual(10)
     expect(startWalkers().map(w => w.route).sort()).toEqual(ROUTES.map((_, i) => i))
   })
 
