@@ -1,15 +1,19 @@
 import { BLOCKS } from './props'
 import { footprint, type DoorSpot, type Footprint } from './doors'
+import { NATURE } from './districts/nature'
+import type { District, Stop } from './districts/types'
+import { WORKSHOP } from './districts/workshop'
 
 /**
- * The town as data: streets, hills, the lake, the two gardens and the houses that are just houses. `world.ts` builds
- * the town from it; `map.test.ts` checks it (every door reachable, nothing steep, the lake closed) before anything is
- * drawn. Door buildings are placed in `src/buildings/registry.ts`, along these streets.
+ * The town as data: streets, hills, the lake, the gardens and the houses that are just houses, in the old square and
+ * in the districts joined onto it (`districts/`). `world.ts` builds the town from it; `map.test.ts` checks it (every
+ * door reachable, nothing steep, the lake closed) before anything is drawn. Door buildings are placed in
+ * `src/buildings/registry.ts`, along these streets.
  *
  * Coordinates: metres, x to the right, z towards the camera's first view (the camera starts at +z looking at -z).
  */
 
-/** Half the side of the square town */
+/** Half the side of the old square town; the districts lie outside it */
 export const TOWN_HALF = 60
 export const PLAZA = { x: 0, z: 0, radius: 8 }
 /** Where she starts, on the plaza */
@@ -56,15 +60,6 @@ export const LAKE = { x: 16, z: 17, rx: 9.5, rz: 8 }
 /** A wooden jetty from the avenue to the right into the lake */
 export const JETTY: Footprint = { minX: 15, maxX: 17, minZ: 3, maxZ: 13 }
 
-/**
- * Gardens between the houses: the cat sleeps in the first and the dog lives in the second (src/city/animals.ts). The
- * Reimhaus took the lot at (35.5, −16) and the Musterwerkstatt the one at (3.5, 51); no lot is left for a building.
- */
-export const EMPTY_LOTS: DoorSpot[] = [
-  { x: -3.5, z: -40, side: 'left' },
-  { x: -51, z: 3.5, side: 'front' },
-]
-
 /** A house that is just a house: where its front meets the street (like a door spot), its size and its floors */
 export interface SceneryHouse {
   spot: DoorSpot
@@ -100,6 +95,58 @@ export const SCENERY_HOUSES: SceneryHouse[] = [
   scenery(27, -35.5, 'back', 3),
 ]
 
+/** The old town as a district: the square, its streets and houses, and the plaza as its stop */
+const TOWN: District = {
+  id: 'town',
+  areas: [{ minX: -TOWN_HALF, maxX: TOWN_HALF, minZ: -TOWN_HALF, maxZ: TOWN_HALF }],
+  ground: 0xb8e6a3,
+  streets: STREETS,
+  scenery: SCENERY_HOUSES,
+  lots: [],
+  // On the plaza's edge in front of her start, looking at the fountain in the middle
+  stops: [{ id: 'platz', icon: '⛲', x: PLAZA.x, z: PLAZA.z + 7, face: Math.PI, line: 'Wir fahren zum Platz!' }],
+}
+
+export const DISTRICTS: District[] = [TOWN, NATURE, WORKSHOP]
+/** The town's ground: every district's areas, which never overlap */
+export const OUTLINE: Footprint[] = DISTRICTS.flatMap(d => d.areas)
+export const BOUNDS: Footprint = {
+  minX: Math.min(...OUTLINE.map(a => a.minX)),
+  maxX: Math.max(...OUTLINE.map(a => a.maxX)),
+  minZ: Math.min(...OUTLINE.map(a => a.minZ)),
+  maxZ: Math.max(...OUTLINE.map(a => a.maxZ)),
+}
+export const ALL_STREETS: Street[] = DISTRICTS.flatMap(d => d.streets)
+export const ALL_SCENERY: SceneryHouse[] = DISTRICTS.flatMap(d => d.scenery)
+export const STOPS: Stop[] = DISTRICTS.flatMap(d => d.stops)
+
+/**
+ * Lots kept for buildings still to come, each a garden until then. The cat sleeps in the first and the dog lives in
+ * the second (src/city/animals.ts), so those two stay first. The Reimhaus took the lot at (35.5, −16) and the
+ * Musterwerkstatt the one at (3.5, 51); the rest are the districts' lots.
+ */
+export const EMPTY_LOTS: DoorSpot[] = [
+  { x: -3.5, z: -40, side: 'left' },
+  { x: -51, z: 3.5, side: 'front' },
+  ...DISTRICTS.flatMap(d => d.lots.map(l => l.spot)),
+]
+
+/**
+ * Inside the outline, at least `margin` m from its edge (a square of that half size around the point lies on the
+ * town's ground). Where two areas meet is not an edge: the areas never overlap, so the square is on the ground when
+ * the parts of it inside each area add up to all of it.
+ */
+export function inTown(x: number, z: number, margin = 0): boolean {
+  if (margin <= 0) return OUTLINE.some(a => x >= a.minX && x <= a.maxX && z >= a.minZ && z <= a.maxZ)
+  let covered = 0
+  for (const a of OUTLINE) {
+    const w = Math.min(x + margin, a.maxX) - Math.max(x - margin, a.minX)
+    const d = Math.min(z + margin, a.maxZ) - Math.max(z - margin, a.minZ)
+    if (w > 0 && d > 0) covered += w * d
+  }
+  return covered >= 4 * margin * margin - 1e-9
+}
+
 /** The ground a scenery house covers */
 export function sceneryArea(h: SceneryHouse): Footprint {
   return footprint(h.spot, h.w, h.d)
@@ -126,9 +173,9 @@ function segmentDistance(x: number, z: number, a: { x: number; z: number }, b: {
   return Math.hypot(x - (a.x + t * dx), z - (a.z + t * dz))
 }
 
-/** How far (x, z) is from the paving of the nearest street (0 on it); without `streets`, the plaza counts too */
-export function streetDistance(x: number, z: number, streets: Street[] = STREETS): number {
-  let best = streets === STREETS ? Math.max(0, Math.hypot(x - PLAZA.x, z - PLAZA.z) - PLAZA.radius) : Infinity
+/** How far (x, z) is from the paving of the nearest street (0 on it); without `streets`, every district's and the plaza */
+export function streetDistance(x: number, z: number, streets: Street[] = ALL_STREETS): number {
+  let best = streets === ALL_STREETS ? Math.max(0, Math.hypot(x - PLAZA.x, z - PLAZA.z) - PLAZA.radius) : Infinity
   for (const s of streets) {
     for (let i = 1; i < s.points.length; i++) {
       best = Math.min(best, Math.max(0, segmentDistance(x, z, s.points[i - 1], s.points[i]) - s.width / 2))
@@ -142,11 +189,11 @@ export function onStreet(x: number, z: number): boolean {
   return streetDistance(x, z) === 0
 }
 
-/** Everything she can't walk through: the door buildings (of `doors`), the scenery houses and the playground's blocks */
+/** Everything she can't walk through: the door buildings (of `doors`), every scenery house and the playground's blocks */
 export function solidAreas(doors: DoorSpot[]): Footprint[] {
   return [
     ...doors.map(d => footprint(d)),
-    ...SCENERY_HOUSES.map(sceneryArea),
+    ...ALL_SCENERY.map(sceneryArea),
     ...BLOCKS.map(b => ({ minX: b.x - b.w / 2, maxX: b.x + b.w / 2, minZ: b.z - b.d / 2, maxZ: b.z + b.d / 2 })),
   ]
 }

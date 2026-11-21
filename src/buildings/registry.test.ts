@@ -126,7 +126,8 @@ describe('building registry', () => {
     expect(b?.preload).toBeTypeOf('function')
     const shared = (sharedBuildings as { id: string }[]).find(x => x.id === 'muster')
     expect(shared).toEqual({ id: 'muster', kind: 'earn', maxStars: 10, minSecondsPerStar: 2 })
-    expect(EMPTY_LOTS).toEqual([{ x: -3.5, z: -40, side: 'left' }, { x: -51, z: 3.5, side: 'front' }])
+    // The old town's two lots left are gardens; the districts' lots come after them
+    expect(EMPTY_LOTS.slice(0, 2)).toEqual([{ x: -3.5, z: -40, side: 'left' }, { x: -51, z: 3.5, side: 'front' }])
   })
 
   it('lists the Kalender as an earning building in the plain house next to the Bibliothek', () => {
