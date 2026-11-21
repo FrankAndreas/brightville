@@ -101,6 +101,14 @@ Not checked this way: clapping into a real microphone, real speech timing, and w
 
 Measured and fine: the play button after 1.1–1.4 s and the town 0.3–0.8 s after the tap (1.9 MB compressed to download; of the main file's 5.2 MB uncompressed, 4.1 MB is the physics engine; split it out if start-up ever feels slow); the town at about 50 frames a second whatever the processor speed (the graphics chip sets the pace), with a few slow frames only in the first steps while the graphics card prepares what it sees for the first time; the Spielwelt at 60 frames a second while dragging, even 6 times slower (276 drawn things); 66 visits to every building leave no camera, microphone, timer, sound or 3D picture running.
 
+**Performance after the town grew (checkpoint 1, Nov 21, 2026).** Same laptop and method, with the nature and workshop districts joined on, the processor at normal speed. A walk from the plaza up the back avenue, through the nature gate into the farm (standing 10 s looking at the pens), into the forest, then round to the workshop, two runs each, frames a second on average and the slowest 5 % of frames:
+
+- town 59 / 49 fps (p95 17 / 33 ms), gate 60 / 54 (17 / 33), farm 59 / 59 (17 / 17), standing at the pens 60 / 60 (17 / 17), forest 59 / 56 (17 / 33), workshop 60 / 59 (17 / 17); at most 2 frames over 50 ms in any part.
+- The usual 25-second walk in the old town: 46, 48, 56 and 48 fps (p95 33 ms); the town without the districts measured the same day: 54 and 53.
+- The picture gets less sharp on its own when frames are slow (it settled at pixel ratio 1–1.5 within the first minute), which is why the districts run near 60. Held at full sharpness, every part is slower and the old streets the slowest: town 34 fps (37 without the districts), gate 37, forest 40, farm 44, workshop 45, standing at the pens 50.
+
+So the joined districts stay: no part is below 45 fps or above 34 ms, and nothing was simplified. The old town lost a few frames a second (about 10 % at full sharpness) from drawing the districts behind it; if a later stage adds more, hiding a district's drawing when she is far from it is the first thing to try.
+
 ## Calls made without asking, which may be worth revisiting
 
 - The Cinema costs 3 Stars per film, not per minute; one film list for all children.
