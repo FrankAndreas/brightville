@@ -4,10 +4,14 @@ import { DOOR_RADIUS, footprint, type DoorSpot, type Side } from './doors'
 import { EMPTY_LOTS, JETTY, START, STOPS, inLake, onStreet } from './map'
 import { TRAMPOLINES } from './props'
 import { RIDE_SPEED, doorTarget, planRide, startRide, steer, type RideTarget } from './ride'
-import { walkGrid, type Point } from './walkable'
+import { NATURE_SEED, SOLID_KINDS, natureArea, placeNature, rideGrid } from './nature'
+import type { Point } from './walkable'
 
 const doors = BUILDINGS.map(b => b.door)
-const grid = walkGrid(doors)
+// The grid the town rides by (city.ts)
+const grid = rideGrid(doors)
+const natureSolids = placeNature(NATURE_SEED, doors).filter(i => SOLID_KINDS.has(i.kind)).map(natureArea)
+const inNatureSolid = (x: number, z: number) => natureSolids.some(f => x >= f.minX && x <= f.maxX && z >= f.minZ && z <= f.maxZ)
 const DT = 1 / 60
 const stop = (id: string): RideTarget => {
   const s = STOPS.find(t => t.id === id)!
@@ -79,11 +83,12 @@ describe('a ride on the bicycle', () => {
         if (p.left > 1) expect(onStreet(p.x, p.z), where).toBe(true)
         expect(grid.free(p.x, p.z), where).toBe(true)
         expect(onTrampoline(p.x, p.z), where).toBe(false)
+        expect(inNatureSolid(p.x, p.z), `${where}: a tree, lamp or bench`).toBe(false)
       }
     }
   })
 
-  it('from the top of the hill, the playground platform, a garden lot, the jetty and beside the lake: first stretch stays free and reaches a street', () => {
+  it('from the top of the hill, the playground platform, a garden lot, the jetty, beside the lake and among the trees: first stretch stays free and reaches a street', () => {
     const lot = footprint(EMPTY_LOTS[0])
     const starts: [string, Point][] = [
       ['hill top', { x: -26, z: -28 }],
@@ -94,6 +99,8 @@ describe('a ride on the bicycle', () => {
       ['beside the lake, far side', { x: 16, z: 25.6 }],
       ['behind the big trampoline', { x: -46, z: -29 }],
       ['against a house wall', { x: -4.3, z: -51 }],
+      ['in the forest', { x: -21, z: -71 }],
+      ['on the treed hill', { x: -29, z: -25 }],
     ]
     for (const [name, from] of starts) {
       const path = planRide(from, stop('bauernhof'), grid)!
@@ -109,6 +116,7 @@ describe('a ride on the bicycle', () => {
         expect(grid.free(p.x, p.z), where).toBe(true)
         expect(inLake(p.x, p.z) && !(p.x >= JETTY.minX && p.x <= JETTY.maxX), where).toBe(false)
         expect(onTrampoline(p.x, p.z), where).toBe(false)
+        expect(inNatureSolid(p.x, p.z), `${where}: a tree, lamp or bench`).toBe(false)
       }
       // Then the streets only
       for (const p of samples(path.slice(reached))) expect(onStreet(p.x, p.z), `${name} at ${p.x.toFixed(1)},${p.z.toFixed(1)}`).toBe(true)

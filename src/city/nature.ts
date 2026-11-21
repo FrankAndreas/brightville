@@ -3,11 +3,12 @@ import type RAPIER from '@dimforge/rapier3d-compat'
 import { DOOR_RADIUS, footprint, type DoorSpot, type Footprint } from './doors'
 import {
   ALL_PROPS, ALL_SCENERY, ALL_STREETS, EMPTY_LOTS, HILLS, JETTY, LAKE, PLAZA, TOWN_HALF, hedgeDistance, heightAt, inTown,
-  propArea, sceneryArea, streetDistance,
+  propArea, sceneryArea, solidAreas, streetDistance,
 } from './map'
 import { CLEARING, FIELD, NATURE, PENS } from './districts/nature'
 import { BLOCKS, TRAMPOLINES } from './props'
 import { UNSEEN_GROUPS } from './groups'
+import { walkGridAround, type WalkGrid } from './walkable'
 
 type Rapier = typeof RAPIER
 
@@ -60,6 +61,14 @@ export function groundUnder(i: NatureItem): number {
 export function natureArea(i: NatureItem): Footprint {
   const r = i.kind === 'tree' ? 0.3 * i.scale : i.kind === 'lamp' ? 0.15 : i.kind === 'bench' ? 0.8 : 0.5
   return { minX: i.x - r, maxX: i.x + r, minZ: i.z - r, maxZ: i.z + r }
+}
+
+/**
+ * The walking grid a ride's first stretch takes off the grass: past the door buildings, the scenery houses, the
+ * playground's blocks, and the trees, lamps and benches (they are solid too: riding into one, she would slide or stick)
+ */
+export function rideGrid(doors: DoorSpot[]): WalkGrid {
+  return walkGridAround([...solidAreas(doors), ...placeNature(NATURE_SEED, doors).filter(i => SOLID_KINDS.has(i.kind)).map(natureArea)])
 }
 
 function random(seed: number) {

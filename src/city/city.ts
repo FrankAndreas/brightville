@@ -17,7 +17,8 @@ import { createAnimals } from './animals'
 import { createBicycle, SADDLE_LIFT } from './bicycle'
 import { createRider } from './rider'
 import type { RideTarget } from './ride'
-import { walkGrid, type WalkGrid } from './walkable'
+import type { WalkGrid } from './walkable'
+import { rideGrid } from './nature'
 import { WALK_SPEED as STROLL, startWalkers, stepWalker, townsfolkDress, turnToward, walkerAt } from './walkers'
 
 export interface CityOptions {
@@ -87,9 +88,9 @@ export async function createCity(opts: CityOptions): Promise<City> {
   town.scene.add(blob.object)
   const bicycle = createBicycle(blob.paint)
   town.scene.add(bicycle.object)
-  // The walking grid for a ride's first stretch: the doors' places never change, only whether they are open
+  // The walking grid for a ride's first stretch, trees and all: the doors' places never change, only whether they are open
   let grid: WalkGrid | null = null
-  const rider = createRider(() => (grid ??= walkGrid(opts.doors)), how => opts.onRideEnd?.(how))
+  const rider = createRider(() => (grid ??= rideGrid(opts.doors)), how => opts.onRideEnd?.(how))
 
   // Townsfolk: simpler wobblies than hers (createBlob 'low': fewer segments, no shadows), in random looks, strolling
   let townsfolkSeed = 11
