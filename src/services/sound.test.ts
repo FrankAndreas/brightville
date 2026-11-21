@@ -16,10 +16,13 @@ class FakeAudioContext {
   currentTime = 0
   destination = {}
   started = 0
+  oscillators: { type: string; frequency: ReturnType<typeof param>; connect: () => void; start: () => void; stop: ReturnType<typeof vi.fn> }[] = []
   resume = vi.fn(() => Promise.resolve())
   constructor() { FakeAudioContext.instances++ }
   createOscillator() {
-    return { type: 'sine', frequency: param(), connect: vi.fn(), start: () => this.started++, stop: vi.fn() }
+    const osc = { type: 'sine', frequency: param(), connect: vi.fn(), start: () => this.started++, stop: vi.fn() }
+    this.oscillators.push(osc)
+    return osc
   }
   createGain() {
     return { gain: param(), connect: vi.fn() }
@@ -78,9 +81,16 @@ describe('sound with Web Audio', () => {
   it('moos: one low sawtooth gliding down for about 0.6 s', async () => {
     const { unlockAudio, playMoo } = await load()
     const ctx = unlockAudio() as unknown as FakeAudioContext
-    const before = ctx.started
     playMoo()
-    expect(ctx.started).toBe(before + 1)
+    expect(ctx.oscillators).toHaveLength(1)
+    const [osc] = ctx.oscillators
+    expect(osc.type).toBe('sawtooth')
+    const [from] = osc.frequency.setValueAtTime.mock.calls[0]
+    const [to, at] = osc.frequency.exponentialRampToValueAtTime.mock.calls[0]
+    expect(from).toBeLessThan(250)
+    expect(to).toBeLessThan(from)
+    expect(at).toBeCloseTo(0.6, 2)
+    expect(osc.stop).toHaveBeenCalledWith(expect.closeTo(0.62, 2))
   })
 
   it('stays silent for a moo without Web Audio', async () => {

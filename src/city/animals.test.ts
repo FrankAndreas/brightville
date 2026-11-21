@@ -158,4 +158,22 @@ describe('the animals drawn', () => {
     // Small enough not to need shadows: they would double the draw calls
     expect(meshes.filter(m => m.castShadow)).toEqual([])
   })
+
+  it('puts nothing in the graphics card again in a frame where nothing moves, and what moved in a frame where something did', () => {
+    const scene = new THREE.Scene()
+    const animals = createAnimals(scene, doors)
+    const instanced: THREE.InstancedMesh[] = []
+    scene.traverse(o => { if ((o as THREE.InstancedMesh).isInstancedMesh) instanced.push(o as THREE.InstancedMesh) })
+    expect(instanced.length).toBeGreaterThanOrEqual(4)
+    const far = { x: 0, z: 0 }
+    // Let the chickens' timers run out first
+    for (let i = 0; i < 150; i++) animals.update(i / 30, 1 / 30, far)
+    const versions = () => instanced.map(m => m.instanceMatrix.version)
+    const before = versions()
+    for (let i = 0; i < 10; i++) animals.update(10 + i / 30, 1 / 30, far)
+    expect(versions()).toEqual(before)
+    // She comes into the chickens' pen: some mesh is sent again
+    animals.update(11, 1 / 30, { x: 20, z: -97 })
+    expect(versions()).not.toEqual(before)
+  })
 })

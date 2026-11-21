@@ -50,7 +50,10 @@ export function stepPenAnimal(a: PenAnimal, her: Point, dt: number, pen: Footpri
   const d = Math.hypot(dx, dz)
   if (a.kind === 'cow') {
     if (d >= COW_LOOKS) return a
-    return { ...a, heading: turnToward(a.heading, Math.atan2(-dx, -dz), dt) }
+    const to = Math.atan2(-dx, -dz)
+    // Facing her already (near enough): nothing to redraw
+    if (Math.abs(Math.atan2(Math.sin(to - a.heading), Math.cos(to - a.heading))) < 1e-3) return a
+    return { ...a, heading: turnToward(a.heading, to, dt) }
   }
   if (a.kind === 'sheep') return a
   if (d < CHICKEN_SCARED) {
@@ -69,11 +72,13 @@ export function stepPenAnimal(a: PenAnimal, her: Point, dt: number, pen: Footpri
     z = clamp(z, pen.minZ + FENCE_MARGIN, pen.maxZ - FENCE_MARGIN)
     return { ...a, x, z, t: 0, heading: Math.atan2(dx, dz) }
   }
-  if (d < CHICKEN_CALM) return { ...a, t: 0 }
+  if (d < CHICKEN_CALM) return a.t === 0 ? a : { ...a, t: 0 }
   const t = a.t + dt
   const gx = a.homeX - a.x
   const gz = a.homeZ - a.z
   const g = Math.hypot(gx, gz)
+  // Home and calm: nothing changes (and no new object each frame)
+  if (g === 0 && a.t >= CHICKEN_CALM_TIME) return a
   if (t < CHICKEN_CALM_TIME || g === 0) return { ...a, t }
   const step = CHICKEN_WALK * dt
   if (g <= step) return { ...a, t, x: a.homeX, z: a.homeZ }
@@ -94,10 +99,10 @@ export interface Deer {
   t: number
 }
 
-/** Where the deer graze: at the clearing's edge, on opposite sides, 9 m apart */
+/** Where the deer graze: at the clearing's edge on the side away from the forest's stop and path, 6 m apart */
 export const DEER_HOMES: Point[] = [
-  { x: CLEARING.x + 4.5, z: CLEARING.z - 0.5 },
-  { x: CLEARING.x - 4.5, z: CLEARING.z + 0.5 },
+  { x: CLEARING.x - 3.5, z: CLEARING.z + 3 },
+  { x: CLEARING.x - 3.5, z: CLEARING.z - 3 },
 ]
 
 const DEER_SCARED = 8
@@ -105,7 +110,7 @@ const DEER_SCARED = 8
 const DEER_FAR = 15
 const DEER_RETURN_TIME = 5
 const DEER_SPEED = 2
-/** They walk this far into the trees, then are gone (less than half the way between the homes, so each knows its own) */
+/** They walk this far from the clearing's middle into the trees, then are gone (the homes are 6 m apart, and they go different ways) */
 const DEER_WALK = 3.5
 
 export function startDeer(): Deer[] {
@@ -122,7 +127,7 @@ export function stepDeer(d: Deer, her: Point, dt: number): Deer {
     const far = Math.hypot(home.x - her.x, home.z - her.z) >= DEER_FAR
     const t = far ? d.t + dt : 0
     if (t >= DEER_RETURN_TIME) return { ...d, x: home.x, z: home.z, state: 'graze', t: 0 }
-    return { ...d, t }
+    return t === d.t ? d : { ...d, t }
   }
   const dx = d.x - her.x
   const dz = d.z - her.z
@@ -132,10 +137,12 @@ export function stepDeer(d: Deer, her: Point, dt: number): Deer {
     return stepDeer({ ...d, state: 'leave', t: 0 }, her, dt)
   }
   const home = homeOf(d)
-  // Away from her
-  const len = d2 > 1e-6 ? d2 : 1
-  const ux = d2 > 1e-6 ? dx / len : 1
-  const uz = d2 > 1e-6 ? dz / len : 0
+  // Out from the clearing's middle, into the trees: the clearing is open, so never just away from her
+  const cx = home.x - CLEARING.x
+  const cz = home.z - CLEARING.z
+  const cl = Math.hypot(cx, cz)
+  const ux = cx / cl
+  const uz = cz / cl
   const x = d.x + ux * DEER_SPEED * dt
   const z = d.z + uz * DEER_SPEED * dt
   const state = Math.hypot(x - home.x, z - home.z) >= DEER_WALK ? 'gone' : 'leave'
@@ -208,28 +215,33 @@ export function createFarmLife(scene: THREE.Scene): FarmLife {
     chicken: make(FARM_SHAPES.chicken, animals.filter(a => a.kind === 'chicken').length),
   }
   const deerMesh = make(FARM_SHAPES.deer, deer.length)
-  const draw = (time: number) => {
-    const next = { cow: 0, sheep: 0, chicken: 0 }
-    animals.forEach(a => {
-      // Chickens peck: a little dip now and then
-      const peck = a.kind === 'chicken' ? Math.max(0, Math.sin(time * 5 + a.homeX * 3)) ** 8 * 0.08 : 0
-      put(meshes[a.kind], next[a.kind]++, a.x, a.z, a.heading, 1 - peck)
-    })
-    deer.forEach((d, i) => put(deerMesh, i, d.x, d.z, d.heading, d.state === 'gone' ? 0.0001 : 1))
-  }
-  draw(0)
+  // Each animal's mesh and place in it, worked out once
+  const counts = { cow: 0, sheep: 0, chicken: 0 }
+  const penMesh = animals.map(a => meshes[a.kind])
+  const penSlot = animals.map(a => counts[a.kind]++)
+  for (let i = 0; i < animals.length; i++) put(penMesh[i], penSlot[i], animals[i].x, animals[i].z, animals[i].heading)
+  for (let i = 0; i < deer.length; i++) put(deerMesh, i, deer[i].x, deer[i].z, deer[i].heading)
   return {
     update(time, dt, her) {
+      // Only what moved is put in its mesh again, and only that mesh goes to the graphics card again
       for (let i = 0; i < animals.length; i++) {
-        let a = stepPenAnimal(animals[i], her, dt, pens[i])
+        const before = animals[i]
+        let a = stepPenAnimal(before, her, dt, pens[i])
         if (wantsMoo(a, her, time)) {
           a = { ...a, mooAt: time }
           playMoo()
         }
         animals[i] = a
+        if (a.x !== before.x || a.z !== before.z || a.heading !== before.heading) put(penMesh[i], penSlot[i], a.x, a.z, a.heading)
       }
-      for (let i = 0; i < deer.length; i++) deer[i] = stepDeer(deer[i], her, dt)
-      draw(time)
+      for (let i = 0; i < deer.length; i++) {
+        const before = deer[i]
+        const d = stepDeer(before, her, dt)
+        deer[i] = d
+        if (d.x !== before.x || d.z !== before.z || d.heading !== before.heading || d.state !== before.state) {
+          put(deerMesh, i, d.x, d.z, d.heading, d.state === 'gone' ? 0.0001 : 1)
+        }
+      }
     },
   }
 }

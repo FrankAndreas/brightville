@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { BUILDINGS } from '@/buildings/registry'
 import { CLEARING, PENS } from './districts/nature'
+import { NATURE_SEED, placeNature } from './nature'
 import {
   DEER_HOMES, startDeer, startPenAnimals, stepDeer, stepPenAnimal, wantsMoo, type Deer, type PenAnimal,
 } from './farm'
@@ -76,6 +78,20 @@ describe('the deer', () => {
     for (const d of startDeer()) {
       expect(dist(d, CLEARING)).toBeGreaterThanOrEqual(CLEARING.radius - 1)
       expect(dist(d, CLEARING)).toBeLessThanOrEqual(CLEARING.radius + 1.5)
+    }
+  })
+
+  it('walks into the trees, not off in the open clearing, whichever side she comes from', () => {
+    const trees = placeNature(NATURE_SEED, BUILDINGS.map(b => b.door)).filter(i => i.kind === 'tree')
+    for (const home of DEER_HOMES) {
+      for (let k = 0; k < 8; k++) {
+        const a = (k / 8) * Math.PI * 2
+        const her = { x: home.x + Math.cos(a) * 7.9, z: home.z + Math.sin(a) * 7.9 }
+        const d = run({ x: home.x, z: home.z, heading: 0, state: 'graze', t: 0 }, her, 6)
+        expect(d.state).toBe('gone')
+        expect(dist(d, CLEARING), `from ${k}`).toBeGreaterThan(CLEARING.radius + 2)
+        expect(trees.some(t => dist(d, t) < 4), `trees near ${d.x},${d.z}`).toBe(true)
+      }
     }
   })
 
