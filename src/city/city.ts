@@ -14,6 +14,10 @@ import { createView, walkDirection } from './view'
 import { createSpeedWatch } from './quality'
 import { START, heightAt } from './map'
 import { createAnimals } from './animals'
+import { createBicycle, SADDLE_LIFT } from './bicycle'
+import { createRider } from './rider'
+import type { RideTarget } from './ride'
+import { walkGrid, type WalkGrid } from './walkable'
 import { WALK_SPEED as STROLL, startWalkers, stepWalker, townsfolkDress, turnToward, walkerAt } from './walkers'
 
 export interface CityOptions {
@@ -24,6 +28,8 @@ export interface CityOptions {
   onNearDoor(id: string | null): void
   /** Interact pressed at an open door */
   onEnter(id: string): void
+  /** A bicycle ride ended: at its target, or stopped by her keys or by being stuck (never by pause or stopRide) */
+  onRideEnd?(how: 'arrived' | 'stopped'): void
 }
 
 export interface City {
@@ -31,6 +37,16 @@ export interface City {
   setDoors(doors: DoorDef[]): void
   /** Her look and what she wears, on the character in the town */
   setDress(dress: Dress): void
+  /**
+   * Rides her there on the bicycle, along the streets (replacing a ride under way); 'there' when she already is.
+   * Arriving never enters: she still does that herself.
+   */
+  rideTo(target: RideTarget): 'riding' | 'there'
+  /** Ends a ride where she is, without onRideEnd */
+  stopRide(): void
+  /** Where she is */
+  position(): { x: number; z: number }
+  /** Also ends a ride, for good: resume() doesn't take it up again */
   pause(): void
   resume(): void
   dispose(): void
@@ -69,6 +85,11 @@ export async function createCity(opts: CityOptions): Promise<City> {
   const character = createCharacter(RAPIER, world, START, TRAMPOLINES)
   const blob = createBlob()
   town.scene.add(blob.object)
+  const bicycle = createBicycle(blob.paint)
+  town.scene.add(bicycle.object)
+  // The walking grid for a ride's first stretch: the doors' places never change, only whether they are open
+  let grid: WalkGrid | null = null
+  const rider = createRider(() => (grid ??= walkGrid(opts.doors)), how => opts.onRideEnd?.(how))
 
   // Townsfolk: simpler wobblies than hers (createBlob 'low': fewer segments, no shadows), in random looks, strolling
   let townsfolkSeed = 11
@@ -109,6 +130,11 @@ export async function createCity(opts: CityOptions): Promise<City> {
   let nearId: string | null = null
   let first = true
   let at = { x: START.x, z: START.z }
+  let last: CharacterFrame | null = null
+  // On the bike she sits a little higher and doesn't walk: one frame, filled in each time
+  const sitting: CharacterFrame = {
+    x: 0, y: 0, z: 0, heading: 0, speed: 0, grounded: true, tumbling: false, rotation: null, event: null, impact: 0,
+  }
   // Frame times over two seconds: slow ones make the picture a little less sharp (quality.ts)
   const speed = createSpeedWatch(maxRatio)
   function watchSpeed() {
@@ -122,10 +148,19 @@ export async function createCity(opts: CityOptions): Promise<City> {
   const loop = createLoop(opts.intents, (intents, dt) => {
     time += dt
     world.timestep = dt || 1 / 60
-    turning.step(intents, dt, at)
-    // The keys walk relative to the view: up is always away from the camera
-    const walk = walkDirection(turning.yaw, intents.moveX, intents.moveZ)
-    const f = character.step({ ...intents, moveX: walk.x, moveZ: walk.z }, dt)
+    // On the bicycle the ride steers her in the town's own directions, and the view swings round behind her
+    const ride = rider.step(intents, last, dt)
+    let f: CharacterFrame
+    if (ride) {
+      if (last) turning.behind(last.heading, dt)
+      f = character.step(ride, dt, ride.speed)
+    } else {
+      turning.step(intents, dt, at)
+      // The keys walk relative to the view: up is always away from the camera
+      const walk = walkDirection(turning.yaw, intents.moveX, intents.moveZ)
+      f = character.step({ ...intents, moveX: walk.x, moveZ: walk.z }, dt, undefined, rider.facing)
+    }
+    last = f
     if (dt > 0) world.step()
     if (f.event === 'bounce') props.bounce(f.x, f.z)
     if (import.meta.env.DEV) debug.record(f)
@@ -133,7 +168,15 @@ export async function createCity(opts: CityOptions): Promise<City> {
 
     props.sync()
     props.update(dt)
-    blob.update(f, dt)
+    if (rider.onBike) {
+      Object.assign(sitting, f)
+      sitting.y += SADDLE_LIFT
+      sitting.speed = 0
+      blob.update(sitting, dt)
+    } else {
+      blob.update(f, dt)
+    }
+    bicycle.update(f, rider.onBike, f.speed, dt)
     strollTownsfolk(f, dt)
     animals.update(time, dt, f)
     for (const door of town.doorVisuals) door.update(time)
@@ -152,7 +195,8 @@ export async function createCity(opts: CityOptions): Promise<City> {
       nearId = near?.id ?? null
       opts.onNearDoor(nearId)
     }
-    if (near?.open && intents.interact) opts.onEnter(near.id)
+    // Only her own press enters, never a ride passing or arriving
+    if (near?.open && intents.interact && !ride) opts.onEnter(near.id)
   })
   loop.resume()
 
@@ -162,7 +206,13 @@ export async function createCity(opts: CityOptions): Promise<City> {
       doors = next
       next.forEach((door, i) => town.doorVisuals[i]?.setState(door.open, door.locked ?? false))
     },
-    pause: loop.pause,
+    rideTo: target => rider.rideTo(target, at),
+    stopRide: rider.cancel,
+    position: () => ({ x: at.x, z: at.z }),
+    pause() {
+      rider.cancel()
+      loop.pause()
+    },
     resume() {
       // Time spent inside a building isn't a slow frame
       speed.reset()

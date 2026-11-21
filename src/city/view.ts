@@ -5,6 +5,8 @@ import { PLAZA } from './map'
 export const TURN_SPEED = 1.4
 // How quickly a turn-around or look-back closes the gap: most of it within half a second
 const SWING_RATE = 8
+/** How quickly the view swings round behind her on the bicycle: gently, so corners don't swing the whole town about */
+const RIDE_SWING_RATE = 2.5
 
 /**
  * Where the keys walk when the view is turned by `yaw` (0 looks along -z; the camera sits at
@@ -23,6 +25,8 @@ export interface View {
   readonly yaw: number
   /** `at`: where she is, so looking home turns towards the plaza */
   step(intents: Pick<Intents, 'turn' | 'turnAround' | 'lookHome'>, dt: number, at?: { x: number; z: number }): void
+  /** On the bicycle: swings round behind her, riding the way `heading` faces (CharacterFrame.heading) */
+  behind(heading: number, dt: number): void
 }
 
 /** The way the camera looks: turned by hand, swung around, or home: towards the plaza (on the plaza, the first way). */
@@ -56,6 +60,11 @@ export function createView(): View {
         return
       }
       yaw += gap * (1 - Math.exp(-SWING_RATE * dt))
+    },
+    behind(heading, dt) {
+      target = null
+      // She looks along (sin, cos) of her heading; the camera sits at (sin yaw, cos yaw) behind her: yaw = heading + π
+      yaw += wrap(heading + Math.PI - yaw) * (1 - Math.exp(-RIDE_SWING_RATE * dt))
     },
   }
 }

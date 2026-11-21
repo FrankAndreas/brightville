@@ -14,6 +14,8 @@ const LIMB_COLOR = 0xf07f1b
  */
 export interface Blob {
   object: THREE.Object3D
+  /** Her body's material: whatever is painted in her colour (her bicycle) shares it, and so changes with her look */
+  paint: THREE.Material
   update(f: CharacterFrame, dt: number): void
   /** Her look and what she wears: recolours the body and swaps hair, glasses and add-ons */
   setDress(dress: Dress): void
@@ -107,6 +109,7 @@ export function createBlob(dress?: Dress, detail: 'full' | 'low' = 'full'): Blob
 
   return {
     object: root,
+    paint: skin,
     setDress,
     update(f, dt) {
       root.position.set(f.x, f.y, f.z)

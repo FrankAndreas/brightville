@@ -80,3 +80,26 @@ describe('createView', () => {
     expect(near(view.yaw, 0)).toBe(true)
   })
 })
+
+describe('the view on the bicycle', () => {
+  it('swings round behind her as she rides, not all at once', () => {
+    const view = createView()
+    // Riding towards +x (heading π/2): behind her the camera sits towards -x, at yaw -π/2
+    view.behind(Math.PI / 2, 1 / 60)
+    expect(Math.abs(view.yaw)).toBeGreaterThan(0)
+    expect(Math.abs(view.yaw)).toBeLessThan(0.2)
+    for (let i = 0; i < 120; i++) view.behind(Math.PI / 2, 1 / 60)
+    expect(near(view.yaw, -Math.PI / 2)).toBe(true)
+    // Up walks the way she rides
+    const up = walkDirection(view.yaw, 0, -1)
+    expect(up.x).toBeCloseTo(1, 1)
+  })
+
+  it('then turns by hand as before, from where it swung to', () => {
+    const view = createView()
+    for (let i = 0; i < 120; i++) view.behind(Math.PI, 1 / 60)
+    const was = view.yaw
+    view.step({ ...none, turn: 1 }, 0.5)
+    expect(near(view.yaw, was - TURN_SPEED * 0.5)).toBe(true)
+  })
+})
