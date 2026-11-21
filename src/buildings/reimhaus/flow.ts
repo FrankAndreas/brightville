@@ -4,6 +4,10 @@ import { scoreSolved } from '../visit'
 const SAY_LISTEN = 'Hör nochmal gut zu.'
 const SAY_LISTEN_COUNT = 'Hör nochmal gut zu:'
 const SAY_CHEER = 'Super!'
+const SAY_HOW = 'Hör zu, so geht’s.'
+const SAY_ON = 'Das üben wir noch. Weiter geht’s!'
+/** Wrong counts of one word before the house drums it for her once more and the visit goes on */
+const TRIES = 3
 const SAY_DONE = 'Super gemacht!'
 
 export type RhymeEffect =
@@ -31,8 +35,8 @@ export interface RhymeState {
   stars: number
   /** Each solved task, right on the first try or not: what moves her up */
   results: { ladder: 'reimen'; firstTry: boolean }[]
-  /** A count of this task was wrong */
-  missed: boolean
+  /** Wrong counts of this task */
+  tries: number
   phase: 'example' | 'asking' | 'cheering' | 'replaying' | 'done'
 }
 
@@ -56,10 +60,11 @@ export interface RhymeFlow {
   next(): RhymeEffect[]
 }
 
-/** One visit to the Reimhaus: an example while she is new to the step, then tasks that each end only when right */
+/** One visit to the Reimhaus: an example while she is new to the step, then tasks that each end only when right
+ * (a syllable count: or after three wrong counts) */
 export function createRhymeFlow(tasks: RhymeTask[], example: Example | null): RhymeFlow {
   const state: RhymeState = {
-    index: 0, task: tasks[0] ?? null, wrong: [], beats: 0, solved: 0, stars: 0, results: [], missed: false,
+    index: 0, task: tasks[0] ?? null, wrong: [], beats: 0, solved: 0, stars: 0, results: [], tries: 0,
     phase: tasks.length === 0 ? 'done' : example ? 'example' : 'asking',
   }
 
@@ -129,11 +134,16 @@ export function createRhymeFlow(tasks: RhymeTask[], example: Example | null): Rh
       if (state.phase !== 'asking' || task?.type !== 'syllables' || state.beats === 0) return []
       const drum: RhymeEffect = { type: 'drum', syllables: task.word.syllables }
       if (state.beats === task.answer) {
-        solve(!state.missed)
+        solve(state.tries === 0)
         return [{ type: 'chime' }, drum, { type: 'speak', text: SAY_CHEER }]
       }
-      state.missed = true
+      state.tries += 1
       state.beats = 0
+      // Never stuck on a word: after three, the house drums it for her once more and the visit goes on (the Star kept)
+      if (state.tries >= TRIES) {
+        solve(false)
+        return [{ type: 'speak', text: SAY_HOW }, drum, { type: 'speak', text: SAY_ON }]
+      }
       state.phase = 'replaying'
       return [{ type: 'speak', text: SAY_LISTEN_COUNT }, drum]
     },
@@ -149,7 +159,7 @@ export function createRhymeFlow(tasks: RhymeTask[], example: Example | null): Rh
       state.index += 1
       state.wrong = []
       state.beats = 0
-      state.missed = false
+      state.tries = 0
       const task = tasks[state.index]
       if (!task) {
         state.task = null

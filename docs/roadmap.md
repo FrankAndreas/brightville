@@ -77,6 +77,14 @@ These were tested with automated tests and in a desktop browser, but not where t
 
 **Still open:** the second half of the UX review, from watching the child play stage 6: where she hesitates, what she ignores, what she keeps going back to.
 
+**UX review of the learning buildings, walkthrough (Nov 21, 2026).** The Reimhaus, Musterwerkstatt, Kalender, Spielwelt and Trommelhaus played through at iPad size, both ways round, with every sentence of the voice logged. Fixed:
+
+- The Trommelhaus offered clapping and showed its example only in tests: in the game both were always off (#60).
+- The Spielwelt at steps 1–3 shows where the thing to find hides; before, the first task could hide it off the screen before she knew the world scrolls.
+- The Reimhaus's syllable drum: after three wrong counts the house drums it for her once more and the visit goes on (the Star kept), as in the Trommelhaus.
+
+Next: tapping a day in the Kalender's week strip says its name; the stars earned shown large at the end of a learning visit; the parents' overview says „Silben trommeln“; the Kalender clocks' long hand off the 12.
+
 ## Calls made without asking, which may be worth revisiting
 
 - The Cinema costs 3 Stars per film, not per minute; one film list for all children.

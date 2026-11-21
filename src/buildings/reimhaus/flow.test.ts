@@ -118,6 +118,27 @@ describe('the Reimhaus flow', () => {
     expect(flow.state.results).toEqual([{ ladder: 'reimen', firstTry: false }])
   })
 
+  it('after three wrong counts drums it once more with her and goes on, the Star kept', () => {
+    const flow = createRhymeFlow([syllableTask(), syllableTask()], null)
+    flow.start()
+    for (let n = 0; n < 2; n++) {
+      flow.tap()
+      flow.done()
+      flow.replayDone()
+    }
+    flow.tap()
+    expect(flow.done()).toEqual([
+      { type: 'speak', text: 'Hör zu, so geht’s.' },
+      { type: 'drum', syllables: ['Au', 'to'] },
+      { type: 'speak', text: 'Das üben wir noch. Weiter geht’s!' },
+    ])
+    expect(flow.state).toMatchObject({ phase: 'cheering', solved: 1, results: [{ ladder: 'reimen', firstTry: false }] })
+    expect(flow.state.stars).toBeGreaterThan(0)
+    flow.next()
+    flow.tap()
+    expect(flow.done()[0]).toEqual({ type: 'speak', text: 'Hör nochmal gut zu:' })
+  })
+
   it('takes no tap, pick or done during the example, the cheer or the replay', () => {
     const flow = createRhymeFlow([syllableTask(), syllableTask()], exampleFor(4, 0))
     flow.start()
