@@ -8,7 +8,7 @@ import { doorTarget, type RideTarget } from './ride'
 
 // No WebGL in tests: a stand-in renderer. The town, the physics and the frame loop are the real ones.
 const renderer = vi.hoisted(() => ({
-  setPixelRatio: () => {}, setSize: () => {}, render: () => {}, dispose: () => {},
+  setPixelRatio: () => {}, setSize: () => {}, render: vi.fn(), dispose: () => {},
   shadowMap: { enabled: false }, info: { render: { calls: 0, triangles: 0 } },
 }))
 vi.mock('three', async importOriginal => ({ ...(await importOriginal<typeof import('three')>()), WebGLRenderer: vi.fn(function () { return renderer }) }))
@@ -105,6 +105,18 @@ describe('riding the bicycle in the town', () => {
     expect(angleGap(her().heading, farm.face)).toBeLessThan(0.1)
     expect(t.onEnter).not.toHaveBeenCalled()
     expect(t.onRideEnd).toHaveBeenCalledTimes(1)
+  }, 60_000)
+
+  it('swings the view round behind her after she arrives, so she looks the way of the stop, away from the camera', async () => {
+    const t = await town()
+    city = t.city
+    city.rideTo(farm)
+    rideUntilEnd(t.onRideEnd)
+    expect(t.onRideEnd).toHaveBeenCalledWith('arrived')
+    seconds(2)
+    const camera = renderer.render.mock.lastCall![1] as { position: { x: number; z: number } }
+    const at = her()
+    expect(angleGap(Math.atan2(at.x - camera.position.x, at.z - camera.position.z), farm.face)).toBeLessThan(0.2)
   }, 60_000)
 
   it('rides past the doors without stopping at each: no door is near until she gets off', async () => {

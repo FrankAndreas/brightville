@@ -38,7 +38,7 @@ export interface Rider {
   step(intents: Intents, her: RiderSpot | null, dt: number): RideControl | null
   /** The bike is out and she sits on it */
   readonly onBike: boolean
-  /** The heading to turn her to after arriving, until she moves; null otherwise */
+  /** The heading to turn her (and the view behind her) to after arriving, until she uses any control; null otherwise */
   readonly facing: number | null
 }
 
@@ -105,7 +105,8 @@ export function createRider(grid: () => WalkGrid, onEnd: (how: 'arrived' | 'stop
     },
     step(intents, her, dt) {
       if (!target) {
-        if (facing !== null && (intents.moveX !== 0 || intents.moveZ !== 0 || intents.jump)) facing = null
+        // Any of her controls ends the hold: walking turns her, and a turn key turns the view by hand again
+        if (facing !== null && interrupts(intents)) facing = null
         return null
       }
       if (interrupts(intents)) return end('stopped')

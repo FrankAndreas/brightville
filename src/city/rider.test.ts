@@ -50,6 +50,17 @@ describe('the rider', () => {
     expect(rider.facing).toBeNull()
   })
 
+  it('ends the facing hold on any of her controls: a turn key too, so the view turns with her', () => {
+    for (const press of [{ turn: 1 }, { turnAround: true }, { lookHome: true }] as Partial<Intents>[]) {
+      const { rider, frame } = setup()
+      expect(rider.rideTo({ x: START.x + 1, z: START.z, face: 1 }, START)).toBe('there')
+      frame()
+      expect(rider.facing).toBe(1)
+      frame({ ...none, ...press })
+      expect(rider.facing).toBeNull()
+    }
+  })
+
   it('waits for her to stand: in the air or tumbling, nothing moves and the bike is not out yet', () => {
     const { rider, her, frame } = setup()
     rider.rideTo(farm, her)

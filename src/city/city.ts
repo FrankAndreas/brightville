@@ -152,10 +152,15 @@ export async function createCity(opts: CityOptions): Promise<City> {
     const ride = rider.step(intents, last, dt)
     let f: CharacterFrame
     if (ride) {
-      if (last) turning.behind(last.heading, dt)
+      // Towards the way the bike goes, not her standing heading, which lags behind it (a still control has no way)
+      if (ride.speed > 0) turning.behind(Math.atan2(ride.moveX, ride.moveZ), dt)
+      else if (last) turning.behind(last.heading, dt)
       f = character.step(ride, dt, ride.speed)
     } else {
-      turning.step(intents, dt, at)
+      // After arriving she turns to the stop's way and the view swings round behind her, until she uses a control
+      // (rider.step ran first: a turn key this frame already ended the hold)
+      if (rider.facing !== null) turning.behind(rider.facing, dt)
+      else turning.step(intents, dt, at)
       // The keys walk relative to the view: up is always away from the camera
       const walk = walkDirection(turning.yaw, intents.moveX, intents.moveZ)
       f = character.step({ ...intents, moveX: walk.x, moveZ: walk.z }, dt, undefined, rider.facing)
