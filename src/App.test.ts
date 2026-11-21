@@ -952,7 +952,7 @@ describe('App', () => {
       w.unmount()
     })
 
-    it('says nothing about a ride when she is already there', async () => {
+    it('says where she is when she is already there: the door line of a building', async () => {
       city.rideTo.mockReturnValueOnce('there' as 'riding')
       const w = await started([school, play])
       await w.find('[data-test="map-button"]').trigger('pointerdown')
@@ -960,7 +960,19 @@ describe('App', () => {
       await w.find('[data-test="map-marker-school"]').trigger('pointerdown')
       await flushPromises()
       expect(city.rideTo).toHaveBeenCalledTimes(1)
-      expect(speak).not.toHaveBeenCalled()
+      expect(vi.mocked(speak).mock.calls).toEqual([['Schule']])
+      w.unmount()
+    })
+
+    it('says where she is when she is already there: the name of a stop', async () => {
+      city.rideTo.mockReturnValueOnce('there' as 'riding')
+      const w = await started([school, play])
+      await w.find('[data-test="map-button"]').trigger('pointerdown')
+      vi.mocked(speak).mockClear()
+      await w.find('[data-test="map-marker-platz"]').trigger('pointerdown')
+      await flushPromises()
+      expect(city.rideTo).toHaveBeenCalledTimes(1)
+      expect(vi.mocked(speak).mock.calls).toEqual([['Platz']])
       w.unmount()
     })
 

@@ -168,13 +168,14 @@ watch(inTown, here => { if (!here) mapOpen.value = false })
 async function chooseOnMap(marker: MapMarker) {
   let target: RideTarget
   let line: string
+  let building: BuildingDef | null = null
   if (marker.kind === 'stop') {
     const stop = STOPS.find(s => s.id === marker.id)
     if (!stop) return
     target = { x: stop.x, z: stop.z, face: stop.face }
     line = stop.line
   } else {
-    const building = find(marker.id)
+    building = find(marker.id)
     if (!building) return
     // Closed: the door's own line, and she stays on the map; she couldn't go in when she got there
     if (stateFor(building) !== 'open') {
@@ -188,8 +189,10 @@ async function chooseOnMap(marker: MapMarker) {
   // Pausing ends a ride: the town goes on first (the map held it), then she rides
   await nextTick()
   if (!inTown.value || helpOpen.value) return
-  // Already there: no ride to announce; her door says its own line
-  if (cityView.value?.rideTo(target) === 'riding') void speak(line)
+  const ride = cityView.value?.rideTo(target)
+  if (ride === 'riding') void speak(line)
+  // Already there: no ride, and no door comes near (she is near it already), so say where she is
+  else if (ride === 'there') void speak(building ? doorLine(building) : marker.name)
 }
 
 /** What the voice says in front of a door, by what the door is right now */
