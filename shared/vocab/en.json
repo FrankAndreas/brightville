@@ -1,0 +1,1517 @@
+{
+ "lang": "en",
+ "topics": [
+  {
+   "id": "travel",
+   "name": "Reisen",
+   "words": [
+    {
+     "id": "station",
+     "de": "der Bahnhof",
+     "foreign": "railway station / train station"
+    },
+    {
+     "id": "train",
+     "de": "der Zug",
+     "foreign": "train"
+    },
+    {
+     "id": "plane",
+     "de": "das Flugzeug",
+     "foreign": "plane / aeroplane"
+    },
+    {
+     "id": "airport",
+     "de": "der Flughafen",
+     "foreign": "airport"
+    },
+    {
+     "id": "ticket",
+     "de": "die Fahrkarte",
+     "foreign": "ticket"
+    },
+    {
+     "id": "luggage",
+     "de": "das Gepäck",
+     "foreign": "luggage"
+    },
+    {
+     "id": "suitcase",
+     "de": "der Koffer",
+     "foreign": "suitcase"
+    },
+    {
+     "id": "passport",
+     "de": "der Pass",
+     "foreign": "passport"
+    },
+    {
+     "id": "journey",
+     "de": "die Reise",
+     "foreign": "journey / trip"
+    },
+    {
+     "id": "holidays",
+     "de": "die Ferien",
+     "foreign": "holidays"
+    },
+    {
+     "id": "hotel",
+     "de": "das Hotel",
+     "foreign": "hotel"
+    },
+    {
+     "id": "map",
+     "de": "die Landkarte",
+     "foreign": "map"
+    },
+    {
+     "id": "border",
+     "de": "die Grenze",
+     "foreign": "border"
+    },
+    {
+     "id": "abroad",
+     "de": "im Ausland",
+     "foreign": "abroad"
+    },
+    {
+     "id": "platform",
+     "de": "das Gleis",
+     "foreign": "platform"
+    },
+    {
+     "id": "delay",
+     "de": "die Verspätung",
+     "foreign": "delay"
+    },
+    {
+     "id": "departure",
+     "de": "die Abfahrt",
+     "foreign": "departure"
+    },
+    {
+     "id": "arrival",
+     "de": "die Ankunft",
+     "foreign": "arrival"
+    },
+    {
+     "id": "travel",
+     "de": "reisen",
+     "foreign": "to travel"
+    },
+    {
+     "id": "leave",
+     "de": "abfahren",
+     "foreign": "to leave / to depart"
+    },
+    {
+     "id": "arrive",
+     "de": "ankommen",
+     "foreign": "to arrive"
+    },
+    {
+     "id": "book",
+     "de": "buchen",
+     "foreign": "to book"
+    },
+    {
+     "id": "visit",
+     "de": "besuchen",
+     "foreign": "to visit"
+    },
+    {
+     "id": "tourist",
+     "de": "der Tourist",
+     "foreign": "tourist"
+    }
+   ]
+  },
+  {
+   "id": "school",
+   "name": "Schule",
+   "words": [
+    {
+     "id": "subject",
+     "de": "das Schulfach",
+     "foreign": "subject"
+    },
+    {
+     "id": "lesson",
+     "de": "die Lektion / die Stunde",
+     "foreign": "lesson"
+    },
+    {
+     "id": "homework",
+     "de": "die Hausaufgaben",
+     "foreign": "homework"
+    },
+    {
+     "id": "test",
+     "de": "die Prüfung",
+     "foreign": "test / exam"
+    },
+    {
+     "id": "mark",
+     "de": "die Note",
+     "foreign": "mark / grade"
+    },
+    {
+     "id": "timetable",
+     "de": "der Stundenplan",
+     "foreign": "timetable"
+    },
+    {
+     "id": "classroom",
+     "de": "das Schulzimmer",
+     "foreign": "classroom"
+    },
+    {
+     "id": "teacher",
+     "de": "die Lehrerin",
+     "foreign": "teacher"
+    },
+    {
+     "id": "pupil",
+     "de": "der Schüler",
+     "foreign": "pupil / student"
+    },
+    {
+     "id": "break",
+     "de": "die Pause",
+     "foreign": "break"
+    },
+    {
+     "id": "exercise",
+     "de": "die Übung",
+     "foreign": "exercise"
+    },
+    {
+     "id": "dictionary",
+     "de": "das Wörterbuch",
+     "foreign": "dictionary"
+    },
+    {
+     "id": "exercisebook",
+     "de": "das Heft",
+     "foreign": "exercise book"
+    },
+    {
+     "id": "pencilcase",
+     "de": "das Etui",
+     "foreign": "pencil case"
+    },
+    {
+     "id": "maths",
+     "de": "die Mathematik",
+     "foreign": "maths"
+    },
+    {
+     "id": "history",
+     "de": "die Geschichte",
+     "foreign": "history"
+    },
+    {
+     "id": "geography",
+     "de": "die Geografie",
+     "foreign": "geography"
+    },
+    {
+     "id": "learn",
+     "de": "lernen",
+     "foreign": "to learn / to study"
+    },
+    {
+     "id": "understand",
+     "de": "verstehen",
+     "foreign": "to understand"
+    },
+    {
+     "id": "explain",
+     "de": "erklären",
+     "foreign": "to explain"
+    },
+    {
+     "id": "repeat",
+     "de": "wiederholen",
+     "foreign": "to repeat"
+    },
+    {
+     "id": "forget",
+     "de": "vergessen",
+     "foreign": "to forget"
+    },
+    {
+     "id": "difficult",
+     "de": "schwierig",
+     "foreign": "difficult / hard"
+    },
+    {
+     "id": "easy",
+     "de": "einfach",
+     "foreign": "easy"
+    }
+   ]
+  },
+  {
+   "id": "family",
+   "name": "Familie",
+   "words": [
+    {
+     "id": "parents",
+     "de": "die Eltern",
+     "foreign": "parents"
+    },
+    {
+     "id": "mother",
+     "de": "die Mutter",
+     "foreign": "mother"
+    },
+    {
+     "id": "father",
+     "de": "der Vater",
+     "foreign": "father"
+    },
+    {
+     "id": "brother",
+     "de": "der Bruder",
+     "foreign": "brother"
+    },
+    {
+     "id": "sister",
+     "de": "die Schwester",
+     "foreign": "sister"
+    },
+    {
+     "id": "grandmother",
+     "de": "die Grossmutter",
+     "foreign": "grandmother"
+    },
+    {
+     "id": "grandfather",
+     "de": "der Grossvater",
+     "foreign": "grandfather"
+    },
+    {
+     "id": "uncle",
+     "de": "der Onkel",
+     "foreign": "uncle"
+    },
+    {
+     "id": "aunt",
+     "de": "die Tante",
+     "foreign": "aunt"
+    },
+    {
+     "id": "cousin",
+     "de": "der Cousin",
+     "foreign": "cousin"
+    },
+    {
+     "id": "son",
+     "de": "der Sohn",
+     "foreign": "son"
+    },
+    {
+     "id": "daughter",
+     "de": "die Tochter",
+     "foreign": "daughter"
+    },
+    {
+     "id": "husband",
+     "de": "der Ehemann",
+     "foreign": "husband"
+    },
+    {
+     "id": "wife",
+     "de": "die Ehefrau",
+     "foreign": "wife"
+    },
+    {
+     "id": "child",
+     "de": "das Kind",
+     "foreign": "child"
+    },
+    {
+     "id": "baby",
+     "de": "das Baby",
+     "foreign": "baby"
+    },
+    {
+     "id": "birthday",
+     "de": "der Geburtstag",
+     "foreign": "birthday"
+    },
+    {
+     "id": "wedding",
+     "de": "die Hochzeit",
+     "foreign": "wedding"
+    },
+    {
+     "id": "married",
+     "de": "verheiratet",
+     "foreign": "married"
+    },
+    {
+     "id": "divorced",
+     "de": "geschieden",
+     "foreign": "divorced"
+    },
+    {
+     "id": "older",
+     "de": "älter",
+     "foreign": "older"
+    },
+    {
+     "id": "younger",
+     "de": "jünger",
+     "foreign": "younger"
+    },
+    {
+     "id": "get_along",
+     "de": "sich verstehen",
+     "foreign": "to get on / to get along"
+    },
+    {
+     "id": "look_after",
+     "de": "aufpassen auf",
+     "foreign": "to look after"
+    }
+   ]
+  },
+  {
+   "id": "freetime",
+   "name": "Freizeit",
+   "words": [
+    {
+     "id": "hobby",
+     "de": "das Hobby",
+     "foreign": "hobby"
+    },
+    {
+     "id": "free_time",
+     "de": "die Freizeit",
+     "foreign": "free time"
+    },
+    {
+     "id": "music",
+     "de": "die Musik",
+     "foreign": "music"
+    },
+    {
+     "id": "film",
+     "de": "der Film",
+     "foreign": "film / movie"
+    },
+    {
+     "id": "cinema",
+     "de": "das Kino",
+     "foreign": "cinema"
+    },
+    {
+     "id": "concert",
+     "de": "das Konzert",
+     "foreign": "concert"
+    },
+    {
+     "id": "game",
+     "de": "das Spiel",
+     "foreign": "game"
+    },
+    {
+     "id": "match",
+     "de": "der Match",
+     "foreign": "match"
+    },
+    {
+     "id": "team",
+     "de": "die Mannschaft",
+     "foreign": "team"
+    },
+    {
+     "id": "swimmingpool",
+     "de": "das Schwimmbad",
+     "foreign": "swimming pool"
+    },
+    {
+     "id": "bike",
+     "de": "das Velo",
+     "foreign": "bike / bicycle"
+    },
+    {
+     "id": "guitar",
+     "de": "die Gitarre",
+     "foreign": "guitar"
+    },
+    {
+     "id": "book",
+     "de": "das Buch",
+     "foreign": "book"
+    },
+    {
+     "id": "weekend",
+     "de": "das Wochenende",
+     "foreign": "weekend"
+    },
+    {
+     "id": "friend",
+     "de": "der Freund",
+     "foreign": "friend"
+    },
+    {
+     "id": "play",
+     "de": "spielen",
+     "foreign": "to play"
+    },
+    {
+     "id": "swim",
+     "de": "schwimmen",
+     "foreign": "to swim"
+    },
+    {
+     "id": "dance",
+     "de": "tanzen",
+     "foreign": "to dance"
+    },
+    {
+     "id": "read",
+     "de": "lesen",
+     "foreign": "to read"
+    },
+    {
+     "id": "meet",
+     "de": "treffen",
+     "foreign": "to meet"
+    },
+    {
+     "id": "watch",
+     "de": "schauen",
+     "foreign": "to watch"
+    },
+    {
+     "id": "hike",
+     "de": "wandern",
+     "foreign": "to hike / to go hiking"
+    },
+    {
+     "id": "boring",
+     "de": "langweilig",
+     "foreign": "boring"
+    },
+    {
+     "id": "exciting",
+     "de": "spannend",
+     "foreign": "exciting"
+    }
+   ]
+  },
+  {
+   "id": "food",
+   "name": "Essen",
+   "words": [
+    {
+     "id": "breakfast",
+     "de": "das Frühstück",
+     "foreign": "breakfast"
+    },
+    {
+     "id": "lunch",
+     "de": "das Mittagessen",
+     "foreign": "lunch"
+    },
+    {
+     "id": "dinner",
+     "de": "das Abendessen",
+     "foreign": "dinner"
+    },
+    {
+     "id": "bread",
+     "de": "das Brot",
+     "foreign": "bread"
+    },
+    {
+     "id": "cheese",
+     "de": "der Käse",
+     "foreign": "cheese"
+    },
+    {
+     "id": "meat",
+     "de": "das Fleisch",
+     "foreign": "meat"
+    },
+    {
+     "id": "fish",
+     "de": "der Fisch",
+     "foreign": "fish"
+    },
+    {
+     "id": "vegetables",
+     "de": "das Gemüse",
+     "foreign": "vegetables"
+    },
+    {
+     "id": "fruit",
+     "de": "die Früchte",
+     "foreign": "fruit"
+    },
+    {
+     "id": "apple",
+     "de": "der Apfel",
+     "foreign": "apple"
+    },
+    {
+     "id": "potato",
+     "de": "die Kartoffel",
+     "foreign": "potato"
+    },
+    {
+     "id": "egg",
+     "de": "das Ei",
+     "foreign": "egg"
+    },
+    {
+     "id": "rice",
+     "de": "der Reis",
+     "foreign": "rice"
+    },
+    {
+     "id": "milk",
+     "de": "die Milch",
+     "foreign": "milk"
+    },
+    {
+     "id": "water",
+     "de": "das Wasser",
+     "foreign": "water"
+    },
+    {
+     "id": "juice",
+     "de": "der Saft",
+     "foreign": "juice"
+    },
+    {
+     "id": "sugar",
+     "de": "der Zucker",
+     "foreign": "sugar"
+    },
+    {
+     "id": "salt",
+     "de": "das Salz",
+     "foreign": "salt"
+    },
+    {
+     "id": "knife",
+     "de": "das Messer",
+     "foreign": "knife"
+    },
+    {
+     "id": "fork",
+     "de": "die Gabel",
+     "foreign": "fork"
+    },
+    {
+     "id": "cook",
+     "de": "kochen",
+     "foreign": "to cook"
+    },
+    {
+     "id": "eat",
+     "de": "essen",
+     "foreign": "to eat"
+    },
+    {
+     "id": "drink",
+     "de": "trinken",
+     "foreign": "to drink"
+    },
+    {
+     "id": "hungry",
+     "de": "hungrig",
+     "foreign": "hungry"
+    }
+   ]
+  },
+  {
+   "id": "jobs",
+   "name": "Berufe",
+   "words": [
+    {
+     "id": "job",
+     "de": "der Beruf",
+     "foreign": "job"
+    },
+    {
+     "id": "apprenticeship",
+     "de": "die Lehre",
+     "foreign": "apprenticeship"
+    },
+    {
+     "id": "application",
+     "de": "die Bewerbung",
+     "foreign": "application"
+    },
+    {
+     "id": "interview",
+     "de": "das Vorstellungsgespräch",
+     "foreign": "job interview / interview"
+    },
+    {
+     "id": "salary",
+     "de": "der Lohn",
+     "foreign": "salary / wage"
+    },
+    {
+     "id": "boss",
+     "de": "der Chef",
+     "foreign": "boss"
+    },
+    {
+     "id": "colleague",
+     "de": "der Arbeitskollege",
+     "foreign": "colleague"
+    },
+    {
+     "id": "company",
+     "de": "die Firma",
+     "foreign": "company / firm"
+    },
+    {
+     "id": "office",
+     "de": "das Büro",
+     "foreign": "office"
+    },
+    {
+     "id": "workshop",
+     "de": "die Werkstatt",
+     "foreign": "workshop"
+    },
+    {
+     "id": "doctor",
+     "de": "der Arzt",
+     "foreign": "doctor"
+    },
+    {
+     "id": "nurse",
+     "de": "die Pflegefachfrau",
+     "foreign": "nurse"
+    },
+    {
+     "id": "cook_job",
+     "de": "der Koch",
+     "foreign": "cook / chef"
+    },
+    {
+     "id": "mechanic",
+     "de": "der Mechaniker",
+     "foreign": "mechanic"
+    },
+    {
+     "id": "electrician",
+     "de": "der Elektriker",
+     "foreign": "electrician"
+    },
+    {
+     "id": "carpenter",
+     "de": "der Schreiner",
+     "foreign": "carpenter"
+    },
+    {
+     "id": "salesperson",
+     "de": "die Verkäuferin",
+     "foreign": "shop assistant / salesperson"
+    },
+    {
+     "id": "farmer",
+     "de": "der Bauer",
+     "foreign": "farmer"
+    },
+    {
+     "id": "work",
+     "de": "arbeiten",
+     "foreign": "to work"
+    },
+    {
+     "id": "earn",
+     "de": "verdienen",
+     "foreign": "to earn"
+    },
+    {
+     "id": "apply",
+     "de": "sich bewerben",
+     "foreign": "to apply"
+    },
+    {
+     "id": "experience",
+     "de": "die Erfahrung",
+     "foreign": "experience"
+    },
+    {
+     "id": "future",
+     "de": "die Zukunft",
+     "foreign": "future"
+    },
+    {
+     "id": "reliable",
+     "de": "zuverlässig",
+     "foreign": "reliable"
+    }
+   ]
+  },
+  {
+   "id": "health",
+   "name": "Körper und Gesundheit",
+   "words": [
+    {
+     "id": "head",
+     "de": "der Kopf",
+     "foreign": "head"
+    },
+    {
+     "id": "arm",
+     "de": "der Arm",
+     "foreign": "arm"
+    },
+    {
+     "id": "leg",
+     "de": "das Bein",
+     "foreign": "leg"
+    },
+    {
+     "id": "hand",
+     "de": "die Hand",
+     "foreign": "hand"
+    },
+    {
+     "id": "foot",
+     "de": "der Fuss",
+     "foreign": "foot"
+    },
+    {
+     "id": "back",
+     "de": "der Rücken",
+     "foreign": "back"
+    },
+    {
+     "id": "stomach",
+     "de": "der Bauch",
+     "foreign": "stomach / tummy"
+    },
+    {
+     "id": "tooth",
+     "de": "der Zahn",
+     "foreign": "tooth"
+    },
+    {
+     "id": "eye",
+     "de": "das Auge",
+     "foreign": "eye"
+    },
+    {
+     "id": "ear",
+     "de": "das Ohr",
+     "foreign": "ear"
+    },
+    {
+     "id": "heart",
+     "de": "das Herz",
+     "foreign": "heart"
+    },
+    {
+     "id": "illness",
+     "de": "die Krankheit",
+     "foreign": "illness"
+    },
+    {
+     "id": "cold",
+     "de": "die Erkältung",
+     "foreign": "cold"
+    },
+    {
+     "id": "fever",
+     "de": "das Fieber",
+     "foreign": "fever / temperature"
+    },
+    {
+     "id": "headache",
+     "de": "die Kopfschmerzen",
+     "foreign": "headache"
+    },
+    {
+     "id": "medicine",
+     "de": "das Medikament",
+     "foreign": "medicine"
+    },
+    {
+     "id": "hospital",
+     "de": "das Spital",
+     "foreign": "hospital"
+    },
+    {
+     "id": "accident",
+     "de": "der Unfall",
+     "foreign": "accident"
+    },
+    {
+     "id": "ill",
+     "de": "krank",
+     "foreign": "ill / sick"
+    },
+    {
+     "id": "healthy",
+     "de": "gesund",
+     "foreign": "healthy"
+    },
+    {
+     "id": "hurt",
+     "de": "wehtun",
+     "foreign": "to hurt"
+    },
+    {
+     "id": "rest",
+     "de": "sich ausruhen",
+     "foreign": "to rest"
+    },
+    {
+     "id": "breathe",
+     "de": "atmen",
+     "foreign": "to breathe"
+    },
+    {
+     "id": "tired",
+     "de": "müde",
+     "foreign": "tired"
+    }
+   ]
+  },
+  {
+   "id": "home",
+   "name": "Zuhause",
+   "words": [
+    {
+     "id": "house",
+     "de": "das Haus",
+     "foreign": "house"
+    },
+    {
+     "id": "flat",
+     "de": "die Wohnung",
+     "foreign": "flat / apartment"
+    },
+    {
+     "id": "room",
+     "de": "das Zimmer",
+     "foreign": "room"
+    },
+    {
+     "id": "bedroom",
+     "de": "das Schlafzimmer",
+     "foreign": "bedroom"
+    },
+    {
+     "id": "kitchen",
+     "de": "die Küche",
+     "foreign": "kitchen"
+    },
+    {
+     "id": "bathroom",
+     "de": "das Badezimmer",
+     "foreign": "bathroom"
+    },
+    {
+     "id": "livingroom",
+     "de": "das Wohnzimmer",
+     "foreign": "living room"
+    },
+    {
+     "id": "garden",
+     "de": "der Garten",
+     "foreign": "garden"
+    },
+    {
+     "id": "stairs",
+     "de": "die Treppe",
+     "foreign": "stairs"
+    },
+    {
+     "id": "floor",
+     "de": "der Stock",
+     "foreign": "floor"
+    },
+    {
+     "id": "window",
+     "de": "das Fenster",
+     "foreign": "window"
+    },
+    {
+     "id": "door",
+     "de": "die Tür",
+     "foreign": "door"
+    },
+    {
+     "id": "wall",
+     "de": "die Wand",
+     "foreign": "wall"
+    },
+    {
+     "id": "bed",
+     "de": "das Bett",
+     "foreign": "bed"
+    },
+    {
+     "id": "table",
+     "de": "der Tisch",
+     "foreign": "table"
+    },
+    {
+     "id": "chair",
+     "de": "der Stuhl",
+     "foreign": "chair"
+    },
+    {
+     "id": "cupboard",
+     "de": "der Schrank",
+     "foreign": "cupboard / wardrobe"
+    },
+    {
+     "id": "fridge",
+     "de": "der Kühlschrank",
+     "foreign": "fridge"
+    },
+    {
+     "id": "neighbour",
+     "de": "der Nachbar",
+     "foreign": "neighbour"
+    },
+    {
+     "id": "live",
+     "de": "wohnen",
+     "foreign": "to live"
+    },
+    {
+     "id": "tidy",
+     "de": "aufräumen",
+     "foreign": "to tidy up"
+    },
+    {
+     "id": "clean",
+     "de": "putzen",
+     "foreign": "to clean"
+    },
+    {
+     "id": "move",
+     "de": "umziehen",
+     "foreign": "to move"
+    },
+    {
+     "id": "comfortable",
+     "de": "bequem",
+     "foreign": "comfortable"
+    }
+   ]
+  },
+  {
+   "id": "town",
+   "name": "Stadt",
+   "words": [
+    {
+     "id": "town",
+     "de": "die Stadt",
+     "foreign": "town / city"
+    },
+    {
+     "id": "village",
+     "de": "das Dorf",
+     "foreign": "village"
+    },
+    {
+     "id": "street",
+     "de": "die Strasse",
+     "foreign": "street / road"
+    },
+    {
+     "id": "square",
+     "de": "der Platz",
+     "foreign": "square"
+    },
+    {
+     "id": "bridge",
+     "de": "die Brücke",
+     "foreign": "bridge"
+    },
+    {
+     "id": "church",
+     "de": "die Kirche",
+     "foreign": "church"
+    },
+    {
+     "id": "museum",
+     "de": "das Museum",
+     "foreign": "museum"
+    },
+    {
+     "id": "library",
+     "de": "die Bibliothek",
+     "foreign": "library"
+    },
+    {
+     "id": "postoffice",
+     "de": "die Post",
+     "foreign": "post office"
+    },
+    {
+     "id": "bank",
+     "de": "die Bank",
+     "foreign": "bank"
+    },
+    {
+     "id": "pharmacy",
+     "de": "die Apotheke",
+     "foreign": "chemist's / pharmacy"
+    },
+    {
+     "id": "bakery",
+     "de": "die Bäckerei",
+     "foreign": "bakery / baker's"
+    },
+    {
+     "id": "market",
+     "de": "der Markt",
+     "foreign": "market"
+    },
+    {
+     "id": "park",
+     "de": "der Park",
+     "foreign": "park"
+    },
+    {
+     "id": "bus",
+     "de": "der Bus",
+     "foreign": "bus"
+    },
+    {
+     "id": "stop",
+     "de": "die Haltestelle",
+     "foreign": "stop / bus stop"
+    },
+    {
+     "id": "traffic",
+     "de": "der Verkehr",
+     "foreign": "traffic"
+    },
+    {
+     "id": "trafficlights",
+     "de": "die Ampel",
+     "foreign": "traffic lights"
+    },
+    {
+     "id": "corner",
+     "de": "die Ecke",
+     "foreign": "corner"
+    },
+    {
+     "id": "crossroads",
+     "de": "die Kreuzung",
+     "foreign": "crossroads / junction"
+    },
+    {
+     "id": "turn",
+     "de": "abbiegen",
+     "foreign": "to turn"
+    },
+    {
+     "id": "cross",
+     "de": "überqueren",
+     "foreign": "to cross"
+    },
+    {
+     "id": "straight_on",
+     "de": "geradeaus",
+     "foreign": "straight on / straight ahead"
+    },
+    {
+     "id": "near",
+     "de": "in der Nähe",
+     "foreign": "nearby / near"
+    }
+   ]
+  },
+  {
+   "id": "nature",
+   "name": "Wetter und Natur",
+   "words": [
+    {
+     "id": "weather",
+     "de": "das Wetter",
+     "foreign": "weather"
+    },
+    {
+     "id": "sun",
+     "de": "die Sonne",
+     "foreign": "sun"
+    },
+    {
+     "id": "rain",
+     "de": "der Regen",
+     "foreign": "rain"
+    },
+    {
+     "id": "snow",
+     "de": "der Schnee",
+     "foreign": "snow"
+    },
+    {
+     "id": "wind",
+     "de": "der Wind",
+     "foreign": "wind"
+    },
+    {
+     "id": "cloud",
+     "de": "die Wolke",
+     "foreign": "cloud"
+    },
+    {
+     "id": "storm",
+     "de": "das Gewitter",
+     "foreign": "storm / thunderstorm"
+    },
+    {
+     "id": "sky",
+     "de": "der Himmel",
+     "foreign": "sky"
+    },
+    {
+     "id": "mountain",
+     "de": "der Berg",
+     "foreign": "mountain"
+    },
+    {
+     "id": "lake",
+     "de": "der See",
+     "foreign": "lake"
+    },
+    {
+     "id": "river",
+     "de": "der Fluss",
+     "foreign": "river"
+    },
+    {
+     "id": "forest",
+     "de": "der Wald",
+     "foreign": "forest / wood"
+    },
+    {
+     "id": "tree",
+     "de": "der Baum",
+     "foreign": "tree"
+    },
+    {
+     "id": "flower",
+     "de": "die Blume",
+     "foreign": "flower"
+    },
+    {
+     "id": "animal",
+     "de": "das Tier",
+     "foreign": "animal"
+    },
+    {
+     "id": "bird",
+     "de": "der Vogel",
+     "foreign": "bird"
+    },
+    {
+     "id": "spring",
+     "de": "der Frühling",
+     "foreign": "spring"
+    },
+    {
+     "id": "summer",
+     "de": "der Sommer",
+     "foreign": "summer"
+    },
+    {
+     "id": "autumn",
+     "de": "der Herbst",
+     "foreign": "autumn"
+    },
+    {
+     "id": "winter",
+     "de": "der Winter",
+     "foreign": "winter"
+    },
+    {
+     "id": "environment",
+     "de": "die Umwelt",
+     "foreign": "environment"
+    },
+    {
+     "id": "rain_v",
+     "de": "regnen",
+     "foreign": "to rain"
+    },
+    {
+     "id": "hot",
+     "de": "heiss",
+     "foreign": "hot"
+    },
+    {
+     "id": "wet",
+     "de": "nass",
+     "foreign": "wet"
+    }
+   ]
+  },
+  {
+   "id": "shopping",
+   "name": "Einkaufen",
+   "words": [
+    {
+     "id": "shop",
+     "de": "das Geschäft / der Laden",
+     "foreign": "shop"
+    },
+    {
+     "id": "supermarket",
+     "de": "der Supermarkt",
+     "foreign": "supermarket"
+    },
+    {
+     "id": "money",
+     "de": "das Geld",
+     "foreign": "money"
+    },
+    {
+     "id": "price",
+     "de": "der Preis",
+     "foreign": "price"
+    },
+    {
+     "id": "bill",
+     "de": "die Rechnung",
+     "foreign": "bill"
+    },
+    {
+     "id": "change",
+     "de": "das Wechselgeld",
+     "foreign": "change"
+    },
+    {
+     "id": "purse",
+     "de": "das Portemonnaie",
+     "foreign": "purse / wallet"
+    },
+    {
+     "id": "customer",
+     "de": "der Kunde",
+     "foreign": "customer"
+    },
+    {
+     "id": "size",
+     "de": "die Grösse",
+     "foreign": "size"
+    },
+    {
+     "id": "clothes",
+     "de": "die Kleider",
+     "foreign": "clothes"
+    },
+    {
+     "id": "trousers",
+     "de": "die Hose",
+     "foreign": "trousers"
+    },
+    {
+     "id": "shirt",
+     "de": "das Hemd",
+     "foreign": "shirt"
+    },
+    {
+     "id": "shoes",
+     "de": "die Schuhe",
+     "foreign": "shoes"
+    },
+    {
+     "id": "jacket",
+     "de": "die Jacke",
+     "foreign": "jacket"
+    },
+    {
+     "id": "bag",
+     "de": "die Tasche",
+     "foreign": "bag"
+    },
+    {
+     "id": "buy",
+     "de": "kaufen",
+     "foreign": "to buy"
+    },
+    {
+     "id": "sell",
+     "de": "verkaufen",
+     "foreign": "to sell"
+    },
+    {
+     "id": "pay",
+     "de": "bezahlen",
+     "foreign": "to pay"
+    },
+    {
+     "id": "try_on",
+     "de": "anprobieren",
+     "foreign": "to try on"
+    },
+    {
+     "id": "cost",
+     "de": "kosten",
+     "foreign": "to cost"
+    },
+    {
+     "id": "cheap",
+     "de": "billig",
+     "foreign": "cheap"
+    },
+    {
+     "id": "expensive",
+     "de": "teuer",
+     "foreign": "expensive"
+    },
+    {
+     "id": "discount",
+     "de": "der Rabatt",
+     "foreign": "discount"
+    },
+    {
+     "id": "queue",
+     "de": "die Warteschlange",
+     "foreign": "queue"
+    }
+   ]
+  },
+  {
+   "id": "feelings",
+   "name": "Gefühle",
+   "words": [
+    {
+     "id": "happy",
+     "de": "glücklich",
+     "foreign": "happy"
+    },
+    {
+     "id": "sad",
+     "de": "traurig",
+     "foreign": "sad"
+    },
+    {
+     "id": "angry",
+     "de": "wütend",
+     "foreign": "angry"
+    },
+    {
+     "id": "afraid",
+     "de": "ängstlich",
+     "foreign": "afraid / scared"
+    },
+    {
+     "id": "nervous",
+     "de": "nervös",
+     "foreign": "nervous"
+    },
+    {
+     "id": "proud",
+     "de": "stolz",
+     "foreign": "proud"
+    },
+    {
+     "id": "surprised",
+     "de": "überrascht",
+     "foreign": "surprised"
+    },
+    {
+     "id": "worried",
+     "de": "besorgt",
+     "foreign": "worried"
+    },
+    {
+     "id": "bored",
+     "de": "gelangweilt",
+     "foreign": "bored"
+    },
+    {
+     "id": "lonely",
+     "de": "einsam",
+     "foreign": "lonely"
+    },
+    {
+     "id": "jealous",
+     "de": "eifersüchtig",
+     "foreign": "jealous"
+    },
+    {
+     "id": "calm",
+     "de": "ruhig",
+     "foreign": "calm / quiet"
+    },
+    {
+     "id": "satisfied",
+     "de": "zufrieden",
+     "foreign": "satisfied / pleased"
+    },
+    {
+     "id": "fear",
+     "de": "die Angst",
+     "foreign": "fear"
+    },
+    {
+     "id": "joy",
+     "de": "die Freude",
+     "foreign": "joy"
+    },
+    {
+     "id": "anger",
+     "de": "die Wut",
+     "foreign": "anger"
+    },
+    {
+     "id": "love",
+     "de": "die Liebe",
+     "foreign": "love"
+    },
+    {
+     "id": "friendship",
+     "de": "die Freundschaft",
+     "foreign": "friendship"
+    },
+    {
+     "id": "laugh",
+     "de": "lachen",
+     "foreign": "to laugh"
+    },
+    {
+     "id": "cry",
+     "de": "weinen",
+     "foreign": "to cry"
+    },
+    {
+     "id": "hope",
+     "de": "hoffen",
+     "foreign": "to hope"
+    },
+    {
+     "id": "feel",
+     "de": "fühlen",
+     "foreign": "to feel"
+    },
+    {
+     "id": "like",
+     "de": "mögen",
+     "foreign": "to like"
+    },
+    {
+     "id": "hate",
+     "de": "hassen",
+     "foreign": "to hate"
+    }
+   ]
+  }
+ ]
+}

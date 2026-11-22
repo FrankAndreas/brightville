@@ -190,6 +190,38 @@ describe('App', () => {
     w.unmount()
   })
 
+  describe('Oberstufe', () => {
+    const Vok = () => h('div', { 'data-test': 'oberstufe-side' })
+    const school: BuildingDef = { ...stub, id: 'school', oberstufe: { component: Vok } }
+    const other: BuildingDef = { ...stub, id: 'other', spokenName: 'Reimhaus', door: { x: 9, z: 9 } }
+
+    it('the School opens its Oberstufe side, another building says "soon"', async () => {
+      api = fakeApi({ level: 'oberstufe' })
+      const w = await started([school, other])
+      cityOptions.onNearDoor('other')
+      await nextTick()
+      expect(w.find('[data-test="door-prompt"]').attributes('data-state')).toBe('soon')
+      cityOptions.onEnter('other')
+      await flushPromises()
+      expect(w.find('section.building').exists()).toBe(false)
+      cityOptions.onNearDoor('school')
+      cityOptions.onEnter('school')
+      await flushPromises()
+      expect(w.find('[data-test="oberstufe-side"]').exists()).toBe(true)
+      expect(w.find('[data-test="stub-building"]').exists()).toBe(false)
+      w.unmount()
+    })
+
+    it('at Kindergarten the School is as always', async () => {
+      const w = await started([school, other])
+      cityOptions.onNearDoor('school')
+      cityOptions.onEnter('school')
+      await flushPromises()
+      expect(w.find('[data-test="stub-building"]').exists()).toBe(true)
+      w.unmount()
+    })
+  })
+
   describe('daily goal and play buildings', () => {
     /** Walks into the earning stub and comes out with the given Stars. */
     async function visit(stars: number) {

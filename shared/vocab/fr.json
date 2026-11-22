@@ -1,0 +1,1517 @@
+{
+ "lang": "fr",
+ "topics": [
+  {
+   "id": "travel",
+   "name": "Reisen",
+   "words": [
+    {
+     "id": "station",
+     "de": "der Bahnhof",
+     "foreign": "la gare"
+    },
+    {
+     "id": "train",
+     "de": "der Zug",
+     "foreign": "le train"
+    },
+    {
+     "id": "plane",
+     "de": "das Flugzeug",
+     "foreign": "l'avion"
+    },
+    {
+     "id": "airport",
+     "de": "der Flughafen",
+     "foreign": "l'aéroport"
+    },
+    {
+     "id": "ticket",
+     "de": "die Fahrkarte",
+     "foreign": "le billet"
+    },
+    {
+     "id": "luggage",
+     "de": "das Gepäck",
+     "foreign": "les bagages"
+    },
+    {
+     "id": "suitcase",
+     "de": "der Koffer",
+     "foreign": "la valise"
+    },
+    {
+     "id": "passport",
+     "de": "der Pass",
+     "foreign": "le passeport"
+    },
+    {
+     "id": "journey",
+     "de": "die Reise",
+     "foreign": "le voyage"
+    },
+    {
+     "id": "holidays",
+     "de": "die Ferien",
+     "foreign": "les vacances"
+    },
+    {
+     "id": "hotel",
+     "de": "das Hotel",
+     "foreign": "l'hôtel"
+    },
+    {
+     "id": "map",
+     "de": "die Landkarte",
+     "foreign": "la carte"
+    },
+    {
+     "id": "border",
+     "de": "die Grenze",
+     "foreign": "la frontière"
+    },
+    {
+     "id": "abroad",
+     "de": "im Ausland",
+     "foreign": "à l'étranger"
+    },
+    {
+     "id": "platform",
+     "de": "das Gleis",
+     "foreign": "la voie / le quai"
+    },
+    {
+     "id": "delay",
+     "de": "die Verspätung",
+     "foreign": "le retard"
+    },
+    {
+     "id": "departure",
+     "de": "die Abfahrt",
+     "foreign": "le départ"
+    },
+    {
+     "id": "arrival",
+     "de": "die Ankunft",
+     "foreign": "l'arrivée"
+    },
+    {
+     "id": "travel",
+     "de": "reisen",
+     "foreign": "voyager"
+    },
+    {
+     "id": "leave",
+     "de": "abfahren",
+     "foreign": "partir"
+    },
+    {
+     "id": "arrive",
+     "de": "ankommen",
+     "foreign": "arriver"
+    },
+    {
+     "id": "book",
+     "de": "buchen",
+     "foreign": "réserver"
+    },
+    {
+     "id": "visit",
+     "de": "besuchen",
+     "foreign": "visiter"
+    },
+    {
+     "id": "tourist",
+     "de": "der Tourist",
+     "foreign": "le touriste"
+    }
+   ]
+  },
+  {
+   "id": "school",
+   "name": "Schule",
+   "words": [
+    {
+     "id": "subject",
+     "de": "das Schulfach",
+     "foreign": "la matière"
+    },
+    {
+     "id": "lesson",
+     "de": "die Lektion / die Stunde",
+     "foreign": "la leçon"
+    },
+    {
+     "id": "homework",
+     "de": "die Hausaufgaben",
+     "foreign": "les devoirs"
+    },
+    {
+     "id": "test",
+     "de": "die Prüfung",
+     "foreign": "l'examen"
+    },
+    {
+     "id": "mark",
+     "de": "die Note",
+     "foreign": "la note"
+    },
+    {
+     "id": "timetable",
+     "de": "der Stundenplan",
+     "foreign": "l'emploi du temps"
+    },
+    {
+     "id": "classroom",
+     "de": "das Schulzimmer",
+     "foreign": "la salle de classe"
+    },
+    {
+     "id": "teacher",
+     "de": "die Lehrerin",
+     "foreign": "la professeure / la prof"
+    },
+    {
+     "id": "pupil",
+     "de": "der Schüler",
+     "foreign": "l'élève"
+    },
+    {
+     "id": "break",
+     "de": "die Pause",
+     "foreign": "la récréation / la pause"
+    },
+    {
+     "id": "exercise",
+     "de": "die Übung",
+     "foreign": "l'exercice"
+    },
+    {
+     "id": "dictionary",
+     "de": "das Wörterbuch",
+     "foreign": "le dictionnaire"
+    },
+    {
+     "id": "exercisebook",
+     "de": "das Heft",
+     "foreign": "le cahier"
+    },
+    {
+     "id": "pencilcase",
+     "de": "das Etui",
+     "foreign": "la trousse"
+    },
+    {
+     "id": "maths",
+     "de": "die Mathematik",
+     "foreign": "les mathématiques / les maths"
+    },
+    {
+     "id": "history",
+     "de": "die Geschichte",
+     "foreign": "l'histoire"
+    },
+    {
+     "id": "geography",
+     "de": "die Geografie",
+     "foreign": "la géographie"
+    },
+    {
+     "id": "learn",
+     "de": "lernen",
+     "foreign": "apprendre"
+    },
+    {
+     "id": "understand",
+     "de": "verstehen",
+     "foreign": "comprendre"
+    },
+    {
+     "id": "explain",
+     "de": "erklären",
+     "foreign": "expliquer"
+    },
+    {
+     "id": "repeat",
+     "de": "wiederholen",
+     "foreign": "répéter"
+    },
+    {
+     "id": "forget",
+     "de": "vergessen",
+     "foreign": "oublier"
+    },
+    {
+     "id": "difficult",
+     "de": "schwierig",
+     "foreign": "difficile"
+    },
+    {
+     "id": "easy",
+     "de": "einfach",
+     "foreign": "facile"
+    }
+   ]
+  },
+  {
+   "id": "family",
+   "name": "Familie",
+   "words": [
+    {
+     "id": "parents",
+     "de": "die Eltern",
+     "foreign": "les parents"
+    },
+    {
+     "id": "mother",
+     "de": "die Mutter",
+     "foreign": "la mère"
+    },
+    {
+     "id": "father",
+     "de": "der Vater",
+     "foreign": "le père"
+    },
+    {
+     "id": "brother",
+     "de": "der Bruder",
+     "foreign": "le frère"
+    },
+    {
+     "id": "sister",
+     "de": "die Schwester",
+     "foreign": "la sœur"
+    },
+    {
+     "id": "grandmother",
+     "de": "die Grossmutter",
+     "foreign": "la grand-mère"
+    },
+    {
+     "id": "grandfather",
+     "de": "der Grossvater",
+     "foreign": "le grand-père"
+    },
+    {
+     "id": "uncle",
+     "de": "der Onkel",
+     "foreign": "l'oncle"
+    },
+    {
+     "id": "aunt",
+     "de": "die Tante",
+     "foreign": "la tante"
+    },
+    {
+     "id": "cousin",
+     "de": "der Cousin",
+     "foreign": "le cousin"
+    },
+    {
+     "id": "son",
+     "de": "der Sohn",
+     "foreign": "le fils"
+    },
+    {
+     "id": "daughter",
+     "de": "die Tochter",
+     "foreign": "la fille"
+    },
+    {
+     "id": "husband",
+     "de": "der Ehemann",
+     "foreign": "le mari"
+    },
+    {
+     "id": "wife",
+     "de": "die Ehefrau",
+     "foreign": "la femme"
+    },
+    {
+     "id": "child",
+     "de": "das Kind",
+     "foreign": "l'enfant"
+    },
+    {
+     "id": "baby",
+     "de": "das Baby",
+     "foreign": "le bébé"
+    },
+    {
+     "id": "birthday",
+     "de": "der Geburtstag",
+     "foreign": "l'anniversaire"
+    },
+    {
+     "id": "wedding",
+     "de": "die Hochzeit",
+     "foreign": "le mariage"
+    },
+    {
+     "id": "married",
+     "de": "verheiratet",
+     "foreign": "marié"
+    },
+    {
+     "id": "divorced",
+     "de": "geschieden",
+     "foreign": "divorcé"
+    },
+    {
+     "id": "older",
+     "de": "älter",
+     "foreign": "plus âgé"
+    },
+    {
+     "id": "younger",
+     "de": "jünger",
+     "foreign": "plus jeune"
+    },
+    {
+     "id": "get_along",
+     "de": "sich verstehen",
+     "foreign": "s'entendre"
+    },
+    {
+     "id": "look_after",
+     "de": "aufpassen auf",
+     "foreign": "s'occuper de"
+    }
+   ]
+  },
+  {
+   "id": "freetime",
+   "name": "Freizeit",
+   "words": [
+    {
+     "id": "hobby",
+     "de": "das Hobby",
+     "foreign": "le passe-temps"
+    },
+    {
+     "id": "free_time",
+     "de": "die Freizeit",
+     "foreign": "le temps libre"
+    },
+    {
+     "id": "music",
+     "de": "die Musik",
+     "foreign": "la musique"
+    },
+    {
+     "id": "film",
+     "de": "der Film",
+     "foreign": "le film"
+    },
+    {
+     "id": "cinema",
+     "de": "das Kino",
+     "foreign": "le cinéma"
+    },
+    {
+     "id": "concert",
+     "de": "das Konzert",
+     "foreign": "le concert"
+    },
+    {
+     "id": "game",
+     "de": "das Spiel",
+     "foreign": "le jeu"
+    },
+    {
+     "id": "match",
+     "de": "der Match",
+     "foreign": "le match"
+    },
+    {
+     "id": "team",
+     "de": "die Mannschaft",
+     "foreign": "l'équipe"
+    },
+    {
+     "id": "swimmingpool",
+     "de": "das Schwimmbad",
+     "foreign": "la piscine"
+    },
+    {
+     "id": "bike",
+     "de": "das Velo",
+     "foreign": "le vélo"
+    },
+    {
+     "id": "guitar",
+     "de": "die Gitarre",
+     "foreign": "la guitare"
+    },
+    {
+     "id": "book",
+     "de": "das Buch",
+     "foreign": "le livre"
+    },
+    {
+     "id": "weekend",
+     "de": "das Wochenende",
+     "foreign": "le week-end"
+    },
+    {
+     "id": "friend",
+     "de": "der Freund",
+     "foreign": "l'ami / le copain"
+    },
+    {
+     "id": "play",
+     "de": "spielen",
+     "foreign": "jouer"
+    },
+    {
+     "id": "swim",
+     "de": "schwimmen",
+     "foreign": "nager"
+    },
+    {
+     "id": "dance",
+     "de": "tanzen",
+     "foreign": "danser"
+    },
+    {
+     "id": "read",
+     "de": "lesen",
+     "foreign": "lire"
+    },
+    {
+     "id": "meet",
+     "de": "treffen",
+     "foreign": "rencontrer"
+    },
+    {
+     "id": "watch",
+     "de": "schauen",
+     "foreign": "regarder"
+    },
+    {
+     "id": "hike",
+     "de": "wandern",
+     "foreign": "faire de la randonnée"
+    },
+    {
+     "id": "boring",
+     "de": "langweilig",
+     "foreign": "ennuyeux"
+    },
+    {
+     "id": "exciting",
+     "de": "spannend",
+     "foreign": "passionnant"
+    }
+   ]
+  },
+  {
+   "id": "food",
+   "name": "Essen",
+   "words": [
+    {
+     "id": "breakfast",
+     "de": "das Frühstück",
+     "foreign": "le petit-déjeuner"
+    },
+    {
+     "id": "lunch",
+     "de": "das Mittagessen",
+     "foreign": "le déjeuner"
+    },
+    {
+     "id": "dinner",
+     "de": "das Abendessen",
+     "foreign": "le dîner"
+    },
+    {
+     "id": "bread",
+     "de": "das Brot",
+     "foreign": "le pain"
+    },
+    {
+     "id": "cheese",
+     "de": "der Käse",
+     "foreign": "le fromage"
+    },
+    {
+     "id": "meat",
+     "de": "das Fleisch",
+     "foreign": "la viande"
+    },
+    {
+     "id": "fish",
+     "de": "der Fisch",
+     "foreign": "le poisson"
+    },
+    {
+     "id": "vegetables",
+     "de": "das Gemüse",
+     "foreign": "les légumes"
+    },
+    {
+     "id": "fruit",
+     "de": "die Früchte",
+     "foreign": "les fruits"
+    },
+    {
+     "id": "apple",
+     "de": "der Apfel",
+     "foreign": "la pomme"
+    },
+    {
+     "id": "potato",
+     "de": "die Kartoffel",
+     "foreign": "la pomme de terre"
+    },
+    {
+     "id": "egg",
+     "de": "das Ei",
+     "foreign": "l'œuf"
+    },
+    {
+     "id": "rice",
+     "de": "der Reis",
+     "foreign": "le riz"
+    },
+    {
+     "id": "milk",
+     "de": "die Milch",
+     "foreign": "le lait"
+    },
+    {
+     "id": "water",
+     "de": "das Wasser",
+     "foreign": "l'eau"
+    },
+    {
+     "id": "juice",
+     "de": "der Saft",
+     "foreign": "le jus"
+    },
+    {
+     "id": "sugar",
+     "de": "der Zucker",
+     "foreign": "le sucre"
+    },
+    {
+     "id": "salt",
+     "de": "das Salz",
+     "foreign": "le sel"
+    },
+    {
+     "id": "knife",
+     "de": "das Messer",
+     "foreign": "le couteau"
+    },
+    {
+     "id": "fork",
+     "de": "die Gabel",
+     "foreign": "la fourchette"
+    },
+    {
+     "id": "cook",
+     "de": "kochen",
+     "foreign": "cuisiner / faire la cuisine"
+    },
+    {
+     "id": "eat",
+     "de": "essen",
+     "foreign": "manger"
+    },
+    {
+     "id": "drink",
+     "de": "trinken",
+     "foreign": "boire"
+    },
+    {
+     "id": "hungry",
+     "de": "hungrig",
+     "foreign": "affamé"
+    }
+   ]
+  },
+  {
+   "id": "jobs",
+   "name": "Berufe",
+   "words": [
+    {
+     "id": "job",
+     "de": "der Beruf",
+     "foreign": "le métier"
+    },
+    {
+     "id": "apprenticeship",
+     "de": "die Lehre",
+     "foreign": "l'apprentissage"
+    },
+    {
+     "id": "application",
+     "de": "die Bewerbung",
+     "foreign": "la candidature"
+    },
+    {
+     "id": "interview",
+     "de": "das Vorstellungsgespräch",
+     "foreign": "l'entretien d'embauche"
+    },
+    {
+     "id": "salary",
+     "de": "der Lohn",
+     "foreign": "le salaire"
+    },
+    {
+     "id": "boss",
+     "de": "der Chef",
+     "foreign": "le patron / le chef"
+    },
+    {
+     "id": "colleague",
+     "de": "der Arbeitskollege",
+     "foreign": "le collègue"
+    },
+    {
+     "id": "company",
+     "de": "die Firma",
+     "foreign": "l'entreprise"
+    },
+    {
+     "id": "office",
+     "de": "das Büro",
+     "foreign": "le bureau"
+    },
+    {
+     "id": "workshop",
+     "de": "die Werkstatt",
+     "foreign": "l'atelier"
+    },
+    {
+     "id": "doctor",
+     "de": "der Arzt",
+     "foreign": "le médecin"
+    },
+    {
+     "id": "nurse",
+     "de": "die Pflegefachfrau",
+     "foreign": "l'infirmière"
+    },
+    {
+     "id": "cook_job",
+     "de": "der Koch",
+     "foreign": "le cuisinier"
+    },
+    {
+     "id": "mechanic",
+     "de": "der Mechaniker",
+     "foreign": "le mécanicien"
+    },
+    {
+     "id": "electrician",
+     "de": "der Elektriker",
+     "foreign": "l'électricien"
+    },
+    {
+     "id": "carpenter",
+     "de": "der Schreiner",
+     "foreign": "le menuisier"
+    },
+    {
+     "id": "salesperson",
+     "de": "die Verkäuferin",
+     "foreign": "la vendeuse"
+    },
+    {
+     "id": "farmer",
+     "de": "der Bauer",
+     "foreign": "l'agriculteur / le paysan"
+    },
+    {
+     "id": "work",
+     "de": "arbeiten",
+     "foreign": "travailler"
+    },
+    {
+     "id": "earn",
+     "de": "verdienen",
+     "foreign": "gagner"
+    },
+    {
+     "id": "apply",
+     "de": "sich bewerben",
+     "foreign": "postuler"
+    },
+    {
+     "id": "experience",
+     "de": "die Erfahrung",
+     "foreign": "l'expérience"
+    },
+    {
+     "id": "future",
+     "de": "die Zukunft",
+     "foreign": "l'avenir"
+    },
+    {
+     "id": "reliable",
+     "de": "zuverlässig",
+     "foreign": "fiable"
+    }
+   ]
+  },
+  {
+   "id": "health",
+   "name": "Körper und Gesundheit",
+   "words": [
+    {
+     "id": "head",
+     "de": "der Kopf",
+     "foreign": "la tête"
+    },
+    {
+     "id": "arm",
+     "de": "der Arm",
+     "foreign": "le bras"
+    },
+    {
+     "id": "leg",
+     "de": "das Bein",
+     "foreign": "la jambe"
+    },
+    {
+     "id": "hand",
+     "de": "die Hand",
+     "foreign": "la main"
+    },
+    {
+     "id": "foot",
+     "de": "der Fuss",
+     "foreign": "le pied"
+    },
+    {
+     "id": "back",
+     "de": "der Rücken",
+     "foreign": "le dos"
+    },
+    {
+     "id": "stomach",
+     "de": "der Bauch",
+     "foreign": "le ventre"
+    },
+    {
+     "id": "tooth",
+     "de": "der Zahn",
+     "foreign": "la dent"
+    },
+    {
+     "id": "eye",
+     "de": "das Auge",
+     "foreign": "l'œil"
+    },
+    {
+     "id": "ear",
+     "de": "das Ohr",
+     "foreign": "l'oreille"
+    },
+    {
+     "id": "heart",
+     "de": "das Herz",
+     "foreign": "le cœur"
+    },
+    {
+     "id": "illness",
+     "de": "die Krankheit",
+     "foreign": "la maladie"
+    },
+    {
+     "id": "cold",
+     "de": "die Erkältung",
+     "foreign": "le rhume"
+    },
+    {
+     "id": "fever",
+     "de": "das Fieber",
+     "foreign": "la fièvre"
+    },
+    {
+     "id": "headache",
+     "de": "die Kopfschmerzen",
+     "foreign": "le mal de tête"
+    },
+    {
+     "id": "medicine",
+     "de": "das Medikament",
+     "foreign": "le médicament"
+    },
+    {
+     "id": "hospital",
+     "de": "das Spital",
+     "foreign": "l'hôpital"
+    },
+    {
+     "id": "accident",
+     "de": "der Unfall",
+     "foreign": "l'accident"
+    },
+    {
+     "id": "ill",
+     "de": "krank",
+     "foreign": "malade"
+    },
+    {
+     "id": "healthy",
+     "de": "gesund",
+     "foreign": "en bonne santé"
+    },
+    {
+     "id": "hurt",
+     "de": "wehtun",
+     "foreign": "faire mal"
+    },
+    {
+     "id": "rest",
+     "de": "sich ausruhen",
+     "foreign": "se reposer"
+    },
+    {
+     "id": "breathe",
+     "de": "atmen",
+     "foreign": "respirer"
+    },
+    {
+     "id": "tired",
+     "de": "müde",
+     "foreign": "fatigué"
+    }
+   ]
+  },
+  {
+   "id": "home",
+   "name": "Zuhause",
+   "words": [
+    {
+     "id": "house",
+     "de": "das Haus",
+     "foreign": "la maison"
+    },
+    {
+     "id": "flat",
+     "de": "die Wohnung",
+     "foreign": "l'appartement"
+    },
+    {
+     "id": "room",
+     "de": "das Zimmer",
+     "foreign": "la pièce"
+    },
+    {
+     "id": "bedroom",
+     "de": "das Schlafzimmer",
+     "foreign": "la chambre"
+    },
+    {
+     "id": "kitchen",
+     "de": "die Küche",
+     "foreign": "la cuisine"
+    },
+    {
+     "id": "bathroom",
+     "de": "das Badezimmer",
+     "foreign": "la salle de bains"
+    },
+    {
+     "id": "livingroom",
+     "de": "das Wohnzimmer",
+     "foreign": "le salon"
+    },
+    {
+     "id": "garden",
+     "de": "der Garten",
+     "foreign": "le jardin"
+    },
+    {
+     "id": "stairs",
+     "de": "die Treppe",
+     "foreign": "l'escalier"
+    },
+    {
+     "id": "floor",
+     "de": "der Stock",
+     "foreign": "l'étage"
+    },
+    {
+     "id": "window",
+     "de": "das Fenster",
+     "foreign": "la fenêtre"
+    },
+    {
+     "id": "door",
+     "de": "die Tür",
+     "foreign": "la porte"
+    },
+    {
+     "id": "wall",
+     "de": "die Wand",
+     "foreign": "le mur"
+    },
+    {
+     "id": "bed",
+     "de": "das Bett",
+     "foreign": "le lit"
+    },
+    {
+     "id": "table",
+     "de": "der Tisch",
+     "foreign": "la table"
+    },
+    {
+     "id": "chair",
+     "de": "der Stuhl",
+     "foreign": "la chaise"
+    },
+    {
+     "id": "cupboard",
+     "de": "der Schrank",
+     "foreign": "l'armoire"
+    },
+    {
+     "id": "fridge",
+     "de": "der Kühlschrank",
+     "foreign": "le frigo"
+    },
+    {
+     "id": "neighbour",
+     "de": "der Nachbar",
+     "foreign": "le voisin"
+    },
+    {
+     "id": "live",
+     "de": "wohnen",
+     "foreign": "habiter"
+    },
+    {
+     "id": "tidy",
+     "de": "aufräumen",
+     "foreign": "ranger"
+    },
+    {
+     "id": "clean",
+     "de": "putzen",
+     "foreign": "nettoyer"
+    },
+    {
+     "id": "move",
+     "de": "umziehen",
+     "foreign": "déménager"
+    },
+    {
+     "id": "comfortable",
+     "de": "bequem",
+     "foreign": "confortable"
+    }
+   ]
+  },
+  {
+   "id": "town",
+   "name": "Stadt",
+   "words": [
+    {
+     "id": "town",
+     "de": "die Stadt",
+     "foreign": "la ville"
+    },
+    {
+     "id": "village",
+     "de": "das Dorf",
+     "foreign": "le village"
+    },
+    {
+     "id": "street",
+     "de": "die Strasse",
+     "foreign": "la rue"
+    },
+    {
+     "id": "square",
+     "de": "der Platz",
+     "foreign": "la place"
+    },
+    {
+     "id": "bridge",
+     "de": "die Brücke",
+     "foreign": "le pont"
+    },
+    {
+     "id": "church",
+     "de": "die Kirche",
+     "foreign": "l'église"
+    },
+    {
+     "id": "museum",
+     "de": "das Museum",
+     "foreign": "le musée"
+    },
+    {
+     "id": "library",
+     "de": "die Bibliothek",
+     "foreign": "la bibliothèque"
+    },
+    {
+     "id": "postoffice",
+     "de": "die Post",
+     "foreign": "la poste"
+    },
+    {
+     "id": "bank",
+     "de": "die Bank",
+     "foreign": "la banque"
+    },
+    {
+     "id": "pharmacy",
+     "de": "die Apotheke",
+     "foreign": "la pharmacie"
+    },
+    {
+     "id": "bakery",
+     "de": "die Bäckerei",
+     "foreign": "la boulangerie"
+    },
+    {
+     "id": "market",
+     "de": "der Markt",
+     "foreign": "le marché"
+    },
+    {
+     "id": "park",
+     "de": "der Park",
+     "foreign": "le parc"
+    },
+    {
+     "id": "bus",
+     "de": "der Bus",
+     "foreign": "le bus"
+    },
+    {
+     "id": "stop",
+     "de": "die Haltestelle",
+     "foreign": "l'arrêt"
+    },
+    {
+     "id": "traffic",
+     "de": "der Verkehr",
+     "foreign": "la circulation"
+    },
+    {
+     "id": "trafficlights",
+     "de": "die Ampel",
+     "foreign": "le feu"
+    },
+    {
+     "id": "corner",
+     "de": "die Ecke",
+     "foreign": "le coin"
+    },
+    {
+     "id": "crossroads",
+     "de": "die Kreuzung",
+     "foreign": "le carrefour"
+    },
+    {
+     "id": "turn",
+     "de": "abbiegen",
+     "foreign": "tourner"
+    },
+    {
+     "id": "cross",
+     "de": "überqueren",
+     "foreign": "traverser"
+    },
+    {
+     "id": "straight_on",
+     "de": "geradeaus",
+     "foreign": "tout droit"
+    },
+    {
+     "id": "near",
+     "de": "in der Nähe",
+     "foreign": "près d'ici"
+    }
+   ]
+  },
+  {
+   "id": "nature",
+   "name": "Wetter und Natur",
+   "words": [
+    {
+     "id": "weather",
+     "de": "das Wetter",
+     "foreign": "le temps / la météo"
+    },
+    {
+     "id": "sun",
+     "de": "die Sonne",
+     "foreign": "le soleil"
+    },
+    {
+     "id": "rain",
+     "de": "der Regen",
+     "foreign": "la pluie"
+    },
+    {
+     "id": "snow",
+     "de": "der Schnee",
+     "foreign": "la neige"
+    },
+    {
+     "id": "wind",
+     "de": "der Wind",
+     "foreign": "le vent"
+    },
+    {
+     "id": "cloud",
+     "de": "die Wolke",
+     "foreign": "le nuage"
+    },
+    {
+     "id": "storm",
+     "de": "das Gewitter",
+     "foreign": "l'orage"
+    },
+    {
+     "id": "sky",
+     "de": "der Himmel",
+     "foreign": "le ciel"
+    },
+    {
+     "id": "mountain",
+     "de": "der Berg",
+     "foreign": "la montagne"
+    },
+    {
+     "id": "lake",
+     "de": "der See",
+     "foreign": "le lac"
+    },
+    {
+     "id": "river",
+     "de": "der Fluss",
+     "foreign": "la rivière / le fleuve"
+    },
+    {
+     "id": "forest",
+     "de": "der Wald",
+     "foreign": "la forêt"
+    },
+    {
+     "id": "tree",
+     "de": "der Baum",
+     "foreign": "l'arbre"
+    },
+    {
+     "id": "flower",
+     "de": "die Blume",
+     "foreign": "la fleur"
+    },
+    {
+     "id": "animal",
+     "de": "das Tier",
+     "foreign": "l'animal"
+    },
+    {
+     "id": "bird",
+     "de": "der Vogel",
+     "foreign": "l'oiseau"
+    },
+    {
+     "id": "spring",
+     "de": "der Frühling",
+     "foreign": "le printemps"
+    },
+    {
+     "id": "summer",
+     "de": "der Sommer",
+     "foreign": "l'été"
+    },
+    {
+     "id": "autumn",
+     "de": "der Herbst",
+     "foreign": "l'automne"
+    },
+    {
+     "id": "winter",
+     "de": "der Winter",
+     "foreign": "l'hiver"
+    },
+    {
+     "id": "environment",
+     "de": "die Umwelt",
+     "foreign": "l'environnement"
+    },
+    {
+     "id": "rain_v",
+     "de": "regnen",
+     "foreign": "pleuvoir"
+    },
+    {
+     "id": "hot",
+     "de": "heiss",
+     "foreign": "chaud"
+    },
+    {
+     "id": "wet",
+     "de": "nass",
+     "foreign": "mouillé"
+    }
+   ]
+  },
+  {
+   "id": "shopping",
+   "name": "Einkaufen",
+   "words": [
+    {
+     "id": "shop",
+     "de": "das Geschäft / der Laden",
+     "foreign": "le magasin"
+    },
+    {
+     "id": "supermarket",
+     "de": "der Supermarkt",
+     "foreign": "le supermarché"
+    },
+    {
+     "id": "money",
+     "de": "das Geld",
+     "foreign": "l'argent"
+    },
+    {
+     "id": "price",
+     "de": "der Preis",
+     "foreign": "le prix"
+    },
+    {
+     "id": "bill",
+     "de": "die Rechnung",
+     "foreign": "l'addition / la facture"
+    },
+    {
+     "id": "change",
+     "de": "das Wechselgeld",
+     "foreign": "la monnaie"
+    },
+    {
+     "id": "purse",
+     "de": "das Portemonnaie",
+     "foreign": "le porte-monnaie"
+    },
+    {
+     "id": "customer",
+     "de": "der Kunde",
+     "foreign": "le client"
+    },
+    {
+     "id": "size",
+     "de": "die Grösse",
+     "foreign": "la taille"
+    },
+    {
+     "id": "clothes",
+     "de": "die Kleider",
+     "foreign": "les vêtements"
+    },
+    {
+     "id": "trousers",
+     "de": "die Hose",
+     "foreign": "le pantalon"
+    },
+    {
+     "id": "shirt",
+     "de": "das Hemd",
+     "foreign": "la chemise"
+    },
+    {
+     "id": "shoes",
+     "de": "die Schuhe",
+     "foreign": "les chaussures"
+    },
+    {
+     "id": "jacket",
+     "de": "die Jacke",
+     "foreign": "la veste"
+    },
+    {
+     "id": "bag",
+     "de": "die Tasche",
+     "foreign": "le sac"
+    },
+    {
+     "id": "buy",
+     "de": "kaufen",
+     "foreign": "acheter"
+    },
+    {
+     "id": "sell",
+     "de": "verkaufen",
+     "foreign": "vendre"
+    },
+    {
+     "id": "pay",
+     "de": "bezahlen",
+     "foreign": "payer"
+    },
+    {
+     "id": "try_on",
+     "de": "anprobieren",
+     "foreign": "essayer"
+    },
+    {
+     "id": "cost",
+     "de": "kosten",
+     "foreign": "coûter"
+    },
+    {
+     "id": "cheap",
+     "de": "billig",
+     "foreign": "bon marché"
+    },
+    {
+     "id": "expensive",
+     "de": "teuer",
+     "foreign": "cher"
+    },
+    {
+     "id": "discount",
+     "de": "der Rabatt",
+     "foreign": "la réduction"
+    },
+    {
+     "id": "queue",
+     "de": "die Warteschlange",
+     "foreign": "la queue / la file d'attente"
+    }
+   ]
+  },
+  {
+   "id": "feelings",
+   "name": "Gefühle",
+   "words": [
+    {
+     "id": "happy",
+     "de": "glücklich",
+     "foreign": "heureux"
+    },
+    {
+     "id": "sad",
+     "de": "traurig",
+     "foreign": "triste"
+    },
+    {
+     "id": "angry",
+     "de": "wütend",
+     "foreign": "en colère / fâché"
+    },
+    {
+     "id": "afraid",
+     "de": "ängstlich",
+     "foreign": "effrayé"
+    },
+    {
+     "id": "nervous",
+     "de": "nervös",
+     "foreign": "nerveux"
+    },
+    {
+     "id": "proud",
+     "de": "stolz",
+     "foreign": "fier"
+    },
+    {
+     "id": "surprised",
+     "de": "überrascht",
+     "foreign": "surpris"
+    },
+    {
+     "id": "worried",
+     "de": "besorgt",
+     "foreign": "inquiet"
+    },
+    {
+     "id": "bored",
+     "de": "gelangweilt",
+     "foreign": "qui s'ennuie"
+    },
+    {
+     "id": "lonely",
+     "de": "einsam",
+     "foreign": "seul"
+    },
+    {
+     "id": "jealous",
+     "de": "eifersüchtig",
+     "foreign": "jaloux"
+    },
+    {
+     "id": "calm",
+     "de": "ruhig",
+     "foreign": "calme"
+    },
+    {
+     "id": "satisfied",
+     "de": "zufrieden",
+     "foreign": "satisfait"
+    },
+    {
+     "id": "fear",
+     "de": "die Angst",
+     "foreign": "la peur"
+    },
+    {
+     "id": "joy",
+     "de": "die Freude",
+     "foreign": "la joie"
+    },
+    {
+     "id": "anger",
+     "de": "die Wut",
+     "foreign": "la colère"
+    },
+    {
+     "id": "love",
+     "de": "die Liebe",
+     "foreign": "l'amour"
+    },
+    {
+     "id": "friendship",
+     "de": "die Freundschaft",
+     "foreign": "l'amitié"
+    },
+    {
+     "id": "laugh",
+     "de": "lachen",
+     "foreign": "rire"
+    },
+    {
+     "id": "cry",
+     "de": "weinen",
+     "foreign": "pleurer"
+    },
+    {
+     "id": "hope",
+     "de": "hoffen",
+     "foreign": "espérer"
+    },
+    {
+     "id": "feel",
+     "de": "fühlen",
+     "foreign": "sentir / ressentir"
+    },
+    {
+     "id": "like",
+     "de": "mögen",
+     "foreign": "aimer"
+    },
+    {
+     "id": "hate",
+     "de": "hassen",
+     "foreign": "détester"
+    }
+   ]
+  }
+ ]
+}

@@ -8,6 +8,7 @@ import { outfitDef } from '@/core/outfits'
 import type { Api, PlayerRow, Rules, StickerRow } from '@/services/api'
 import FilmList from './FilmList.vue'
 import LehrplanOverview from './LehrplanOverview.vue'
+import VocabOverview from './VocabOverview.vue'
 import WritingSettings from './WritingSettings.vue'
 
 // The parents' page: plain German, for grown-ups who read. One card per person who may play,
@@ -35,7 +36,7 @@ async function load() {
   try {
     rows.value = await props.api.players()
     for (const row of rows.value) {
-      drafts[row.id] = { daily_goal: row.daily_goal, play_minutes: row.play_minutes, stars: row.stars }
+      drafts[row.id] = { daily_goal: row.daily_goal, play_minutes: row.play_minutes, stars: row.stars, level: row.level ?? 'kindergarten' }
     }
     status.value = 'ready'
   } catch {
@@ -53,6 +54,8 @@ async function save(id: number) {
   }
   // Stars only when they were changed here: a child may have earned some since the page was loaded
   const rules: Rules = { daily_goal: draft.daily_goal, play_minutes: draft.play_minutes }
+  // Only when it was changed here: an older server doesn't know the level
+  if (row.role !== 'PARENT' && draft.level !== (row.level ?? 'kindergarten')) rules.level = draft.level
   if (stars !== row.stars) rules.stars = stars
   saving.value = id
   try {
@@ -136,6 +139,12 @@ onMounted(load)
               <option v-for="m in PLAY_CHOICES" :key="String(m)" :value="m">{{ m === null ? 'Ohne Grenze' : `${m} Minuten` }}</option>
             </select>
           </label>
+          <label v-if="row.role !== 'PARENT'">Stufe
+            <select v-model="drafts[row.id].level" data-test="level">
+              <option value="kindergarten">Kindergarten</option>
+              <option value="oberstufe">Oberstufe</option>
+            </select>
+          </label>
           <label>Sterne
             <input v-model.number="drafts[row.id].stars" data-test="stars-input" type="number" min="0" max="9999" step="1" inputmode="numeric" />
           </label>
@@ -154,8 +163,13 @@ onMounted(load)
             <p v-if="diaries[row.id].stickers.length" data-test="diary-stickers">{{ stickerLine(diaries[row.id].stickers) }}</p>
           </template>
         </details>
-        <LehrplanOverview v-if="row.role !== 'PARENT'" :api="api" :person-id="row.id" />
-        <WritingSettings v-if="row.role !== 'PARENT'" :api="api" :person-id="row.id" />
+        <template v-if="row.role !== 'PARENT' && row.level === 'oberstufe'">
+          <VocabOverview :api="api" :person-id="row.id" :today="row.day" />
+        </template>
+        <template v-else-if="row.role !== 'PARENT'">
+          <LehrplanOverview :api="api" :person-id="row.id" />
+          <WritingSettings :api="api" :person-id="row.id" />
+        </template>
       </article>
 
       <FilmList :api="api" @changed="emit('filmsChanged')" />

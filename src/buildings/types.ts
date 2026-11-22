@@ -38,4 +38,9 @@ export interface BuildingDef {
   unlogged?: boolean
   /** Fetches the building's code. Awaited before entering, so a failed download never costs Stars. */
   preload?: () => Promise<unknown>
+  /**
+   * Open at Oberstufe (as "oberstufe" in shared/buildings.json); left out, its door says "Bald" there. `component`: its
+   * Oberstufe side, when it has one of its own (the School's vocabulary trainer); otherwise the same component.
+   */
+  oberstufe?: { component?: Component; preload?: () => Promise<unknown> }
 }

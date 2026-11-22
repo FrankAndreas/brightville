@@ -1,5 +1,5 @@
 [
-  { "id": "school", "kind": "earn", "maxStars": 10, "minSecondsPerStar": 2 },
+  { "id": "school", "kind": "earn", "maxStars": 10, "minSecondsPerStar": 2, "oberstufe": { "maxStars": 15 } },
   { "id": "schreiben", "kind": "earn", "maxStars": 10, "minSecondsPerStar": 1.5 },
   { "id": "yoga", "kind": "earn", "maxStars": 9, "minSecondsPerStar": 1.5 },
   { "id": "unterschiede", "kind": "earn", "maxStars": 10, "minSecondsPerStar": 1 },
@@ -13,13 +13,13 @@
   { "id": "spielwelt", "kind": "earn", "maxStars": 10, "minSecondsPerStar": 2 },
   { "id": "trommelhaus", "kind": "earn", "maxStars": 10, "minSecondsPerStar": 3 },
   { "id": "ausmalen", "kind": "free" },
-  { "id": "malen", "kind": "free" },
-  { "id": "haus", "kind": "free" },
+  { "id": "malen", "kind": "free", "oberstufe": {} },
+  { "id": "haus", "kind": "free", "oberstufe": {} },
   { "id": "arcade", "kind": "play", "cost": 3 },
   { "id": "schlange", "kind": "play", "cost": 3 },
   { "id": "bonbonjagd", "kind": "play", "cost": 3 },
   { "id": "kino", "kind": "play", "cost": 3 },
-  { "id": "laden", "kind": "shop" },
-  { "id": "moebel", "kind": "shop" },
+  { "id": "laden", "kind": "shop", "oberstufe": {} },
+  { "id": "moebel", "kind": "shop", "oberstufe": {} },
   { "id": "flatterflug", "kind": "play", "cost": 3 }
 ]

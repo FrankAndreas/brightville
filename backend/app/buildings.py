@@ -5,6 +5,7 @@ import os
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
+from typing import Optional
 
 DEFAULT_FILE = Path(__file__).resolve().parents[2] / "shared" / "buildings.json"
 
@@ -18,6 +19,10 @@ class Building:
     # An earning visit takes at least this long per Star it brings (the cool-down, game.visit): about half of the
     # fastest real visit, so a child is never held back, while Stars can't be sent faster than they can be earned
     min_seconds_per_star: float = 0
+    # Open at Oberstufe (it has an "oberstufe" entry); without one its door says "Bald" there
+    oberstufe: bool = False
+    # The most one earning visit gives at Oberstufe, when it differs
+    oberstufe_max_stars: Optional[int] = None
 
 
 @lru_cache
@@ -30,6 +35,8 @@ def all_buildings() -> dict[str, Building]:
                 int(b.get("maxStars", 0)),
                 int(b.get("cost", 0)),
                 float(b.get("minSecondsPerStar", 0)),
+                "oberstufe" in b,
+                b["oberstufe"].get("maxStars") if "oberstufe" in b else None,
             )
             for b in json.load(file)
         }

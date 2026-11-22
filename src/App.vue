@@ -31,6 +31,7 @@ import { forgetInstruction, speak } from '@/services/tts'
 import { usePlayerStore } from '@/stores/player'
 import { useRoomStore } from '@/stores/room'
 import { useLaddersStore } from '@/stores/ladders'
+import { useVocabStore } from '@/stores/vocab'
 import { useWritingStore } from '@/stores/writing'
 import { useWardrobeStore } from '@/stores/wardrobe'
 import { useSessionStore } from '@/stores/session'
@@ -46,12 +47,15 @@ const wardrobe = useWardrobeStore()
 const room = useRoomStore()
 const writing = useWritingStore()
 const ladderStore = useLaddersStore()
+const vocab = useVocabStore()
 const device = detectDevice()
 /** The device, and whether the parents chose films for the Cinema */
 const caps = computed(() => ({ ...device, films: player.films.length > 0 }))
 // Doors follow the Stars, the daily goal, the play time and the films: the town repaints them when they change
-const doors = computed(() => toDoors(props.buildings, caps.value, player.goalReached, player.stars, player.timeUp))
-const stateFor = (b: BuildingDef) => stateOf(b, caps.value, player.goalReached, player.stars, player.timeUp)
+const doors = computed(() => toDoors(props.buildings, caps.value, player.goalReached, player.stars, player.timeUp, player.level))
+const stateFor = (b: BuildingDef) => stateOf(b, caps.value, player.goalReached, player.stars, player.timeUp, player.level)
+/** What a building shows inside: its Oberstufe side at Oberstufe, when it has one of its own */
+const sideOf = (b: BuildingDef) => (player.level === 'oberstufe' && b.oberstufe?.component) || b.component
 /** No mouse, so most likely no keyboard: explain and prompt with fingers */
 const fingersOnly = device.touch && !device.keyboard
 
@@ -129,6 +133,9 @@ watch(() => (session.status === 'ready' ? session.person?.id : undefined), async
   ladderStore.init(props.api, id)
   // Her School steps: until they come, the School asks at the first steps
   void ladderStore.load()
+  // His words at Oberstufe, due by the game's day; asked for every child (a few bytes), so a level set later just works
+  vocab.init(props.api, id, undefined, () => player.day)
+  void vocab.load()
   // The room is only needed in the house and the Möbelhaus: the game doesn't wait for it
   void room.load()
   await Promise.all([player.refresh(), wardrobe.load()])
@@ -202,6 +209,7 @@ function doorLine(b: BuildingDef): string {
     case 'locked': return b.kind === 'shop' ? 'Erst lernen, dann einkaufen!' : 'Erst lernen, dann spielen!'
     case 'timeUp': return 'Für heute ist genug gespielt. Morgen wieder!'
     case 'poor': return `Du brauchst ${cost} Sterne.`
+    case 'soon': return `${b.spokenName}. Hier gibt es bald etwas für dich.`
     case 'open': return b.kind === 'play' && b.cost ? `${b.spokenName}. Das kostet ${cost} Sterne.` : b.spokenName
     default: return b.spokenName
   }
@@ -239,7 +247,7 @@ async function onEnter(id: string) {
   entering = true
   try {
     try {
-      await building.preload?.()
+      await (player.level === 'oberstufe' && building.oberstufe?.preload ? building.oberstufe.preload() : building.preload?.())
     } catch {
       // Offline or a new version on the server: stay in the town, keep the Stars
       return
@@ -342,6 +350,8 @@ const refresh = () => {
     void room.load()
     // A step a parent set (here or elsewhere) reaches the School
     void ladderStore.load()
+    // His words changed on another device, and rounds that waited here
+    void vocab.load()
   }
 }
 let refreshTimer: ReturnType<typeof setInterval> | undefined
@@ -408,7 +418,7 @@ onBeforeUnmount(() => {
       @close="closeParents" @saved="onSaved" @switch="switchPerson" @films-changed="player.refresh()"
     />
     <section v-if="inside" class="building">
-      <component :is="inside.component" @finished="onFinished" />
+      <component :is="sideOf(inside)" @finished="onFinished" />
       <LeaveButton />
       <SayAgain />
     </section>

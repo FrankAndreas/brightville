@@ -6,9 +6,11 @@ import { outfitDef, pay, shelfOpen, type Place } from '@/core/outfits'
 import { applyResults, LADDERS, LAST_STEP, startLadders, type Ladders } from '@/core/ladders'
 import { GLYPHS } from '@/core/writing/letters'
 import { applyWrite, checkText, normalizeText, type Letters } from '@/core/writing/levels'
+import { nextBox } from '@/core/vocab/boxes'
+import type { VocabList } from '@/core/vocab/types'
 import {
   ApiError, type Api, type Film, type LogDay, type Me, type Person, type PlayerRow, type ServerState, type StickerRow,
-  type RoomState, type SchoolState, type WardrobeState, type WritingState,
+  type ListDraft, type RoomState, type SchoolState, type VocabState, type WardrobeState, type WritingState,
 } from './api'
 
 export interface FakePainting { id: string; updated: number; image: string; thumb: string }
@@ -36,6 +38,10 @@ export interface FakeApi extends Api {
   /** Schreiben, as the server keeps it: `introducedOn` is the day each letter was met */
   writing_: { texts: string[]; letters: Letters; introducedOn: Record<string, string> }
   school_: Ladders
+  /** The Oberstufe's vocabulary, as the server keeps it */
+  vocab_: { lists: VocabList[]; progress: VocabState['progress'] }
+  /** While true the server refuses every round's results (as an old key would) */
+  refuseVocab: boolean
   /** The server's calendar turns a page */
   newDay(day: string): void
 }
@@ -43,7 +49,7 @@ export interface FakeApi extends Api {
 const KID: Person = { id: 1, name: 'Mia', role: 'CHILD', color: '#ff66aa' }
 
 export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}): FakeApi {
-  const state: ServerState = { stars: 0, day: '2026-11-12', visits: 0, daily_goal: 2, play_seconds: 0, play_minutes: null, savings: 0, ...start }
+  const state: ServerState = { stars: 0, day: '2026-11-12', visits: 0, daily_goal: 2, play_seconds: 0, play_minutes: null, savings: 0, level: 'kindergarten', ...start }
   const seen = new Set<string>()
   /** Purchase keys of the day and what each bought: the same key for another item is key_used, as on the server */
   const purchases = new Map<string, string>()
@@ -52,7 +58,7 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
     if (was !== undefined && was !== item) throw new ApiError(409, 'key_used')
     return was !== undefined
   }
-  const find = (id: string) => buildings.find(b => b.id === id) as { id: string; kind: string; maxStars?: number; cost?: number } | undefined
+  const find = (id: string) => buildings.find(b => b.id === id) as { id: string; kind: string; maxStars?: number; cost?: number; oberstufe?: { maxStars?: number } } | undefined
   /** Hands out what `earns_` holds, as the server's award does */
   function award(): string[] {
     const ids = api.earns_.filter(id => !api.stickers_.some(s => s.id === id))
@@ -77,6 +83,8 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
     room_: { placed: {}, owned: [], bought_today: false },
     writing_: { texts: [], letters: {}, introducedOn: {} },
     school_: startLadders(false),
+    vocab_: { lists: [], progress: {} },
+    refuseVocab: false,
     newDay(day) {
       Object.assign(state, { day, visits: 0, play_seconds: 0 })
       api.wardrobe_.bought_today = false
@@ -86,7 +94,8 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
     visit: (building, stars, key) => run(`visit ${building} ${stars}`, () => {
       const b = find(building)
       // Buildings the tests make up give what they say
-      const earned = Math.min(stars, b?.maxStars ?? stars)
+      const most = state.level === 'oberstufe' ? (b?.oberstufe?.maxStars ?? b?.maxStars) : b?.maxStars
+      const earned = Math.min(stars, most ?? stars)
       if (earned <= 0 || seen.has(key)) return { state: { ...state }, goal_reached_now: false, stickers: [] }
       seen.add(key)
       const before = state.visits >= state.daily_goal
@@ -254,6 +263,41 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
       return schoolCopy()
     }),
     playerSchool: id => run(`playerSchool ${id}`, () => schoolCopy()),
+    vocab: () => run('vocab', () => vocabCopy()),
+    createList: list => run(`createList ${list.name}`, () => {
+      const kept = checkList(list)
+      if (api.vocab_.lists.filter(l => l.lang === list.lang).length >= 30) throw new ApiError(422, 'too-many')
+      const made = { id: ++lastList, ...kept }
+      api.vocab_.lists.push(made)
+      return JSON.parse(JSON.stringify(made)) as VocabList
+    }),
+    updateList: (id, list) => run(`updateList ${id}`, () => {
+      const at = api.vocab_.lists.findIndex(l => l.id === id)
+      if (at < 0) throw new ApiError(404, 'unknown')
+      api.vocab_.lists[at] = { id, ...checkList(list) }
+      return JSON.parse(JSON.stringify(api.vocab_.lists[at])) as VocabList
+    }),
+    deleteList: id => run(`deleteList ${id}`, () => {
+      if (!api.vocab_.lists.some(l => l.id === id)) throw new ApiError(404, 'unknown')
+      api.vocab_.lists = api.vocab_.lists.filter(l => l.id !== id)
+      return vocabCopy()
+    }),
+    // The server's rules (backend/app/vocab.py record)
+    vocabResults: r => run(`vocabResults ${r.key}`, () => {
+      if (api.refuseVocab) throw new ApiError(422, 'refused')
+      if (vocabKeys.has(r.key)) return vocabCopy()
+      vocabKeys.add(r.key)
+      for (const a of r.answers) {
+        if (!a.word.startsWith(`${r.lang}:`)) continue
+        api.vocab_.progress[a.word] = nextBox(api.vocab_.progress[a.word]?.box ?? 0, a.right, state.day)
+      }
+      return vocabCopy()
+    }),
+    playerVocab: id => run(`playerVocab ${id}`, () => {
+      const copy = vocabCopy()
+      delete copy.seen
+      return copy
+    }),
     setPlayerStep: (id, ladder, step) => run(`setPlayerStep ${id} ${ladder} ${step}`, () => {
       if (!LADDERS.includes(ladder)) throw new ApiError(422, 'unknown')
       if (step < 1 || step > LAST_STEP) throw new ApiError(422, 'bad_step')
@@ -287,6 +331,17 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
   }
   const writingKeys = new Set<string>()
   const schoolKeys = new Set<string>()
+  const vocabKeys = new Set<string>()
+  let lastList = 0
+  const vocabCopy = (): VocabState => ({ ...JSON.parse(JSON.stringify(api.vocab_)), seen: [...vocabKeys].reverse() })
+  /** As backend/app/vocab.py check */
+  const checkList = (list: Omit<ListDraft, 'id'>): Omit<VocabList, 'id'> => {
+    const name = list.name.trim()
+    const words = list.words.map(w => ({ de: w.de.trim(), foreign: w.foreign.trim() }))
+    if (!name || words.length === 0 || words.some(w => !w.de || !w.foreign)) throw new ApiError(422, 'empty')
+    if (name.length > 40 || words.length > 60 || words.some(w => w.de.length > 60 || w.foreign.length > 60)) throw new ApiError(422, 'too-long')
+    return { lang: list.lang, name, words }
+  }
   const schoolCopy = (): SchoolState => ({ ...JSON.parse(JSON.stringify(api.school_)), seen: [...schoolKeys].reverse() })
   // As backend/app/writing.py new_left_today
   const newLeft = (day = state.day) => {

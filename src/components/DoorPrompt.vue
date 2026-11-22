@@ -7,6 +7,7 @@ import type { DoorState } from '@/core/access'
 //  locked      a lock and today's learning slots: learn first
 //  poor        the price in Stars, which the child doesn't have yet
 //  timeUp      a moon: enough play for today
+//  soon        "Bald": at Oberstufe, a building with nothing for him yet
 //
 // The picture of an open door is also the button that goes in, for fingers and the mouse.
 const props = defineProps<{
@@ -45,7 +46,8 @@ const STAR = 'M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.2 5.9 20.6l1.4-6.8L2.2 9
   >
     <span v-if="state === 'locked'" class="icon">🔒</span>
     <span v-if="state === 'timeUp'" class="icon" data-test="moon">🌙</span>
-    <span class="icon" :class="{ crossed: state === 'unavailable', dim: state === 'locked' || state === 'poor' || state === 'timeUp' }">{{ icon }}</span>
+    <span class="icon" :class="{ crossed: state === 'unavailable', dim: state === 'locked' || state === 'poor' || state === 'timeUp' || state === 'soon' }">{{ icon }}</span>
+    <span v-if="state === 'soon'" class="soon" data-test="soon">Bald</span>
 
     <span v-if="state === 'locked'" class="slots">
       <i v-for="n in goal ?? 0" :key="n" :class="{ done: n <= (visits ?? 0) }" />
@@ -101,6 +103,7 @@ const STAR = 'M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.2 5.9 20.6l1.4-6.8L2.2 9
   background: #e5484d;
   transform: rotate(-35deg);
 }
+.soon { font: 700 34px/1 system-ui, sans-serif; color: #6b6458; }
 .slots { display: flex; gap: 10px; }
 .slots i { width: 40px; height: 40px; border-radius: 50%; border: 5px dashed #c9a800; box-sizing: border-box; }
 .slots i.done { border: 0; background: #4bd37b; }

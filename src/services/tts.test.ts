@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { speak, stopSpeaking } from './tts'
+import { hasVoice, speak, stopSpeaking } from './tts'
 
 interface FakeUtterance { text: string; lang: string; onend?: () => void; onerror?: () => void }
 
@@ -79,5 +79,13 @@ describe('tts service', () => {
       await vi.advanceTimersByTimeAsync(10000)
       expect(isDone()).toBe(true)
     })
+  })
+
+  it('knows whether the device has a voice for a language', () => {
+    vi.stubGlobal('speechSynthesis', { ...mockSynth, getVoices: () => [{ lang: 'de-CH' }, { lang: 'en_GB' }] })
+    expect(hasVoice('en-GB')).toBe(true)
+    expect(hasVoice('fr-FR')).toBe(false)
+    vi.stubGlobal('speechSynthesis', undefined)
+    expect(hasVoice('en-GB')).toBe(false)
   })
 })

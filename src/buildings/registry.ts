@@ -1,4 +1,4 @@
-import { doorState, type DoorState } from '@/core/access'
+import { doorState, type DoorState, type Level } from '@/core/access'
 import type { DoorDef } from '@/city/doors'
 import type { DeviceCaps } from '@/services/device'
 
@@ -31,6 +31,7 @@ const muster = () => import('./muster/Musterwerkstatt.vue')
 const kalender = () => import('./kalender/Kalender.vue')
 const spielwelt = () => import('./spielwelt/Spielwelt.vue')
 const trommelhaus = () => import('./trommelhaus/Trommelhaus.vue')
+const vokabeln = () => import('./vokabeln/Vokabeln.vue')
 
 /**
  * Every building in the town, mixed along the streets of `src/city/map.ts` so every walk passes learning, playing and
@@ -41,6 +42,7 @@ export const BUILDINGS: BuildingDef[] = [
   {
     id: 'school', spokenName: 'Schule', toName: 'zur Schule', icon: '🔢', kind: 'earn', needs: [], door: { x: 3.5, z: -13, side: 'right' },
     component: defineAsyncComponent(school), preload: school,
+    oberstufe: { component: defineAsyncComponent(vokabeln), preload: vokabeln },
   },
   {
     // Writing wants a finger or a pen on the glass; a mouse teaches nothing about it
@@ -70,6 +72,8 @@ export const BUILDINGS: BuildingDef[] = [
   {
     id: 'malen', spokenName: 'Malen', toName: 'zum Malen', icon: '🖌️', kind: 'free', needs: [], door: { x: -16, z: 28.5 },
     component: defineAsyncComponent(malen), preload: malen,
+
+    oberstufe: {},
   },
   {
     // Moving: the camera counts jumps and dance moves
@@ -101,16 +105,22 @@ export const BUILDINGS: BuildingDef[] = [
     // The child's own: the logbook and the sticker book
     id: 'haus', spokenName: 'Mein Haus', toName: 'nach Hause', icon: '🏠', kind: 'free', needs: [], door: { x: -3.5, z: 13, side: 'left' },
     unlogged: true, component: defineAsyncComponent(haus), preload: haus,
+
+    oberstufe: {},
   },
   {
     // Add-ons for her character, after today's learning: next to the house with her wardrobe
     id: 'laden', spokenName: 'Kleiderladen', toName: 'zum Kleiderladen', icon: '👗', kind: 'shop', needs: [], door: { x: -3.5, z: 24, side: 'left' },
     component: defineAsyncComponent(laden), preload: laden,
+
+    oberstufe: {},
   },
   {
     // Furniture for her room (stage 8)
     id: 'moebel', spokenName: 'Möbelhaus', toName: 'zum Möbelhaus', icon: '🛋️', kind: 'shop', needs: [], door: { x: 51, z: -3.5 },
     component: defineAsyncComponent(moebel), preload: moebel,
+
+    oberstufe: {},
   },
   {
     // Her wobbly gets wings: flying through the clouds
@@ -150,17 +160,17 @@ export function canServe(building: BuildingDef, device: Capabilities): boolean {
 
 /** What the door of this building is to the child right now. */
 export function stateOf(
-  building: BuildingDef, device: Capabilities, goalReached: boolean, stars: number, timeUp = false,
+  building: BuildingDef, device: Capabilities, goalReached: boolean, stars: number, timeUp = false, level: Level = 'kindergarten',
 ): DoorState {
-  return doorState(building, canServe(building, device), goalReached, stars, timeUp)
+  return doorState(building, canServe(building, device), goalReached, stars, timeUp, level)
 }
 
 /** The doors the town shows: one per building, open only when the child may walk in right now. */
 export function toDoors(
-  buildings: BuildingDef[], device: Capabilities, goalReached: boolean, stars: number, timeUp = false,
+  buildings: BuildingDef[], device: Capabilities, goalReached: boolean, stars: number, timeUp = false, level: Level = 'kindergarten',
 ): DoorDef[] {
   return buildings.map(b => {
-    const state = stateOf(b, device, goalReached, stars, timeUp)
+    const state = stateOf(b, device, goalReached, stars, timeUp, level)
     return {
       id: b.id, x: b.door.x, z: b.door.z, side: b.door.side ?? 'back',
       open: state === 'open', locked: state === 'locked', icon: b.icon,

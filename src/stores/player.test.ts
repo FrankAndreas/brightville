@@ -42,6 +42,17 @@ describe('player store', () => {
     expect(player.loaded).toBe(true)
   })
 
+  it('knows the child\'s level, Kindergarten when the server doesn\'t say', async () => {
+    expect((await open()).level).toBe('kindergarten')
+    setActivePinia(createPinia())
+    api = fakeApi({ level: 'oberstufe' })
+    expect((await open()).level).toBe('oberstufe')
+    setActivePinia(createPinia())
+    api = fakeApi()
+    delete (api.state_ as { level?: string }).level
+    expect((await open()).level).toBe('kindergarten')
+  })
+
   it('knows the Cinema\'s films, and keeps them when the server is away for a moment', async () => {
     api.films_ = [{ id: 1, youtube_id: 'dQw4w9WgXcQ', title: 'Lieder' }]
     const player = await open()
@@ -248,6 +259,22 @@ describe('player store', () => {
     await player.refresh()
     expect(player.pending).toBe(0)
     expect(player.stars).toBe(4)
+  })
+
+  it('drops a kept visit to a building that is "soon" for him now (the level changed elsewhere), so later ones still go', async () => {
+    const player = await open()
+    api.offline = true
+    await player.earn('yoga', 3)
+    await player.earn('school', 2)
+    api.offline = false
+    const real = api.visit
+    api.visit = async (building, stars, key) => {
+      if (building === 'yoga') throw new ApiError(409, 'soon')
+      return real(building, stars, key)
+    }
+    await player.refresh()
+    expect(player.pending).toBe(0)
+    expect(player.stars).toBe(6)
   })
 
   it('buys a round when the server agrees', async () => {

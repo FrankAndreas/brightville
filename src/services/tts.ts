@@ -22,6 +22,13 @@ export function speak(text: string, lang = 'de-DE'): Promise<void> {
   return done
 }
 
+/** Whether the device has a voice for this language ("en-GB" finds any English voice) */
+export function hasVoice(lang: string): boolean {
+  const voices = window.speechSynthesis?.getVoices?.() ?? []
+  const want = lang.slice(0, 2).toLowerCase()
+  return voices.some(v => v.lang.slice(0, 2).toLowerCase() === want)
+}
+
 /**
  * What the building asks the child to do right now, for the 🔊 button (SayAgain.vue): a child who missed it hears
  * it again with a tap. The town forgets it whenever a building opens or closes.

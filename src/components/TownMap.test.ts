@@ -67,4 +67,13 @@ describe('TownMap', () => {
     for (const b of w.findAll('button')) expect(b.attributes('aria-label')).toBeTruthy()
     w.unmount()
   })
+
+  it('shows a building that opens later with "Bald"', () => {
+    const soon = mapPicture([{ id: 'reimhaus', icon: '👂', name: 'Reimhaus', door: { x: 35.5, z: -16, side: 'right' }, state: 'soon' }])
+    const w = mount(TownMap, { props: { picture: soon, her: { x: 0, z: 5 }, color: '#e91e63' }, attachTo: document.body })
+    const marker = w.find('[data-test="map-marker-reimhaus"]')
+    expect(marker.attributes('data-state')).toBe('soon')
+    expect(marker.find('.soon-sign').text()).toBe('Bald')
+    w.unmount()
+  })
 })

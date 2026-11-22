@@ -64,4 +64,14 @@ describe('DoorPrompt', () => {
     expect(touch.find('[data-test="key"]').exists()).toBe(false)
     expect(touch.find('[data-test="tap"]').exists()).toBe(true)
   })
+
+  it('a door that opens later says "Bald", dims its picture and does not go in', () => {
+    const w = open({ state: 'soon' })
+    expect(w.find('[data-test="soon"]').text()).toBe('Bald')
+    expect(w.find('.icon').classes()).toContain('dim')
+    send(w, 'pointerdown')
+    send(w, 'pointerup')
+    expect(w.emitted('enter')).toBeUndefined()
+    expect(w.find('[data-test="tap"]').exists()).toBe(false)
+  })
 })

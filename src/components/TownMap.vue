@@ -98,6 +98,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
       >
         <span class="icon">{{ m.icon }}</span>
         <span v-if="CLOSED_SIGN[m.state]" class="closed-sign">{{ CLOSED_SIGN[m.state] }}</span>
+        <span v-if="m.state === 'soon'" class="soon-sign">Bald</span>
         <span v-if="m.state === 'poor'" class="price" :style="{ fontSize: priceSize(m) }">{{ '⭐'.repeat(priceStars(m)) }}</span>
       </button>
 
@@ -157,8 +158,10 @@ svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
   touch-action: manipulation;
 }
 .marker[data-state='stop'] { background: #fff3c4; border-color: #e0a800; }
-.marker[data-state='locked'], .marker[data-state='timeUp'], .marker[data-state='poor'] { background: #e6e2da; border-color: #b9b2a6; }
-.marker[data-state='locked'] .icon, .marker[data-state='timeUp'] .icon, .marker[data-state='poor'] .icon { opacity: 0.45; }
+.marker[data-state='locked'], .marker[data-state='timeUp'], .marker[data-state='poor'], .marker[data-state='soon'] { background: #e6e2da; border-color: #b9b2a6; }
+.marker[data-state='locked'] .icon, .marker[data-state='timeUp'] .icon, .marker[data-state='poor'] .icon, .marker[data-state='soon'] .icon { opacity: 0.45; }
+/* At Oberstufe he reads: a building with nothing for him yet says so */
+.soon-sign { position: absolute; bottom: 6%; left: 50%; transform: translateX(-50%); font: 700 1.3cqw/1 system-ui, sans-serif; color: #6b6458; pointer-events: none; }
 .marker:active { transform: translate(-50%, -50%) scale(0.92); }
 .closed-sign { position: absolute; right: -14%; top: -14%; font-size: 2.6cqw; line-height: 1; }
 /* Inside the marker along its bottom, and not a target of its own: a tap there is a tap on this marker only */
