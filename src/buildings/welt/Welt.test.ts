@@ -119,4 +119,34 @@ describe('the Spielwelt at Oberstufe', () => {
     expect(w.emitted('finished')).toEqual([[{ stars: 0 }]])
     w.unmount()
   })
+
+  const SWING: RaumTask = { type: 'place', thing: 'ball', clues: [{ word: 'auf', object: 'schaukel' }] }
+  const inView = (w: VueWrapper, id: string) => {
+    const x = Number(w.find(`[data-test="thing-${id}"]`).attributes('data-x'))
+    const from = viewX(w)
+    const width = Number(w.find('[data-test="world"]').attributes('data-view-w'))
+    return ((x - from) % WORLD_WIDTH + WORLD_WIDTH) % WORLD_WIDTH <= width
+  }
+
+  it('the thing to carry starts in view, wherever its object is', async () => {
+    const w = mount(Spielwelt, { props: { tasks: [SWING], lang: 'en', storage: memory() }, attachTo: document.body })
+    await run(10)
+    expect(inView(w, 'ball')).toBe(true)
+    w.unmount()
+  })
+
+  it('during the cheer the solved instruction is gone; a wrong answer is written too', async () => {
+    vi.mocked(hasVoice).mockImplementation(() => false)
+    const w = mount(Spielwelt, { props: { tasks: [FIND, PLACE], lang: 'en', storage: memory() }, attachTo: document.body })
+    await run(10)
+    await w.find('[data-test="thing-ente"]').trigger('pointerdown', { clientX: 0, clientY: 0, pointerId: 1 })
+    pointer('pointerup', 0, 0)
+    await run(10)
+    expect(w.find('[data-test="coach-note"]').text()).toContain("That's the duck.")
+    await w.find('[data-test="thing-katze"]').trigger('pointerdown', { clientX: 0, clientY: 0, pointerId: 1 })
+    pointer('pointerup', 0, 0)
+    await run(10)
+    expect(w.find('[data-test="instruction"]').exists()).toBe(false)
+    w.unmount()
+  })
 })

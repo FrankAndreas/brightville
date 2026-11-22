@@ -52,7 +52,7 @@ export const FR_NOUNS: Record<string, { noun: string; gender: 'm' | 'f' }> = {
   sandkasten: { noun: 'bac à sable', gender: 'm' }, schaukel: { noun: 'balançoire', gender: 'f' },
   garage: { noun: 'garage', gender: 'm' }, auto: { noun: 'voiture', gender: 'f' }, stein: { noun: 'pierre', gender: 'f' },
   busch: { noun: 'buisson', gender: 'm' }, hundehuette: { noun: 'niche', gender: 'f' },
-  ball: { noun: 'ballon', gender: 'm' }, teddy: { noun: 'nounours', gender: 'm' }, katze: { noun: 'chat', gender: 'm' },
+  ball: { noun: 'ballon', gender: 'm' }, teddy: { noun: 'ours en peluche', gender: 'm' }, katze: { noun: 'chat', gender: 'm' },
   ente: { noun: 'canard', gender: 'm' }, eimer: { noun: 'seau', gender: 'm' }, buch: { noun: 'livre', gender: 'm' },
   hut: { noun: 'chapeau', gender: 'm' }, apfel: { noun: 'pomme', gender: 'f' },
 }
@@ -73,7 +73,9 @@ const FR_WORDS: Record<Word, { word: string; de?: true }> = {
   vor: { word: 'devant' }, hinter: { word: 'derrière' }, zwischen: { word: 'entre' },
   'links neben': { word: 'à gauche', de: true }, 'rechts neben': { word: 'à droite', de: true },
 }
-const startsWithVowel = (s: string) => /^[aeiouhâàéèêîïôûœ]/i.test(s)
+/** Elided before a vowel ("l'arbre"). No noun here starts with h: a mute-h noun would need adding here by hand, since an
+ *  aspirated h ("le hamac") is not elided */
+const startsWithVowel = (s: string) => /^[aeiouâàéèêîïôûœ]/i.test(s)
 /** "le lit", "la table", "l'arbre" */
 function theFr(id: string): string {
   const { noun, gender } = FR_NOUNS[id]

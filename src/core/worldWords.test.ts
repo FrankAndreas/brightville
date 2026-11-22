@@ -54,4 +54,12 @@ describe('the Spielwelt in English and French', () => {
       }
     }
   })
+
+  it('French: the teddy is "l\'ours en peluche", two clues, and "par terre"', () => {
+    expect(fr.task(place('teddy', { word: 'neben', object: 'bett' }))).toBe("Mets l'ours en peluche à côté du lit.")
+    expect(fr.task(find('teddy', { word: 'unter', object: 'tisch' }))).toBe("L'ours en peluche est sous la table. Tu le trouves?")
+    expect(fr.task(place('ball', { word: 'vor', object: 'tisch' }, { word: 'rechts neben', object: 'bett' })))
+      .toBe('Mets le ballon devant la table et à droite du lit.')
+    expect(fr.describe('ball', { x: 340, y: 0, lane: 'mid' }, OBJECTS)).toBe('Le ballon est maintenant par terre.')
+  })
 })
