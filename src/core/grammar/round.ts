@@ -77,3 +77,27 @@ export function buildGrammarRound(lang: Lang, topic: string | undefined, progres
   }
   return picked.map(item => toRoundItem(item, typesNow(progress[`${lang}:${item.topic}`]), rand))
 }
+
+const RECENT = 20
+const MISSED = 20
+
+/**
+ * Lays one round's first answers over the record, as the server does (backend/app/grammar.py): per topic the last 20
+ * (newest last); a missed item is kept to come back first, a right one leaves. Items of the other language, or not
+ * shaped `<lang>:<topic>:<id>`, are skipped.
+ */
+export function layGrammar(progress: GrammarProgress, item: { lang: string; answers: { item: string; right: boolean }[] }): GrammarProgress {
+  const next = { ...progress }
+  for (const a of item.answers) {
+    const parts = a.item.split(':')
+    if (parts.length < 3 || parts[0] !== item.lang || !parts[1] || !parts.slice(2).join(':')) continue
+    const topic = `${parts[0]}:${parts[1]}`
+    const old = next[topic] ?? { recent: [], missed: [] }
+    const missed = old.missed.filter(m => m !== a.item)
+    next[topic] = {
+      recent: [...old.recent, a.right].slice(-RECENT),
+      missed: a.right ? missed : [...missed, a.item].slice(-MISSED),
+    }
+  }
+  return next
+}
