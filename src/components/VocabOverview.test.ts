@@ -28,4 +28,35 @@ describe('VocabOverview', () => {
     expect(w.find('[data-test="vocab-list-1"]').text()).toContain('Unit 3')
     expect(w.find('[data-test="vocab-list-1"]').text()).toContain('der Kompass → compass')
   })
+
+  it('per language: words spelled right (spelling box 3 and up, words that exist now) and scenes understood', async () => {
+    const api = fakeApi()
+    api.vocab_.lists = [{ id: 1, lang: 'en', name: 'Unit 3', words: [{ de: 'der Kompass', foreign: 'compass' }] }]
+    api.vocab_.progress = {
+      'en:spell:own:compass|der kompass': { box: 3, due: '2026-11-20' },
+      'en:spell:travel:station': { box: 4, due: '2026-11-20' },
+      'en:spell:travel:train': { box: 2, due: '2026-11-20' },
+      // Gone from his lists: not counted
+      'en:spell:own:gone|weg': { box: 5, due: '2026-11-20' },
+      // Spelling is not knowing the word: not "gelernt"
+      'fr:spell:travel:station': { box: 3, due: '2026-11-20' },
+    }
+    api.listen_ = {
+      'en:travel:platform': { right: 2, last_right: '2026-11-10', last_asked: '2026-11-10' },
+      'en:food:menu': { right: 0, last_right: null, last_asked: '2026-11-10' },
+      'en:travel:gone': { right: 1, last_right: '2026-11-10', last_asked: '2026-11-10' },
+      'fr:travel:quai': { right: 1, last_right: '2026-11-10', last_asked: '2026-11-10' },
+    }
+    const w = mount(VocabOverview, { props: { api, personId: 2, today: '2026-11-12' } })
+    ;(w.find('details').element as HTMLDetailsElement).open = true
+    await w.find('details').trigger('toggle')
+    await flushPromises()
+    const en = w.find('[data-test="lang-en"]').text()
+    const fr = w.find('[data-test="lang-fr"]').text()
+    expect(en).toContain('2 Wörter richtig geschrieben')
+    expect(en).toContain('1 von 72 Hörszenen verstanden')
+    expect(fr).toContain('0 Wörter gelernt')
+    expect(fr).toContain('1 Wort richtig geschrieben')
+    expect(fr).toContain('1 von 72 Hörszenen verstanden')
+  })
 })
