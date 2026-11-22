@@ -211,6 +211,24 @@ CREATE TABLE vocab_keys (
     PRIMARY KEY (person_id, key)
 );
 """,
+    # The Oberstufe's listening scenes: per child and scene (`<lang>:<topic>:<id>`), how often he answered it right,
+    # the last day right (or null) and the last day asked; and the results counted
+    """
+CREATE TABLE listen_progress (
+    person_id INTEGER NOT NULL,
+    scene TEXT NOT NULL,
+    right_count INTEGER NOT NULL,
+    last_right TEXT,
+    last_asked TEXT NOT NULL,
+    PRIMARY KEY (person_id, scene)
+);
+CREATE TABLE listen_keys (
+    person_id INTEGER NOT NULL,
+    key TEXT NOT NULL,
+    day TEXT NOT NULL,
+    PRIMARY KEY (person_id, key)
+);
+""",
 ]
 VERSION = len(MIGRATIONS)
 
