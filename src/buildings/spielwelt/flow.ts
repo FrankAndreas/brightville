@@ -1,9 +1,8 @@
-import { againText, setupFor, taskText, type RaumExample, type RaumTask } from '@/core/raum'
-import { delta, describe, holds, nounPhrase, OBJECTS, THINGS, type Arrangement, type Place, type WorldObject } from '@/core/world'
+import { setupFor, type RaumExample, type RaumTask } from '@/core/raum'
+import { delta, holds, OBJECTS, type Arrangement, type Place, type WorldObject } from '@/core/world'
+import { GERMAN_TEXTS, type WorldTexts } from '@/core/worldWords'
 import { scoreSolved } from '../visit'
 
-const SAY_CHEER = 'Super!'
-const SAY_FREE = 'Super gemacht! Jetzt darfst du frei spielen.'
 /** A thing let go this close to the task's object is judged; farther away it is just set down */
 const NEAR = 50
 
@@ -46,19 +45,14 @@ export interface RaumFlow {
   next(): RaumEffect[]
 }
 
-const thingName = (id: string, kase: 'nom' | 'acc') => {
-  const t = THINGS.find(x => x.id === id)
-  return t ? nounPhrase(t, kase) : id
-}
-
 /**
  * One visit to the Spielwelt: an example while she is new to the step, five tasks (each ends only when right), then
  * free play. `arrangement`, `viewCentre` (the middle of what she sees) and `objects` (with the car where it is now)
- * are read when they are needed.
+ * are read when they are needed. `texts`: what it says (her German, or the Oberstufe's English or French).
  */
 export function createRaumFlow(
   tasks: RaumTask[], example: RaumExample | null, arrangement: () => Arrangement, viewCentre: () => number, step: number,
-  objects: () => WorldObject[] = () => OBJECTS,
+  objects: () => WorldObject[] = () => OBJECTS, texts: WorldTexts = GERMAN_TEXTS,
 ): RaumFlow {
   const state: RaumState = {
     index: 0, task: tasks[0] ?? null, missed: false, solved: 0, stars: 0, results: [],
@@ -69,7 +63,7 @@ export function createRaumFlow(
     { type: 'setup', arrangement: setupFor(task, arrangement(), viewCentre(), step, objects()) },
     // A placing task lights its object; a finding task leaves her to look
     {
-      type: 'speak', text: taskText(task), ...(task.type === 'place' ? { light: `object-${task.clues[0].object}` } : {}),
+      type: 'speak', text: texts.task(task), ...(task.type === 'place' ? { light: `object-${task.clues[0].object}` } : {}),
       ask: true,
     },
   ]
@@ -104,10 +98,10 @@ export function createRaumFlow(
       if (state.phase !== 'asking' || task?.type !== 'find') return []
       if (id === task.thing) {
         solve()
-        return [{ type: 'chime' }, { type: 'speak', text: `${SAY_CHEER} Da ist ${thingName(id, 'nom')}!` }]
+        return [{ type: 'chime' }, { type: 'speak', text: texts.found(id) }]
       }
       state.missed = true
-      return [{ type: 'speak', text: `Das ist ${thingName(id, 'nom')}. ${taskText(task)}` }]
+      return [{ type: 'speak', text: `${texts.thatIs(id)} ${texts.task(task)}` }]
     },
 
     released(id, place) {
@@ -122,11 +116,11 @@ export function createRaumFlow(
       const unmet = task.clues.filter(c => !holds(place, c, world))
       if (unmet.length === 0) {
         solve()
-        return [{ type: 'chime' }, { type: 'speak', text: SAY_CHEER }]
+        return [{ type: 'chime' }, { type: 'speak', text: texts.cheer }]
       }
       // It stays where she put it: the voice says where that is, and asks for what is still missing
       state.missed = true
-      return [{ type: 'speak', text: `${describe(id, place, world)} ${againText(task, unmet)}` }]
+      return [{ type: 'speak', text: `${texts.describe(id, place, world)} ${texts.again(task, unmet)}` }]
     },
 
     next() {
@@ -137,7 +131,7 @@ export function createRaumFlow(
       if (!task) {
         state.task = null
         state.phase = 'free'
-        return [{ type: 'free' }, { type: 'speak', text: SAY_FREE }]
+        return [{ type: 'free' }, { type: 'speak', text: texts.free }]
       }
       state.task = task
       state.phase = 'asking'

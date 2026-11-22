@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { exampleFor, type RaumTask } from '@/core/raum'
 import { holds, OBJECTS, placeFor, startArrangement, type Arrangement } from '@/core/world'
+import { worldTexts } from '@/core/worldWords'
 import { createRaumFlow, type RaumEffect } from './flow'
 
 const PLACE: RaumTask = { type: 'place', thing: 'ball', clues: [{ word: 'auf', object: 'tisch' }] }
@@ -105,5 +106,19 @@ describe('the Spielwelt flow', () => {
     expect(flow.state).toMatchObject({ phase: 'free', stars: 10 })
     expect(last).toEqual([{ type: 'free' }, { type: 'speak', text: 'Super gemacht! Jetzt darfst du frei spielen.' }])
     expect(flow.released('ball', placeFor({ word: 'auf', object: 'tisch' }))).toEqual([])
+  })
+
+  it('speaks another language when given its words', () => {
+    let arrangement: Arrangement = startArrangement()
+    const flow = createRaumFlow([PLACE, FIND], null, () => arrangement, () => 76, 6, () => OBJECTS, worldTexts('en'))
+    const start = flow.start()
+    for (const e of start) if (e.type === 'setup') arrangement = e.arrangement
+    expect(said(start)).toEqual(['Put the ball on the table.'])
+    const right = flow.released('ball', placeFor({ word: 'auf', object: 'tisch' }))
+    expect(said(right)).toEqual(['Great!'])
+    expect(said(flow.next())).toEqual(['The cat is under the bench. Can you find it?'])
+    expect(said(flow.tapThing('ente'))).toEqual(["That's the duck. The cat is under the bench. Can you find it?"])
+    expect(said(flow.tapThing('katze'))).toEqual(["Great! There's the cat!"])
+    expect(said(flow.next())).toEqual(['Well done! Now you can play as you like.'])
   })
 })
