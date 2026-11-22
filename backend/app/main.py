@@ -8,12 +8,12 @@ from contextlib import asynccontextmanager
 from dataclasses import asdict
 from typing import Literal, Annotated, Optional, TYPE_CHECKING
 
-from fastapi import Depends, FastAPI, Path, Query, Request, Response
+from fastapi import Depends, FastAPI, HTTPException, Path, Query, Request, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, StringConstraints, create_model
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from . import auth, films, game, hub, local, paintings, people, room, school, stickers, wardrobe, writing
+from . import auth, films, game, hub, local, paintings, people, room, school, stickers, vocab, wardrobe, writing
 from . import db as database
 from .auth import error, get_db
 from .buildings import Building, all_buildings
@@ -153,6 +153,29 @@ class RulesIn(BaseModel):
     stars: Optional[int] = Field(default=None, ge=0, le=9999)
     # Left out: the level stays
     level: Optional[Literal["kindergarten", "oberstufe"]] = None
+
+
+class VocabWordIn(BaseModel):
+    # Checked again after trimming (vocab.check), to answer "too-long" / "empty" in words
+    de: str = Field(max_length=200)
+    foreign: str = Field(max_length=200)
+
+
+class VocabListIn(BaseModel):
+    lang: Literal["en", "fr"]
+    name: str = Field(max_length=200)
+    words: list[VocabWordIn] = Field(max_length=200)
+
+
+class VocabAnswerIn(BaseModel):
+    word: str = Field(min_length=1, max_length=200)
+    right: bool
+
+
+class VocabResultsIn(BaseModel):
+    key: str = Field(min_length=1, max_length=64)
+    lang: Literal["en", "fr"]
+    answers: list[VocabAnswerIn] = Field(max_length=100)
 
 
 class FilmIn(BaseModel):
@@ -575,6 +598,71 @@ def player_school_step(
     except game.Refused as refused:
         raise error(422, refused.code) from None
     return school.state(db, person_id)
+
+
+@app.get("/api/vocab")
+def vocab_state(person: Person = Depends(auth.current_person), db: sqlite3.Connection = Depends(get_db)) -> dict:
+    return vocab.state(db, person.id)
+
+
+def _vocab_refused(refused: game.Refused) -> HTTPException:
+    return error(404 if refused.code == "unknown" else 422, refused.code)
+
+
+@app.post("/api/vocab/lists")
+def vocab_create(
+    body: VocabListIn, person: Person = Depends(auth.current_person), db: sqlite3.Connection = Depends(get_db)
+) -> dict:
+    try:
+        return vocab.create(
+            db, person.id, body.lang, body.name, [vocab.Word(de=w.de, foreign=w.foreign) for w in body.words]
+        )
+    except game.Refused as refused:
+        raise _vocab_refused(refused) from None
+
+
+@app.put("/api/vocab/lists/{list_id}")
+def vocab_update(
+    list_id: int,
+    body: VocabListIn,
+    person: Person = Depends(auth.current_person),
+    db: sqlite3.Connection = Depends(get_db),
+) -> dict:
+    try:
+        return vocab.update(
+            db, person.id, list_id, body.lang, body.name, [vocab.Word(de=w.de, foreign=w.foreign) for w in body.words]
+        )
+    except game.Refused as refused:
+        raise _vocab_refused(refused) from None
+
+
+@app.delete("/api/vocab/lists/{list_id}", status_code=204)
+def vocab_delete(
+    list_id: int, person: Person = Depends(auth.current_person), db: sqlite3.Connection = Depends(get_db)
+) -> Response:
+    try:
+        vocab.delete(db, person.id, list_id)
+    except game.Refused as refused:
+        raise _vocab_refused(refused) from None
+    return Response(status_code=204)
+
+
+@app.post("/api/vocab/results")
+def vocab_results(
+    body: VocabResultsIn, person: Person = Depends(auth.current_person), db: sqlite3.Connection = Depends(get_db)
+) -> dict:
+    vocab.record(db, person.id, body.key, body.lang, [vocab.Answer(word=a.word, right=a.right) for a in body.answers])
+    return vocab.state(db, person.id)
+
+
+@app.get("/api/players/{person_id}/vocab")
+def player_vocab(
+    person_id: int, request: Request, _: Person = Depends(auth.parent), db: sqlite3.Connection = Depends(get_db)
+) -> dict:
+    auth.refresh_people(request, db)
+    if not people.is_active(db, person_id):
+        raise error(404, "unknown_person")
+    return vocab.state(db, person_id, seen=False)
 
 
 @app.get("/api/players/{person_id}/writing")

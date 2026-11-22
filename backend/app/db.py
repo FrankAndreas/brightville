@@ -181,6 +181,36 @@ INSERT INTO school_ladders (person_id, ladder, step, recent)
     """
 ALTER TABLE players ADD COLUMN level TEXT NOT NULL DEFAULT 'kindergarten';
 """,
+    # The Oberstufe's vocabulary: his lists, their word pairs, how well he knows each word, and the results counted.
+    # The word key starts with its language, so a word is in one language only
+    """
+CREATE TABLE vocab_lists (
+    id INTEGER PRIMARY KEY,
+    person_id INTEGER NOT NULL,
+    lang TEXT NOT NULL,
+    name TEXT NOT NULL
+);
+CREATE TABLE vocab_words (
+    list_id INTEGER NOT NULL,
+    position INTEGER NOT NULL,
+    de TEXT NOT NULL,
+    foreign_ TEXT NOT NULL,
+    PRIMARY KEY (list_id, position)
+);
+CREATE TABLE vocab_progress (
+    person_id INTEGER NOT NULL,
+    word TEXT NOT NULL,
+    box INTEGER NOT NULL,
+    due TEXT NOT NULL,
+    PRIMARY KEY (person_id, word)
+);
+CREATE TABLE vocab_keys (
+    person_id INTEGER NOT NULL,
+    key TEXT NOT NULL,
+    day TEXT NOT NULL,
+    PRIMARY KEY (person_id, key)
+);
+""",
 ]
 VERSION = len(MIGRATIONS)
 
