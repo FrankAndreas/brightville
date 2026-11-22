@@ -8,6 +8,7 @@ import { usePlayerStore } from '@/stores/player'
 import { useVocabStore } from '@/stores/vocab'
 import type { BuildingResult } from '../types'
 import { useVisit } from '../visit'
+import LanguagePick from './LanguagePick.vue'
 import ListEditor from './ListEditor.vue'
 import Round from './Round.vue'
 import Shelf from './Shelf.vue'
@@ -30,22 +31,8 @@ const lang = ref<Lang>('en')
 const editing = ref<number | null>(null)
 const flow = shallowRef<ReturnType<typeof createRoundFlow> | null>(null)
 
-const LAST_LANG = `brightville.vocab.lang.${owner ?? 0}`
-const lastLang = ref<Lang | null>(null)
-try {
-  const kept = window.localStorage.getItem(LAST_LANG)
-  if (kept === 'en' || kept === 'fr') lastLang.value = kept
-} catch {
-  // Not remembered: he picks again
-}
-
 function pick(chosen: Lang) {
   lang.value = chosen
-  try {
-    window.localStorage.setItem(LAST_LANG, chosen)
-  } catch {
-    // Not remembered
-  }
   screen.value = 'shelf'
 }
 
@@ -92,11 +79,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 
 <template>
   <div class="vokabeln" data-test="vokabeln">
-    <div v-if="screen === 'lang'" class="langs">
-      <h2>Welche Sprache?</h2>
-      <button type="button" data-test="lang-en" :class="{ last: lastLang === 'en' }" @click="pick('en')">🇬🇧 Englisch</button>
-      <button type="button" data-test="lang-fr" :class="{ last: lastLang === 'fr' }" @click="pick('fr')">🇫🇷 Französisch</button>
-    </div>
+    <LanguagePick v-if="screen === 'lang'" :owner="owner" @pick="pick" />
 
     <Shelf
       v-else-if="screen === 'shelf'" :lang="lang" :lists="vocab.lists"
@@ -125,12 +108,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
   /* Clear of the leave button in the top left corner (and the same on the right, to stay centred) */
   padding: 6vh 104px 16px; box-sizing: border-box; overflow: auto; background: #f6f4ff;
 }
-.langs { display: flex; flex-direction: column; gap: 16px; align-items: center; margin-top: 8vh; }
-.langs h2 { font: 700 32px/1.2 system-ui, sans-serif; color: #23264a; margin: 0 0 8px; }
-.langs button, .end button {
+.end button {
   font: 600 26px/1.2 system-ui, sans-serif; padding: 18px 40px; min-width: 300px; border-radius: 14px;
   border: 3px solid #c6cbec; background: #fff; color: #23264a;
 }
-.langs button.last { border-color: #4a5bd4; }
 .end { display: flex; flex-direction: column; align-items: center; gap: 18px; font: 600 26px/1.3 system-ui, sans-serif; color: #23264a; }
 </style>
