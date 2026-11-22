@@ -69,3 +69,9 @@ def test_muster_opens_at_oberstufe(papa, mia):
     oberstufe(papa)
     answer = mia.post("/api/visits", json={"building": "muster", "stars": 20, "key": "m"})
     assert answer.status_code == 200 and answer.json()["state"]["stars"] == 15
+
+
+def test_bibliothek_opens_at_oberstufe(papa, mia):
+    oberstufe(papa)
+    answer = mia.post("/api/visits", json={"building": "bibliothek", "stars": 20, "key": "b"})
+    assert answer.status_code == 200 and answer.json()["state"]["stars"] == 10

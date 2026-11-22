@@ -245,6 +245,23 @@ CREATE TABLE grammar_keys (
     day TEXT NOT NULL,
     PRIMARY KEY (person_id, key)
 );
+""",  # The Oberstufe's reading room: per child and text (`<lang>:<topic>:<id>`), times read, the last day read and the
+    # questions right that time; and the results counted
+    """
+CREATE TABLE reading_progress (
+    person_id INTEGER NOT NULL,
+    text TEXT NOT NULL,
+    reads INTEGER NOT NULL,
+    last_read TEXT NOT NULL,
+    last_right INTEGER NOT NULL,
+    PRIMARY KEY (person_id, text)
+);
+CREATE TABLE reading_keys (
+    person_id INTEGER NOT NULL,
+    key TEXT NOT NULL,
+    day TEXT NOT NULL,
+    PRIMARY KEY (person_id, key)
+);
 """,
 ]
 VERSION = len(MIGRATIONS)

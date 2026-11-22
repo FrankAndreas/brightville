@@ -35,6 +35,7 @@ const vokabeln = () => import('./vokabeln/Vokabeln.vue')
 const diktat = () => import('./diktat/Diktat.vue')
 const hoeren = () => import('./hoeren/Hoeren.vue')
 const grammatik = () => import('./grammatik/Grammatik.vue')
+const lesen = () => import('./lesen/Lesen.vue')
 
 /**
  * Every building in the town, mixed along the streets of `src/city/map.ts` so every walk passes learning, playing and
@@ -65,6 +66,8 @@ export const BUILDINGS: BuildingDef[] = [
   {
     id: 'bibliothek', spokenName: 'Bibliothek', toName: 'zur Bibliothek', icon: '📚', kind: 'earn', needs: [], door: { x: -3.5, z: -24, side: 'left' },
     component: defineAsyncComponent(bibliothek), preload: bibliothek,
+    // At Oberstufe a reading room for English or French
+    oberstufe: { component: defineAsyncComponent(lesen), preload: lesen },
   },
   {
     id: 'farblabor', spokenName: 'Farblabor', toName: 'zum Farblabor', icon: '🧪', kind: 'earn', needs: [], door: { x: 15, z: -3.5 },
