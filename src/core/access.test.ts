@@ -86,8 +86,8 @@ describe('doorState', () => {
     expect(doorState(play, true, false, 99)).toBe('locked')
   })
 
-  it('at Oberstufe exactly the School, Schreiben, the Reimhaus, Malen, Mein Haus and the two shops open', () => {
+  it('at Oberstufe exactly the School, Schreiben, the Reimhaus, the Musterwerkstatt, Malen, Mein Haus and the two shops open', () => {
     const open = BUILDINGS.filter(b => doorState(b, true, true, 99, false, 'oberstufe') !== 'soon').map(b => b.id)
-    expect(open.sort()).toEqual(['haus', 'laden', 'malen', 'moebel', 'reimhaus', 'school', 'schreiben'])
+    expect(open.sort()).toEqual(['haus', 'laden', 'malen', 'moebel', 'muster', 'reimhaus', 'school', 'schreiben'])
   })
 })

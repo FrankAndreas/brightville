@@ -229,6 +229,23 @@ CREATE TABLE listen_keys (
     PRIMARY KEY (person_id, key)
 );
 """,
+    # The Oberstufe's grammar: per child and topic (`<lang>:<topic>`), the first answers of the last 20 items (a JSON
+    # list of 0/1, newest last) and the item keys missed last time (JSON); and the results counted
+    """
+CREATE TABLE grammar_progress (
+    person_id INTEGER NOT NULL,
+    topic TEXT NOT NULL,
+    recent TEXT NOT NULL,
+    missed TEXT NOT NULL,
+    PRIMARY KEY (person_id, topic)
+);
+CREATE TABLE grammar_keys (
+    person_id INTEGER NOT NULL,
+    key TEXT NOT NULL,
+    day TEXT NOT NULL,
+    PRIMARY KEY (person_id, key)
+);
+""",
 ]
 VERSION = len(MIGRATIONS)
 

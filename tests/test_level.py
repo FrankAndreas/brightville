@@ -63,3 +63,9 @@ def test_schreiben_and_reimhaus_open_at_oberstufe(papa, mia):
     assert answer.status_code == 200 and answer.json()["state"]["stars"] == 15
     answer = mia.post("/api/visits", json={"building": "reimhaus", "stars": 20, "key": "r"})
     assert answer.status_code == 200 and answer.json()["state"]["stars"] == 25
+
+
+def test_muster_opens_at_oberstufe(papa, mia):
+    oberstufe(papa)
+    answer = mia.post("/api/visits", json={"building": "muster", "stars": 20, "key": "m"})
+    assert answer.status_code == 200 and answer.json()["state"]["stars"] == 15
