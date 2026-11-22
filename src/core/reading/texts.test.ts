@@ -53,3 +53,12 @@ describe('English texts', () => {
     expect(allTexts('en', 'food').every(x => x.topic === 'food' && x.key.startsWith('en:food:'))).toBe(true)
   })
 })
+
+describe('French texts', () => {
+  checkReading('fr')
+
+  it('never has a sentence in both languages', () => {
+    const en = new Set(allTexts('en').flatMap(x => x.text.sentences))
+    for (const { key, text } of allTexts('fr')) for (const s of text.sentences) expect(en.has(s), `${key}: ${s}`).toBe(false)
+  })
+})
