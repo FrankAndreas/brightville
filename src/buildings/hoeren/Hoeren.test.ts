@@ -100,6 +100,8 @@ describe('Hören', () => {
       await tap(w, '[data-test="next"]')
     }
     expect(new Set(keys).size).toBe(5)
+    // The last scene's voice stops with the round
+    expect(stopSpeaking).toHaveBeenCalled()
     expect(w.find('[data-test="end"]').text()).toContain('4 von 5')
     await tap(w, '[data-test="finish"]')
     await flushPromises()

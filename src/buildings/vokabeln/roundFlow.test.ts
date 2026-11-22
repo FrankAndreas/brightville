@@ -124,4 +124,13 @@ describe('a dictated word', () => {
     expect(flow.state.phase).toBe('right')
     expect(flow.state.firstTry).toEqual([{ key: 'fr:spell:t:w', right: true }])
   })
+
+  it('with several answers only the one spoken counts', () => {
+    const two: RoundItem = { word: { key: 'en:spell:t:big', de: 'gross', foreign: 'big / large', source: 't' }, mode: 'dictate' }
+    const flow = createRoundFlow([two], 'en')
+    flow.answer('large')
+    expect(flow.state.phase).toBe('wrong')
+    flow.retype('big')
+    expect(flow.state.phase).toBe('right')
+  })
 })

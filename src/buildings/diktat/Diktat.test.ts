@@ -125,9 +125,11 @@ describe('Diktat', () => {
     expect(w.find('[data-test="shown"]').text()).toContain('compass')
     await w.find('[data-test="answer"]').setValue('compass')
     await w.find('[data-test="answer"]').trigger('keydown', { key: 'Enter' })
+    const before = vi.mocked(speak).mock.calls.filter(c => (c as unknown[])[0] === 'compass').length
     await tap(w, '[data-test="next"]')
     expect(w.find('[data-test="round"]').exists()).toBe(true)
-    expect(lastSpoken()[0]).toBe('compass')
+    // The same word again: it is spoken again
+    expect(vi.mocked(speak).mock.calls.filter(c => (c as unknown[])[0] === 'compass').length).toBe(before + 1)
     w.unmount()
   })
 

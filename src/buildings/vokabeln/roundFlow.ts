@@ -24,9 +24,14 @@ export interface RoundState {
   stars: number
 }
 
-/** What a word's answer is compared with, and in which language: German for a typed foreign word, else (also a dictated word) the foreign word */
+/**
+ * What a word's answer is compared with, and in which language: German for a typed foreign word; for a dictated word
+ * only the answer that was spoken (its first); else the foreign word (any of its answers)
+ */
 export function expectedOf(item: RoundItem, lang: Lang): { text: string; lang: Lang | 'de' } {
-  return item.mode === 'type-foreign' ? { text: item.word.de, lang: 'de' } : { text: item.word.foreign, lang }
+  if (item.mode === 'type-foreign') return { text: item.word.de, lang: 'de' }
+  if (item.mode === 'dictate') return { text: answersOf(item.word.foreign)[0] ?? item.word.foreign, lang }
+  return { text: item.word.foreign, lang }
 }
 
 /** `wrap`: makes the state reactive for the screen (Vue's `reactive`); the rules mutate what it returns */

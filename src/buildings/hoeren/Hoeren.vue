@@ -4,6 +4,7 @@ import ProgressStars from '@/components/ProgressStars.vue'
 import { LISTEN_ROUND, pickScenes, type ListenItem } from '@/core/listen/round'
 import { allScenes, SCENES } from '@/core/listen/scenes'
 import type { Lang } from '@/core/vocab/types'
+import { stopSpeaking } from '@/services/tts'
 import { useListenStore } from '@/stores/listen'
 import type { BuildingResult } from '../types'
 import { SET_BONUS, STARS_PER_TASK, useVisit } from '../visit'
@@ -59,6 +60,7 @@ function next() {
   }
   // The voice of the last scene stops with the round
   visit.dropRuns()
+  stopSpeaking()
   screen.value = 'end'
 }
 

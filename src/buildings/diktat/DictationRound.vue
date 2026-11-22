@@ -57,7 +57,9 @@ function next() {
   typed.value = ''
 }
 
-watch(item, () => {
+// By position, not by word: a word missed last comes back as the same item, and is spoken again too
+watch(() => state.value.index, () => {
+  if (state.value.phase !== 'asking') return
   say()
   focusField()
 }, { immediate: true })
