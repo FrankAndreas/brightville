@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { requestLeave } from '../leave'
+import CoachWorkout from './CoachWorkout.vue'
 import CoachYoga from './CoachYoga.vue'
 
 vi.mock('@/services/camera', () => ({ openCamera: vi.fn(() => new Promise(() => {})), closeCamera: vi.fn(), onCameraLost: vi.fn() }))
@@ -23,6 +24,13 @@ describe('Yoga at Oberstufe', () => {
     const w = mount(CoachYoga, { attachTo: document.body })
     requestLeave()
     expect(w.emitted('finished')).toEqual([[{ stars: 0 }]])
+    w.unmount()
+  })
+
+  it('the Hüpfhalle at Oberstufe asks for the language too, then opens the hall', async () => {
+    const w = mount(CoachWorkout, { attachTo: document.body })
+    await w.find('[data-test="lang-en"]').trigger('click')
+    expect(w.find('[data-test="huepfhalle"]').exists()).toBe(true)
     w.unmount()
   })
 })
