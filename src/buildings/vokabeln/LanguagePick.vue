@@ -45,7 +45,7 @@ function pick(chosen: Lang) {
       v-for="l in LANGS" :key="l.lang" type="button" :data-test="`lang-${l.lang}`"
       :class="{ last: lastLang === l.lang }" :disabled="mute.has(l.lang)" @click="pick(l.lang)"
     >
-      {{ l.label }}<small v-if="mute.has(l.lang)">Keine Stimme</small>
+      <span class="name">{{ l.label }}</span><small v-if="mute.has(l.lang)">Keine Stimme</small>
     </button>
   </div>
 </template>
@@ -58,6 +58,7 @@ function pick(chosen: Lang) {
   border: 3px solid #c6cbec; background: #fff; color: #23264a;
 }
 .langs button.last { border-color: #4a5bd4; }
-.langs button:disabled { text-decoration: line-through; color: #9a9db8; }
-.langs small { display: block; font-size: 16px; text-decoration: none; }
+.langs button:disabled { color: #9a9db8; }
+.langs button:disabled .name { text-decoration: line-through; }
+.langs small { display: block; font-size: 16px; }
 </style>
