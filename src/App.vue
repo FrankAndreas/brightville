@@ -34,6 +34,7 @@ import { useLaddersStore } from '@/stores/ladders'
 import { useVocabStore } from '@/stores/vocab'
 import { useListenStore } from '@/stores/listen'
 import { useGrammarStore } from '@/stores/grammar'
+import { useReadingStore } from '@/stores/reading'
 import { useWritingStore } from '@/stores/writing'
 import { useWardrobeStore } from '@/stores/wardrobe'
 import { useSessionStore } from '@/stores/session'
@@ -52,6 +53,7 @@ const ladderStore = useLaddersStore()
 const vocab = useVocabStore()
 const listen = useListenStore()
 const grammar = useGrammarStore()
+const reading = useReadingStore()
 const device = detectDevice()
 // Some browsers (Safari) bring their voices late: counting them again repaints the doors that need one
 const stopWatchingVoices = watchVoices()
@@ -152,6 +154,9 @@ watch(() => (session.status === 'ready' ? session.person?.id : undefined), async
   // His grammar record, the same way
   grammar.init(props.api, id, undefined, () => player.day)
   void grammar.load()
+  // The texts he read, the same way
+  reading.init(props.api, id, undefined, () => player.day)
+  void reading.load()
   // The room is only needed in the house and the Möbelhaus: the game doesn't wait for it
   void room.load()
   await Promise.all([player.refresh(), wardrobe.load()])
@@ -370,6 +375,7 @@ const refresh = () => {
     void vocab.load()
     void listen.load()
     void grammar.load()
+    void reading.load()
   }
 }
 let refreshTimer: ReturnType<typeof setInterval> | undefined

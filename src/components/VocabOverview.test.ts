@@ -83,4 +83,16 @@ describe('VocabOverview', () => {
     expect(fr).toContain('Grammatik: 1 von 12 Themen sicher')
     expect(fr).not.toContain('Schwach')
   })
+
+  it('per language: the texts read (texts that exist now only)', async () => {
+    const api = fakeApi()
+    const r = { reads: 1, last_read: '2026-11-10', last_right: 3 }
+    api.reading_ = { 'en:travel:sam': r, 'en:food:menu': r, 'en:travel:gone': r, 'fr:travel:lettre': r }
+    const w = mount(VocabOverview, { props: { api, personId: 2, today: '2026-11-12' } })
+    ;(w.find('details').element as HTMLDetailsElement).open = true
+    await w.find('details').trigger('toggle')
+    await flushPromises()
+    expect(w.find('[data-test="lang-en"]').text()).toContain('2 von 36 Texten gelesen')
+    expect(w.find('[data-test="lang-fr"]').text()).toContain('1 von 36 Texten gelesen')
+  })
 })

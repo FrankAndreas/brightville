@@ -3,7 +3,7 @@
   { "id": "schreiben", "kind": "earn", "maxStars": 10, "minSecondsPerStar": 1.5, "oberstufe": { "maxStars": 15, "needs": ["voice"] } },
   { "id": "yoga", "kind": "earn", "maxStars": 9, "minSecondsPerStar": 1.5 },
   { "id": "unterschiede", "kind": "earn", "maxStars": 10, "minSecondsPerStar": 1 },
-  { "id": "bibliothek", "kind": "earn", "maxStars": 9, "minSecondsPerStar": 2 },
+  { "id": "bibliothek", "kind": "earn", "maxStars": 9, "minSecondsPerStar": 2, "oberstufe": { "maxStars": 10 } },
   { "id": "farblabor", "kind": "earn", "maxStars": 10, "minSecondsPerStar": 1 },
   { "id": "huepfhalle", "kind": "earn", "maxStars": 9, "minSecondsPerStar": 2 },
   { "id": "tanzsaal", "kind": "earn", "maxStars": 10, "minSecondsPerStar": 4 },

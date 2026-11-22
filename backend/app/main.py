@@ -23,6 +23,7 @@ from . import (
     local,
     paintings,
     people,
+    reading,
     room,
     school,
     stickers,
@@ -214,6 +215,17 @@ class GrammarResultsIn(BaseModel):
     key: str = Field(min_length=1, max_length=64)
     lang: Literal["en", "fr"]
     answers: list[GrammarAnswerIn] = Field(max_length=40)
+
+
+class ReadingAnswerIn(BaseModel):
+    text: str = Field(min_length=1, max_length=120)
+    right: int = Field(ge=0, le=4)
+
+
+class ReadingResultsIn(BaseModel):
+    key: str = Field(min_length=1, max_length=64)
+    lang: Literal["en", "fr"]
+    answers: list[ReadingAnswerIn] = Field(max_length=5)
 
 
 class FilmIn(BaseModel):
@@ -752,6 +764,31 @@ def player_grammar(
     if not people.is_active(db, person_id):
         raise error(404, "unknown_person")
     return grammar.state(db, person_id, seen=False)
+
+
+@app.get("/api/reading")
+def reading_state(person: Person = Depends(auth.current_person), db: sqlite3.Connection = Depends(get_db)) -> dict:
+    return reading.state(db, person.id)
+
+
+@app.post("/api/reading/results")
+def reading_results(
+    body: ReadingResultsIn, person: Person = Depends(auth.current_person), db: sqlite3.Connection = Depends(get_db)
+) -> dict:
+    reading.record(
+        db, person.id, body.key, body.lang, [reading.Answer(text=a.text, right=a.right) for a in body.answers]
+    )
+    return reading.state(db, person.id)
+
+
+@app.get("/api/players/{person_id}/reading")
+def player_reading(
+    person_id: int, request: Request, _: Person = Depends(auth.parent), db: sqlite3.Connection = Depends(get_db)
+) -> dict:
+    auth.refresh_people(request, db)
+    if not people.is_active(db, person_id):
+        raise error(404, "unknown_person")
+    return reading.state(db, person_id, seen=False)
 
 
 @app.get("/api/players/{person_id}/writing")
