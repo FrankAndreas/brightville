@@ -2,15 +2,18 @@
 import { computed, ref } from 'vue'
 import { isLearned } from '@/core/vocab/boxes'
 import { builtinWords } from '@/core/vocab/builtin'
+import { GRAMMAR } from '@/core/grammar/content'
+import { isSure, weakest } from '@/core/grammar/round'
 import { allScenes } from '@/core/listen/scenes'
 import { ownWords } from '@/core/vocab/round'
 import { spellKey } from '@/core/vocab/spelling'
 import { LANGS, type Lang } from '@/core/vocab/types'
-import type { Api, ListenState, VocabState } from '@/services/api'
+import type { Api, GrammarState, ListenState, VocabState } from '@/services/api'
 
 // On the parents' page, in the card of a child at Oberstufe: per language how many words he has learned (box 3 and up,
 // counting only words that exist now), how many are due today, how many he spells right (Schreiben: spelling box 3 and
-// up), how many listening scenes he understood (the Reimhaus: right at least once), and his lists to read. Fetched the
+// up), how many listening scenes he understood (the Reimhaus: right at least once), his grammar topics sure and weak
+// (the Musterwerkstatt), and his lists to read. Fetched the
 // first time it opens.
 const props = defineProps<{ api: Api; personId: number; today: string }>()
 
@@ -18,12 +21,15 @@ const LANG_NAME: Record<Lang, string> = { en: 'Englisch', fr: 'Französisch' }
 const status = ref<'idle' | 'loading' | 'ready' | 'error'>('idle')
 const data = ref<VocabState | null>(null)
 const heard = ref<ListenState | null>(null)
+const grammar = ref<GrammarState | null>(null)
 
 async function opened(event: Event) {
   if (!(event.target as HTMLDetailsElement).open || status.value === 'ready' || status.value === 'loading') return
   status.value = 'loading'
   try {
-    ;[data.value, heard.value] = await Promise.all([props.api.playerVocab(props.personId), props.api.playerListen(props.personId)])
+    ;[data.value, heard.value, grammar.value] = await Promise.all([
+      props.api.playerVocab(props.personId), props.api.playerListen(props.personId), props.api.playerGrammar(props.personId),
+    ])
     status.value = 'ready'
   } catch {
     status.value = 'error'
@@ -38,6 +44,8 @@ const perLang = computed(() => LANGS.map(lang => {
   const spellKeys = new Set([...keys].map(spellKey))
   const scenes = allScenes(lang).map(x => x.key)
   const listened = heard.value?.progress ?? {}
+  const topics = grammar.value?.progress ?? {}
+  const nameOf = (id: string) => GRAMMAR[lang].find(t => t.id === id)?.name ?? id
   return {
     lang,
     learned: known.filter(([, p]) => isLearned(p.box)).length,
@@ -45,6 +53,9 @@ const perLang = computed(() => LANGS.map(lang => {
     spelled: Object.entries(progress).filter(([key, p]) => spellKeys.has(key) && isLearned(p.box)).length,
     understood: scenes.filter(key => (listened[key]?.right ?? 0) > 0).length,
     scenes: scenes.length,
+    sure: GRAMMAR[lang].filter(t => isSure(topics[`${lang}:${t.id}`])).length,
+    topics: GRAMMAR[lang].length,
+    weak: weakest(lang, topics).map(nameOf),
     lists: lists.filter(l => l.lang === lang),
   }
 }))
@@ -61,6 +72,8 @@ const perLang = computed(() => LANGS.map(lang => {
         <p>{{ l.learned }} {{ l.learned === 1 ? 'Wort' : 'Wörter' }} gelernt, {{ l.due }} heute fällig</p>
         <p>{{ l.spelled }} {{ l.spelled === 1 ? 'Wort' : 'Wörter' }} richtig geschrieben</p>
         <p>{{ l.understood }} von {{ l.scenes }} Hörszenen verstanden</p>
+        <p>Grammatik: {{ l.sure }} von {{ l.topics }} Themen sicher</p>
+        <p v-if="l.weak.length" data-test="weak">Schwach: {{ l.weak.join(', ') }}</p>
         <p v-if="!l.lists.length" class="none">Keine eigenen Listen.</p>
         <details v-for="list in l.lists" :key="list.id" :data-test="`vocab-list-${list.id}`">
           <summary>{{ list.name }} ({{ list.words.length }})</summary>
