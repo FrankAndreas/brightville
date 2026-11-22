@@ -32,8 +32,19 @@ const canSay = computed(() => {
   void voiceCount.value
   return hasVoice(VOICE[props.lang])
 })
+/**
+ * Whether this task is said rather than shown: decided when it starts, so a voice that arrives late (Safari) doesn't
+ * hide words he is already reading
+ */
+const voiced = ref(false)
 /** The words of a time or date to recognise: said when there is a voice, and then only shown after the answer */
-const showPrompt = computed(() => !heard.value || !canSay.value || state.value.phase !== 'asking')
+const showPrompt = computed(() => !heard.value || !voiced.value || state.value.phase !== 'asking')
+/** The right form, letter by letter, with the letters whose accent was off marked (as in the School) */
+const shownLetters = computed(() => {
+  const checked = state.value.checked
+  if (!checked) return [...right.value].map(letter => ({ letter, marked: false }))
+  return [...checked.shown].map((letter, i) => ({ letter, marked: checked.marks.includes(i) }))
+})
 const right = computed(() => (item.value ? answersOf(item.value.word.foreign)[0] ?? '' : ''))
 const clockOf = (text: string) => {
   const [h, m] = text.split(':').map(Number)
@@ -48,7 +59,7 @@ const missed = ref(false)
 const solved = computed(() => state.value.firstTry.filter(f => f.right).length)
 
 function say() {
-  if (item.value && heard.value && canSay.value) void speak(item.value.word.de, VOICE[props.lang])
+  if (item.value && heard.value && voiced.value) void speak(item.value.word.de, VOICE[props.lang])
 }
 
 function focusField() {
@@ -72,8 +83,11 @@ function submit() {
   else if (phase === 'wrong') props.flow.retype(typed.value)
   else if (phase === 'right') return next()
   if (state.value.phase !== phase) {
-    if (state.value.phase === 'wrong') missed.value = true
-    typed.value = ''
+    // Right: what he typed stays in the (read-only) field; wrong: the field empties for typing it out
+    if (state.value.phase === 'wrong') {
+      missed.value = true
+      typed.value = ''
+    }
     focusField()
   }
 }
@@ -87,6 +101,7 @@ function next() {
 
 watch(() => state.value.index, () => {
   if (state.value.phase !== 'asking') return
+  voiced.value = heard.value && canSay.value
   say()
   if (item.value?.mode !== 'choice') focusField()
 }, { immediate: true })
@@ -107,7 +122,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
       <ClockFace v-bind="clockOf(item.word.de)" />
     </div>
     <p v-else-if="showPrompt" class="prompt" data-test="prompt" :lang="heard || kind === 'spelling' ? undefined : lang">{{ item.word.de }}</p>
-    <button v-if="heard && canSay" type="button" class="again" data-test="again" @click="say">🔊 Nochmal</button>
+    <button v-if="heard && voiced" type="button" class="again" data-test="again" @click="say">🔊 Nochmal</button>
 
     <div v-if="item.mode === 'choice'" class="choices" :class="{ clocks: kind === 'words-clock' }">
       <button
@@ -133,7 +148,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 
     <div v-if="state.phase !== 'asking'" class="verdict" data-test="verdict">
       <p v-if="!missed" class="ok">Richtig!</p>
-      <p v-if="kind !== 'words-clock' && kind !== 'words-date'" class="shown" data-test="shown">{{ state.checked?.shown ?? right }}</p>
+      <p v-if="kind !== 'words-clock' && kind !== 'words-date'" class="shown" data-test="shown"><span v-for="(l, i) in shownLetters" :key="i" :class="{ mark: l.marked }">{{ l.letter }}</span></p>
       <p v-if="state.phase === 'wrong'" class="small">Schreib es ab, dann geht es weiter.</p>
     </div>
     <button v-if="state.phase === 'right'" type="button" class="main" data-test="next" @click="next">Weiter</button>
@@ -162,4 +177,5 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 .ok { color: #1e7d3c; }
 .shown { font-size: 26px; }
 .small { font: 400 16px/1.3 system-ui, sans-serif; color: #5a5f86; }
+.mark { color: #b3261e; text-decoration: underline; }
 </style>

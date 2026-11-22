@@ -1,13 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { hasVoice, speak } from '@/services/tts'
+import { hasVoice, speak, voiceCount } from '@/services/tts'
 import { fakeApi, type FakeApi } from '@/services/fakeApi'
 import { usePlayerStore } from '@/stores/player'
 import { useDatesStore } from '@/stores/dates'
 import { dateWords, DAYS, MONTHS, ordinalWord, shownDate, shownTime, timeWords } from '@/core/dates/words'
 import type { Lang } from '@/core/vocab/types'
 import Datum from './Datum.vue'
+import DateRound from './DateRound.vue'
+import { reactive } from 'vue'
+import type { RoundItem } from '@/core/vocab/round'
+import { createRoundFlow, type RoundState } from '../vokabeln/roundFlow'
 
 vi.mock('@/services/tts', async () => {
   const { ref } = await import('vue')
@@ -155,6 +159,43 @@ describe('Datum', () => {
     await flushPromises()
     expect(w.emitted('finished')).toEqual([[{ stars: 3 }]])
     expect(Object.values(api.dates_).reduce((n, p) => n + p.recent.length, 0)).toBe(3)
+    w.unmount()
+  })
+
+  it('a typed date off only in its accents is shown with the accent marked', async () => {
+    const item: RoundItem = { word: { key: 'fr:date-words:0', de: '6.2.', foreign: dateWords('fr', 6, 2).join(' / '), source: 'date-words' }, mode: 'type-de' }
+    const w = mount(DateRound, { props: { flow: createRoundFlow([item], 'fr', s => reactive(s) as RoundState), lang: 'fr' }, attachTo: document.body })
+    await w.find('[data-test="answer"]').setValue('le six fevrier')
+    await w.find('[data-test="answer"]').trigger('keydown', { key: 'Enter' })
+    expect(w.find('[data-test="shown"]').text()).toBe('le six février')
+    expect(w.find('[data-test="shown"] .mark').text()).toBe('é')
+    w.unmount()
+  })
+
+  it('a right typed answer stays in the field', async () => {
+    api.dates_ = { 'en:date-words': { recent: Array(10).fill(true) } }
+    await useDatesStore().load()
+    const w = mount(Datum, { attachTo: document.body })
+    await tap(w, '[data-test="lang-en"]')
+    await until(w, 'en', 'date-words')
+    const [d, mo] = w.find('[data-test="prompt"]').text().split('.').map(Number)
+    const other = dateWords('en', d, mo)[1]
+    await w.find('[data-test="answer"]').setValue(other)
+    await w.find('[data-test="answer"]').trigger('keydown', { key: 'Enter' })
+    expect((w.find('[data-test="answer"]').element as HTMLInputElement).value).toBe(other)
+    w.unmount()
+  })
+
+  it('a voice that arrives during a task does not hide the words he is reading', async () => {
+    vi.mocked(hasVoice).mockImplementation(() => false)
+    const w = mount(Datum, { attachTo: document.body })
+    await tap(w, '[data-test="lang-en"]')
+    await until(w, 'en', 'words-clock')
+    expect(w.find('[data-test="prompt"]').exists()).toBe(true)
+    vi.mocked(hasVoice).mockImplementation(() => true)
+    voiceCount.value++
+    await w.vm.$nextTick()
+    expect(w.find('[data-test="prompt"]').exists()).toBe(true)
     w.unmount()
   })
 })

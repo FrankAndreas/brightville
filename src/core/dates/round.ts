@@ -51,15 +51,19 @@ const randomDate = (rand: () => number) => {
   return { d: 1 + pickInt(rand, MONTH_DAYS[mo - 1]), mo }
 }
 
-/** One thing to spell: German prompt and the word in the language (French: days and months only) */
-function spellings(lang: Lang): { de: string; word: string }[] {
-  const days = DAYS[lang].map((word, i) => ({ de: DAYS.de[i], word }))
-  const months = MONTHS[lang].map((word, i) => ({ de: MONTHS.de[i], word }))
-  const ordinals = lang === 'en' ? Array.from({ length: 31 }, (_, i) => ({ de: `der ${DE_ORDINALS[i + 1]} (${i + 1}.)`, word: ordinalWord(i + 1) })) : []
+/** The things to spell, by group: German prompt and the word in the language (French: days and months only) */
+function spellings(lang: Lang): { de: string; word: string; group: 'day' | 'month' | 'ordinal' }[] {
+  const days = DAYS[lang].map((word, i) => ({ de: DAYS.de[i], word, group: 'day' as const }))
+  const months = MONTHS[lang].map((word, i) => ({ de: MONTHS.de[i], word, group: 'month' as const }))
+  const ordinals = lang === 'en'
+    ? Array.from({ length: 31 }, (_, i) => ({ de: `der ${DE_ORDINALS[i + 1]} (${i + 1}.)`, word: ordinalWord(i + 1), group: 'ordinal' as const }))
+    : []
   return [...days, ...months, ...ordinals]
 }
 
 interface Task {
+  /** What is asked, whatever the kind ("t 8:15", "d 14.7.", "s Montag"): no two tasks of a round ask the same */
+  value: string
   /** What is shown (or said) */
   prompt: string
   /** Every right answer, the one to show first */
@@ -86,22 +90,27 @@ function makeTask(lang: Lang, kind: DateKind, rand: () => number): Task {
   if (kind === 'clock-words' || kind === 'words-clock') {
     const { h, m } = randomTime(rand)
     const words = timeWords(lang, h, m)
+    const value = `t ${shownTime(h, m)}`
     if (kind === 'clock-words') {
-      return { prompt: shownTime(h, m), answers: words, others: r => threeOthers(() => { const t = randomTime(r); return timeWords(lang, t.h, t.m)[0] }, words) }
+      return { value, prompt: shownTime(h, m), answers: words, others: r => threeOthers(() => { const t = randomTime(r); return timeWords(lang, t.h, t.m)[0] }, words) }
     }
-    return { prompt: words[0], answers: [shownTime(h, m)], others: r => threeOthers(() => { const t = randomTime(r); return shownTime(t.h, t.m) }, [shownTime(h, m)]) }
+    return { value, prompt: words[0], answers: [shownTime(h, m)], others: r => threeOthers(() => { const t = randomTime(r); return shownTime(t.h, t.m) }, [shownTime(h, m)]) }
   }
   if (kind === 'words-date' || kind === 'date-words') {
     const { d, mo } = randomDate(rand)
     const words = dateWords(lang, d, mo)
+    const value = `d ${shownDate(d, mo)}`
     if (kind === 'date-words') {
-      return { prompt: shownDate(d, mo), answers: words, others: r => threeOthers(() => { const x = randomDate(r); return dateWords(lang, x.d, x.mo)[0] }, words) }
+      return { value, prompt: shownDate(d, mo), answers: words, others: r => threeOthers(() => { const x = randomDate(r); return dateWords(lang, x.d, x.mo)[0] }, words) }
     }
-    return { prompt: words[0], answers: [shownDate(d, mo)], others: r => threeOthers(() => { const x = randomDate(r); return shownDate(x.d, x.mo) }, [shownDate(d, mo)]) }
+    return { value, prompt: words[0], answers: [shownDate(d, mo)], others: r => threeOthers(() => { const x = randomDate(r); return shownDate(x.d, x.mo) }, [shownDate(d, mo)]) }
   }
   const all = spellings(lang)
   const one = all[pickInt(rand, all.length)]
-  return { prompt: one.de, answers: [one.word], others: r => threeOthers(() => all[pickInt(r, all.length)].word, [one.word]) }
+  // Wrong choices from the same group (a day among days); "der dritte" may also be typed "the third"
+  const group = all.filter(x => x.group === one.group)
+  const answers = one.group === 'ordinal' ? [one.word, `the ${one.word}`] : [one.word]
+  return { value: `s ${one.de}`, prompt: one.de, answers, others: r => threeOthers(() => group[pickInt(r, group.length)].word, answers) }
 }
 
 /** The kind of a round item, from its key `<lang>:<kind>:<n>` */
@@ -120,8 +129,8 @@ export function buildDatesRound(lang: Lang, progress: DatesProgress, rand: () =>
   for (const { id: kind } of KINDS) {
     for (let made = 0; made < PER_KIND;) {
       const task = makeTask(lang, kind, rand)
-      if (prompts.has(task.prompt)) continue
-      prompts.add(task.prompt)
+      if (prompts.has(task.value)) continue
+      prompts.add(task.value)
       made++
       const word = { key: `${lang}:${kind}:${n++}`, de: task.prompt, foreign: task.answers.join(' / '), source: kind }
       const typed = !ALWAYS_CHOICE.includes(kind) && typesNow(asRec(progress[`${lang}:${kind}`]))

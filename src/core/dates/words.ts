@@ -50,6 +50,16 @@ const FR_DAYS = [
 
 const unique = (forms: string[]) => [...new Set(forms)]
 
+/**
+ * The forms that also count when typed: the French 1990 spelling with hyphens ("vingt-et-une"), and a space for any
+ * hyphen ("twenty five past eight", "dix sept heures"), so a missing hyphen doesn't cost the whole time
+ */
+function alsoTyped(forms: string[]): string[] {
+  const hyphenated = forms.map(f => f.replace(/\b(vingt|trente) et (une?)\b/g, '$1-et-$2'))
+  const all = unique([...forms, ...hyphenated])
+  return unique([...all, ...all.map(f => f.replace(/-/g, ' '))])
+}
+
 /** English ordinal in words: 1 → "first" … 31 → "thirty-first" */
 export function ordinalWord(day: number): string {
   return EN_ORDINALS[day] ?? ''
@@ -71,6 +81,8 @@ function englishTime(hour: number, minute: number): string[] {
   if (minute === 15) forms.push(`a quarter past ${EN_HOURS[hour]}`)
   if (minute === 45) forms.push(`a quarter to ${EN_HOURS[nextHour(hour)]}`)
   forms.push(minute === 0 ? EN_HOURS[hour] : `${EN_HOURS[hour]} ${EN_DIGITAL[minute]}`)
+  if (minute === 5) forms.push(`${EN_HOURS[hour]} o five`)
+  if (hour === 12 && minute === 0) forms.push('noon', 'midday', 'midnight', 'twelve noon')
   return [...forms, ...forms.map(f => `it's ${f}`), ...forms.map(f => `it is ${f}`)]
 }
 
@@ -101,13 +113,15 @@ function frenchTime(hour: number, minute: number): string[] {
     ...frenchSaid(hour, minute, 'minuit'),
     french24(hour % 12 === 0 ? 12 : hour, minute),
     ...(hour === 12 ? [] : [french24(hour + 12, minute)]),
+    // "midi quinze", as "huit heures quinze"
+    ...(hour === 12 && minute > 0 ? [`midi ${FR_MINUTES[minute]}`, `minuit ${FR_MINUTES[minute]}`] : []),
   ]
   return [...forms, ...forms.map(f => `il est ${f}`)]
 }
 
 /** A time on a 12-hour clock (hour 1..12, minute 0..55 in fives) in words: the form shown first, then all that count */
 export function timeWords(lang: Lang, hour: number, minute: number): string[] {
-  return unique(lang === 'en' ? englishTime(hour, minute) : frenchTime(hour, minute))
+  return alsoTyped(unique(lang === 'en' ? englishTime(hour, minute) : frenchTime(hour, minute)))
 }
 
 /** A date (day 1..31, month 1..12) in words: the form shown first, then all that count */
@@ -116,10 +130,15 @@ export function dateWords(lang: Lang, day: number, month: number): string[] {
     const m = MONTHS.en[month - 1]
     const ord = ordinalWord(day)
     const num = `${day}${suffix(day)}`
-    return unique([`the ${ord} of ${m}`, `${m} ${num}`, `${num} ${m}`, `${m} ${day}`, `${m} the ${ord}`, `the ${num} of ${m}`, `${day} ${m}`])
+    return alsoTyped([
+      `the ${ord} of ${m}`, `${m} ${num}`, `${num} ${m}`, `${m} ${day}`, `${m} the ${ord}`, `the ${num} of ${m}`, `${day} ${m}`,
+      `${ord} of ${m}`, `${num} of ${m}`, `${m} ${ord}`,
+    ])
   }
   const m = MONTHS.fr[month - 1]
-  return unique([`le ${FR_DAYS[day]} ${m}`, `le ${day === 1 ? '1er' : day} ${m}`, ...(day === 1 ? [`le 1 ${m}`] : [])])
+  const forms = [`le ${FR_DAYS[day]} ${m}`, `le ${day === 1 ? '1er' : day} ${m}`, ...(day === 1 ? [`le 1 ${m}`] : [])]
+  // Without "le", as at the top of a letter: "14 juillet", "premier mai"
+  return alsoTyped([...forms, ...forms.map(f => f.slice(3))])
 }
 
 /** "8:05" */
