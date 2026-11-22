@@ -100,3 +100,13 @@ export function checkLanguage(lang: Lang) {
 }
 
 describe('English grammar', () => checkLanguage('en'))
+
+describe('French grammar', () => {
+  checkLanguage('fr')
+
+  it('never has a sentence in both languages', () => {
+    const texts = (lang: Lang) => GRAMMAR[lang].flatMap(t => t.kind === 'choice' ? t.items.map(i => i.text) : t.frames.map(f => f.text))
+    const en = new Set(texts('en'))
+    for (const text of texts('fr')) expect(en.has(text), text).toBe(false)
+  })
+})
