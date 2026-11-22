@@ -110,9 +110,11 @@ Oberstufe side in a later piece and opens then.
 5. **Right** (first try): "Richtig" and the word moves up. **Wrong:** the right answer is shown and spoken, he types
    it once to go on, and the word comes back once at the end of the round (no Star the second time).
 6. Typed answers count as right when they match one of the answers ignoring case, spaces around and between words,
-   and a final `.`, `!` or `?`; for English verbs the `to` may be left out. An answer that differs **only in accents**
-   (`fenetre` for `fenêtre`, `ecole` for `école`) counts as right, with the accented spelling shown. Anything else is wrong.
-   The text field has autocorrect, autocapitalize and the spell check off.
+   and a final `.`, `!` or `?`; for English verbs the `to` may be left out. **Accents count** (the parents' choice):
+   `ecole` for `école` is wrong, like German without its umlauts; the right spelling is shown with the missing or
+   wrong accent marked, so he sees it was only the accent. Anything else that differs is wrong too.
+   The text field has autocorrect, autocapitalize and the spell check off. For French, a row of buttons under the
+   field types the accented letters (`é è ê à â ç ô î û ë ï ù œ`), since not every keyboard has them.
 7. At the end: how many he knew, and the Stars.
 
 **Stars:** +1 per word right on the first try, +5 when all words of a 10-word round were right on the first try. The
@@ -151,7 +153,7 @@ later piece.
 - A `soon` door is refused by the server too (an earning, play or free visit to it doesn't count), not only by the
   page.
 - Only children have a level; a parent's is ignored.
-- Accents are forgiven only on the foreign side; a German answer must be spelled with its umlauts.
+- The accent buttons for French, and marking the accent when only the accent was wrong.
 
 ## Left to the builder
 
