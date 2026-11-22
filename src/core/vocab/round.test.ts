@@ -25,9 +25,14 @@ describe('buildRound', () => {
   })
 
   it('a small source makes a short round, each word once', () => {
-    const round = buildRound(Array.from({ length: 6 }, (_, i) => word(i)), {}, TODAY, fixed)
+    const progress: Progress = Object.fromEntries(Array.from({ length: 6 }, (_, i) => [`en:t:w${i}`, { box: 2, due: TODAY }]))
+    const round = buildRound(Array.from({ length: 6 }, (_, i) => word(i)), progress, TODAY, fixed)
     expect(round).toHaveLength(6)
     expect(new Set(round.map(r => r.word.key)).size).toBe(6)
+  })
+
+  it('never more than four new words, even when the source has nothing else', () => {
+    expect(buildRound(Array.from({ length: 25 }, (_, i) => word(i)), {}, TODAY, fixed)).toHaveLength(4)
   })
 
   it('box 0 and 1 are choices; box 2 and up are typed, in turn German → foreign and foreign → German', () => {

@@ -43,7 +43,7 @@ export function pickChoices(word: VocabWord, pool: VocabWord[], rand: () => numb
 
 /**
  * A round from `words` (one source, one language): the words due, the longest overdue first; then new words, at most
- * four, in their order; then the words due soonest; then more new words if the source has nothing else. Each word once.
+ * four, in their order; then the words due soonest. Each word once; a source with less makes a shorter round.
  * `pool`: where wrong choices come from after the source (the rest of the same language).
  */
 export function buildRound(words: VocabWord[], progress: Progress, today: string, rand: () => number, pool: VocabWord[] = words): RoundItem[] {
@@ -58,7 +58,6 @@ export function buildRound(words: VocabWord[], progress: Progress, today: string
   const firstNew = fresh.slice(0, Math.min(NEW_PER_ROUND, ROUND_SIZE - chosen.length))
   chosen.push(...firstNew)
   chosen.push(...later.slice(0, ROUND_SIZE - chosen.length))
-  chosen.push(...fresh.slice(firstNew.length, firstNew.length + ROUND_SIZE - chosen.length))
   const choicePool = [...unique, ...pool.filter(w => !seen.has(w.key))]
   let typed = 0
   return chosen.map(word => {
