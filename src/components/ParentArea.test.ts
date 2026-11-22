@@ -31,6 +31,22 @@ describe('ParentArea', () => {
     expect(card(w, 1).find('[data-test="stars-input"]').exists()).toBe(true)
   })
 
+  it('sets a child\'s level with the other settings; a Kindergarten child keeps Lehrplan and Schreiben', async () => {
+    const { api, w } = await open()
+    const level = card(w, 2).find('[data-test="level"]')
+    expect((level.element as HTMLSelectElement).value).toBe('kindergarten')
+    expect(card(w, 1).find('[data-test="level"]').exists()).toBe(false)
+    expect(card(w, 2).find('[data-test="sprachen"]').exists()).toBe(false)
+    await level.setValue('oberstufe')
+    await card(w, 2).find('[data-test="save"]').trigger('click')
+    await flushPromises()
+    expect(api.calls).toContain('setRules 2 {"daily_goal":2,"play_minutes":30,"level":"oberstufe"}')
+    // At Oberstufe his languages instead of the Kindergarten sections
+    expect(card(w, 2).find('[data-test="sprachen"]').exists()).toBe(true)
+    expect(card(w, 2).find('[data-test="lehrplan"]').exists()).toBe(false)
+    expect(card(w, 2).find('[data-test="writing"]').exists()).toBe(false)
+  })
+
   it('has a child\'s Lehrplan 21 section, but none for a parent', async () => {
     const { w } = await open()
     expect(card(w, 2).find('[data-test="lehrplan"]').exists()).toBe(true)
