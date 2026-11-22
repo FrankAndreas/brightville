@@ -6,6 +6,7 @@ import type { Ladder, Ladders } from '@/core/ladders'
 import type { Letters } from '@/core/writing/levels'
 import type { GrammarProgress } from '@/core/grammar/round'
 import type { ListenProgress } from '@/core/listen/round'
+import type { ReadingProgress } from '@/core/reading/rules'
 import type { Lang, Progress, VocabList } from '@/core/vocab/types'
 
 export type { LogDay, LogEntry } from '@/core/diary'
@@ -93,6 +94,19 @@ export interface GrammarResultsIn {
   key: string
   lang: Lang
   answers: { item: string; right: boolean }[]
+}
+
+/** The Oberstufe's reading room (backend/app/reading.py): his record per text, his visits the server has */
+export interface ReadingState {
+  progress: ReadingProgress
+  seen?: string[]
+}
+
+/** One visit's text and how many of its questions he got right, counted once by `key` */
+export interface ReadingResultsIn {
+  key: string
+  lang: Lang
+  answers: { text: string; right: number }[]
 }
 
 /** Her look and her add-ons (backend/app/wardrobe.py) */
@@ -261,6 +275,12 @@ export interface Api {
   grammarResults(results: GrammarResultsIn): Promise<GrammarState>
   /** Parents: a child's grammar record */
   playerGrammar(personId: number): Promise<GrammarState>
+  /** His reading record */
+  reading(): Promise<ReadingState>
+  /** A reading visit's result, counted once by its key */
+  readingResults(results: ReadingResultsIn): Promise<ReadingState>
+  /** Parents: a child's reading record */
+  playerReading(personId: number): Promise<ReadingState>
 }
 
 type Fetch = (url: string, init: RequestInit) => Promise<Response>
@@ -359,5 +379,8 @@ export function httpApi(fetchFn: Fetch = (url, init) => fetch(url, init), onRene
     grammar: () => call('GET', '/api/grammar'),
     grammarResults: results => call('POST', '/api/grammar/results', results, WRITING_TIMEOUT_MS),
     playerGrammar: personId => call('GET', `/api/players/${personId}/grammar`),
+    reading: () => call('GET', '/api/reading'),
+    readingResults: results => call('POST', '/api/reading/results', results, WRITING_TIMEOUT_MS),
+    playerReading: personId => call('GET', `/api/players/${personId}/reading`),
   }
 }
