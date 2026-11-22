@@ -13,7 +13,22 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, StringConstraints, create_model
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from . import auth, films, game, hub, local, paintings, people, room, school, stickers, vocab, wardrobe, writing
+from . import (
+    auth,
+    films,
+    game,
+    hub,
+    listen,
+    local,
+    paintings,
+    people,
+    room,
+    school,
+    stickers,
+    vocab,
+    wardrobe,
+    writing,
+)
 from . import db as database
 from .auth import error, get_db
 from .buildings import Building, all_buildings
@@ -176,6 +191,17 @@ class VocabResultsIn(BaseModel):
     key: str = Field(min_length=1, max_length=64)
     lang: Literal["en", "fr"]
     answers: list[VocabAnswerIn] = Field(max_length=100)
+
+
+class ListenAnswerIn(BaseModel):
+    scene: str = Field(min_length=1, max_length=200)
+    right: bool
+
+
+class ListenResultsIn(BaseModel):
+    key: str = Field(min_length=1, max_length=64)
+    lang: Literal["en", "fr"]
+    answers: list[ListenAnswerIn] = Field(max_length=20)
 
 
 class FilmIn(BaseModel):
@@ -664,6 +690,31 @@ def player_vocab(
     if not people.is_active(db, person_id):
         raise error(404, "unknown_person")
     return vocab.state(db, person_id, seen=False)
+
+
+@app.get("/api/listen")
+def listen_state(person: Person = Depends(auth.current_person), db: sqlite3.Connection = Depends(get_db)) -> dict:
+    return listen.state(db, person.id)
+
+
+@app.post("/api/listen/results")
+def listen_results(
+    body: ListenResultsIn, person: Person = Depends(auth.current_person), db: sqlite3.Connection = Depends(get_db)
+) -> dict:
+    listen.record(
+        db, person.id, body.key, body.lang, [listen.Answer(scene=a.scene, right=a.right) for a in body.answers]
+    )
+    return listen.state(db, person.id)
+
+
+@app.get("/api/players/{person_id}/listen")
+def player_listen(
+    person_id: int, request: Request, _: Person = Depends(auth.parent), db: sqlite3.Connection = Depends(get_db)
+) -> dict:
+    auth.refresh_people(request, db)
+    if not people.is_active(db, person_id):
+        raise error(404, "unknown_person")
+    return listen.state(db, person_id, seen=False)
 
 
 @app.get("/api/players/{person_id}/writing")

@@ -16,6 +16,7 @@ vi.mock('@/services/tts', async () => {
     instruct: vi.fn(() => Promise.resolve()),
     stopSpeaking: vi.fn(),
     hasVoice: vi.fn(() => true),
+    voiceCount: ref(1),
     instruction: ref(null),
     forgetInstruction: vi.fn(),
   }

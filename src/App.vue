@@ -27,11 +27,12 @@ import { httpApi, type Api } from '@/services/api'
 import { detectDevice } from '@/services/device'
 import { renewOnce } from '@/services/renew'
 import { unlockAudio } from '@/services/sound'
-import { forgetInstruction, speak } from '@/services/tts'
+import { forgetInstruction, hasAnyForeignVoice, speak, voiceCount, watchVoices } from '@/services/tts'
 import { usePlayerStore } from '@/stores/player'
 import { useRoomStore } from '@/stores/room'
 import { useLaddersStore } from '@/stores/ladders'
 import { useVocabStore } from '@/stores/vocab'
+import { useListenStore } from '@/stores/listen'
 import { useWritingStore } from '@/stores/writing'
 import { useWardrobeStore } from '@/stores/wardrobe'
 import { useSessionStore } from '@/stores/session'
@@ -48,9 +49,16 @@ const room = useRoomStore()
 const writing = useWritingStore()
 const ladderStore = useLaddersStore()
 const vocab = useVocabStore()
+const listen = useListenStore()
 const device = detectDevice()
-/** The device, and whether the parents chose films for the Cinema */
-const caps = computed(() => ({ ...device, films: player.films.length > 0 }))
+// Some browsers (Safari) bring their voices late: counting them again repaints the doors that need one
+const stopWatchingVoices = watchVoices()
+onBeforeUnmount(stopWatchingVoices)
+/** The device (with its voices, counted again when they arrive), and whether the parents chose films for the Cinema */
+const caps = computed(() => {
+  void voiceCount.value
+  return { ...device, voice: hasAnyForeignVoice(), films: player.films.length > 0 }
+})
 // Doors follow the Stars, the daily goal, the play time and the films: the town repaints them when they change
 const doors = computed(() => toDoors(props.buildings, caps.value, player.goalReached, player.stars, player.timeUp, player.level))
 const stateFor = (b: BuildingDef) => stateOf(b, caps.value, player.goalReached, player.stars, player.timeUp, player.level)
@@ -136,6 +144,9 @@ watch(() => (session.status === 'ready' ? session.person?.id : undefined), async
   // His words at Oberstufe, due by the game's day; asked for every child (a few bytes), so a level set later just works
   vocab.init(props.api, id, undefined, () => player.day)
   void vocab.load()
+  // Which listening scenes he understood, the same way
+  listen.init(props.api, id, undefined, () => player.day)
+  void listen.load()
   // The room is only needed in the house and the Möbelhaus: the game doesn't wait for it
   void room.load()
   await Promise.all([player.refresh(), wardrobe.load()])
@@ -352,6 +363,7 @@ const refresh = () => {
     void ladderStore.load()
     // His words changed on another device, and rounds that waited here
     void vocab.load()
+    void listen.load()
   }
 }
 let refreshTimer: ReturnType<typeof setInterval> | undefined

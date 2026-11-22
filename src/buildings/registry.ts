@@ -32,6 +32,8 @@ const kalender = () => import('./kalender/Kalender.vue')
 const spielwelt = () => import('./spielwelt/Spielwelt.vue')
 const trommelhaus = () => import('./trommelhaus/Trommelhaus.vue')
 const vokabeln = () => import('./vokabeln/Vokabeln.vue')
+const diktat = () => import('./diktat/Diktat.vue')
+const hoeren = () => import('./hoeren/Hoeren.vue')
 
 /**
  * Every building in the town, mixed along the streets of `src/city/map.ts` so every walk passes learning, playing and
@@ -48,6 +50,8 @@ export const BUILDINGS: BuildingDef[] = [
     // Writing wants a finger or a pen on the glass; a mouse teaches nothing about it
     id: 'schreiben', spokenName: 'Schreiben', toName: 'zum Schreiben', icon: '✏️', kind: 'earn', needs: ['touch'], door: { x: -24.5, z: 3.5, side: 'front' },
     component: defineAsyncComponent(schreiben), preload: schreiben,
+    // At Oberstufe it dictates his words: it needs a voice, not a finger
+    oberstufe: { component: defineAsyncComponent(diktat), preload: diktat, needs: ['voice'] },
   },
   {
     id: 'yoga', spokenName: 'Yoga', toName: 'zum Yoga', icon: '🧘', kind: 'earn', needs: ['camera'], door: { x: -3.5, z: 40, side: 'left' },
@@ -131,6 +135,8 @@ export const BUILDINGS: BuildingDef[] = [
     // Hearing words: rhymes, first sounds and syllables (Lehrplan 21 D.1.A.1), on the lot by the Tanzsaal
     id: 'reimhaus', spokenName: 'Reimhaus', toName: 'zum Reimhaus', icon: '👂', kind: 'earn', needs: [], door: { x: 35.5, z: -16, side: 'right' },
     component: defineAsyncComponent(reimhaus), preload: reimhaus,
+    // At Oberstufe he listens to scenes in English or French
+    oberstufe: { component: defineAsyncComponent(hoeren), preload: hoeren, needs: ['voice'] },
   },
   {
     // Seeing rules in things: rows to continue and things to sort (Lehrplan 21 MA.1.B, MA.3), past the Yoga studio
@@ -154,15 +160,17 @@ export const BUILDINGS: BuildingDef[] = [
   },
 ]
 
-export function canServe(building: BuildingDef, device: Capabilities): boolean {
-  return building.needs.every(need => device[need] === true)
+/** Whether this device can serve the building at this level (its Oberstufe needs, when it has its own, at Oberstufe) */
+export function canServe(building: BuildingDef, device: Capabilities, level: Level = 'kindergarten'): boolean {
+  const needs = (level === 'oberstufe' && building.oberstufe?.needs) || building.needs
+  return needs.every(need => device[need] === true)
 }
 
 /** What the door of this building is to the child right now. */
 export function stateOf(
   building: BuildingDef, device: Capabilities, goalReached: boolean, stars: number, timeUp = false, level: Level = 'kindergarten',
 ): DoorState {
-  return doorState(building, canServe(building, device), goalReached, stars, timeUp, level)
+  return doorState(building, canServe(building, device, level), goalReached, stars, timeUp, level)
 }
 
 /** The doors the town shows: one per building, open only when the child may walk in right now. */

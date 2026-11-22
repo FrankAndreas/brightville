@@ -2,6 +2,8 @@ export interface DeviceCaps {
   camera: boolean
   touch: boolean
   keyboard: boolean
+  /** An English or a French voice; filled in by the town, which counts the voices again when they arrive late */
+  voice?: boolean
 }
 
 /** What this device can do, as far as the browser tells without asking for permission. */

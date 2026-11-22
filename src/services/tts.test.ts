@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { hasVoice, speak, stopSpeaking } from './tts'
+import { hasAnyForeignVoice, hasVoice, speak, speakLines, stopSpeaking, voiceCount, voicesFor, watchVoices } from './tts'
 
-interface FakeUtterance { text: string; lang: string; onend?: () => void; onerror?: () => void }
+interface FakeUtterance { text: string; lang: string; rate?: number; pitch?: number; voice?: unknown; onend?: () => void; onerror?: () => void }
 
 describe('tts service', () => {
   let mockSynth: { cancel: ReturnType<typeof vi.fn>; speak: ReturnType<typeof vi.fn> }
@@ -87,5 +87,139 @@ describe('tts service', () => {
     expect(hasVoice('fr-FR')).toBe(false)
     vi.stubGlobal('speechSynthesis', undefined)
     expect(hasVoice('en-GB')).toBe(false)
+  })
+
+  it('passes rate, pitch and voice to the utterance', () => {
+    const voice = { lang: 'en-GB', name: 'Daniel' } as SpeechSynthesisVoice
+    speak('slowly', 'en-GB', { rate: 0.6, pitch: 0.8, voice })
+    expect(spoken().rate).toBe(0.6)
+    expect(spoken().pitch).toBe(0.8)
+    expect(spoken().voice).toBe(voice)
+    expect(spoken().lang).toBe('en-GB')
+  })
+
+  it('finds the voices of a language, the exact region first', () => {
+    const voices = [{ lang: 'de-CH' }, { lang: 'en-US', name: 'us' }, { lang: 'en_GB', name: 'gb' }, { lang: 'fr-FR' }]
+    vi.stubGlobal('speechSynthesis', { ...mockSynth, getVoices: () => voices })
+    expect(voicesFor('en-GB').map(v => v.name)).toEqual(['gb', 'us'])
+    expect(hasAnyForeignVoice()).toBe(true)
+    vi.stubGlobal('speechSynthesis', { ...mockSynth, getVoices: () => [{ lang: 'de-CH' }] })
+    expect(hasAnyForeignVoice()).toBe(false)
+  })
+
+  it('counts the voices again when they arrive late', () => {
+    let voices: { lang: string }[] = []
+    const listeners: (() => void)[] = []
+    vi.stubGlobal('speechSynthesis', {
+      ...mockSynth,
+      getVoices: () => voices,
+      addEventListener: (_: string, f: () => void) => listeners.push(f),
+      removeEventListener: vi.fn(),
+    })
+    const stop = watchVoices()
+    expect(voiceCount.value).toBe(0)
+    voices = [{ lang: 'en-GB' }, { lang: 'fr-FR' }]
+    listeners.forEach(f => f())
+    expect(voiceCount.value).toBe(2)
+    stop()
+  })
+
+  describe('speaking a dialogue', () => {
+    beforeEach(() => vi.useFakeTimers())
+    afterEach(() => vi.useRealTimers())
+
+    const finishLine = async (i: number) => {
+      await vi.advanceTimersByTimeAsync(0)
+      spoken(i).onend!()
+      await vi.advanceTimersByTimeAsync(400)
+    }
+
+    it('speaks line after line, the second speaker lower when there is one voice', async () => {
+      vi.stubGlobal('speechSynthesis', { ...mockSynth, getVoices: () => [{ lang: 'en-GB' }] })
+      const done = speakLines(['A: Hi', 'B: Hello'], 'en-GB')
+      await finishLine(0)
+      await finishLine(1)
+      await done
+      expect(spoken(0).text).toBe('Hi')
+      expect(spoken(1).text).toBe('Hello')
+      expect(spoken(1).pitch).toBe(0.8)
+      expect(spoken(0).pitch).toBeUndefined()
+    })
+
+    it('gives the second speaker the second voice when there are two', async () => {
+      const two = [{ lang: 'en-GB', name: 'a' }, { lang: 'en-GB', name: 'b' }]
+      vi.stubGlobal('speechSynthesis', { ...mockSynth, getVoices: () => two })
+      const done = speakLines(['A: Hi', 'B: Hello'], 'en-GB', { rate: 0.6 })
+      await finishLine(0)
+      await finishLine(1)
+      await done
+      expect(spoken(0).voice).toBe(two[0])
+      expect(spoken(1).voice).toBe(two[1])
+      expect(spoken(1).pitch).toBeUndefined()
+      expect(spoken(1).rate).toBe(0.6)
+    })
+
+    it('stops when the scene is no longer the current one', async () => {
+      let current = true
+      const done = speakLines(['One.', 'Two.'], 'en-GB', {}, () => current)
+      current = false
+      await finishLine(0)
+      await done
+      expect(mockSynth.speak).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  it('speaks a foreign language in a voice of that language, even when the device lacks the exact region', () => {
+    const us = { lang: 'en-US', name: 'Samantha' }
+    vi.stubGlobal('speechSynthesis', { ...mockSynth, getVoices: () => [{ lang: 'de-CH', name: 'de' }, us] })
+    speak('station', 'en-GB')
+    expect(spoken().voice).toBe(us)
+    // German stays with the device's own choice
+    speak('Hallo')
+    expect(spoken(1).voice).toBeUndefined()
+  })
+
+  it('counts the voices again on the first tap (old Safari never says they arrived)', () => {
+    let voices: { lang: string }[] = []
+    vi.stubGlobal('speechSynthesis', { ...mockSynth, getVoices: () => voices })
+    const stop = watchVoices()
+    expect(voiceCount.value).toBe(0)
+    voices = [{ lang: 'en-GB' }]
+    window.dispatchEvent(new Event('pointerdown'))
+    expect(voiceCount.value).toBe(1)
+    stop()
+  })
+
+  describe('a slow line', () => {
+    beforeEach(() => vi.useFakeTimers())
+    afterEach(() => vi.useRealTimers())
+
+    it('is given more time before the safety timeout', async () => {
+      let done = false
+      void speak('x'.repeat(80), 'en-GB', { rate: 0.6 }).then(() => { done = true })
+      await vi.advanceTimersByTimeAsync(11000)
+      expect(done).toBe(false)
+      await vi.advanceTimersByTimeAsync(6000)
+      expect(done).toBe(true)
+    })
+  })
+
+  describe('the second speaker', () => {
+    beforeEach(() => vi.useFakeTimers())
+    afterEach(() => vi.useRealTimers())
+
+    it('gets a lower pitch, not a voice of another region (no novelty or foreign-accent voice)', async () => {
+      const voices = [{ lang: 'en-GB', name: 'Daniel' }, { lang: 'en-US', name: 'Albert' }]
+      vi.stubGlobal('speechSynthesis', { ...mockSynth, getVoices: () => voices })
+      const done = speakLines(['A: Hi', 'B: Hello'], 'en-GB')
+      await vi.advanceTimersByTimeAsync(0)
+      spoken(0).onend!()
+      await vi.advanceTimersByTimeAsync(400)
+      spoken(1).onend!()
+      await done
+      expect(spoken(0).voice).toBe(voices[0])
+      expect(spoken(1).voice).toBe(voices[0])
+      expect(spoken(1).pitch).toBe(0.8)
+    })
   })
 })

@@ -4,6 +4,7 @@ import type { Place } from '@/core/outfits'
 import type { Spot } from '@/core/furniture'
 import type { Ladder, Ladders } from '@/core/ladders'
 import type { Letters } from '@/core/writing/levels'
+import type { ListenProgress } from '@/core/listen/round'
 import type { Lang, Progress, VocabList } from '@/core/vocab/types'
 
 export type { LogDay, LogEntry } from '@/core/diary'
@@ -65,6 +66,19 @@ export interface VocabResultsIn {
   key: string
   lang: Lang
   answers: { word: string; right: boolean }[]
+}
+
+/** The Oberstufe's listening scenes (backend/app/listen.py): his record per scene, his results the server has */
+export interface ListenState {
+  progress: ListenProgress
+  seen?: string[]
+}
+
+/** One listening round's answers, counted once by `key` */
+export interface ListenResultsIn {
+  key: string
+  lang: Lang
+  answers: { scene: string; right: boolean }[]
 }
 
 /** Her look and her add-ons (backend/app/wardrobe.py) */
@@ -221,6 +235,12 @@ export interface Api {
   vocabResults(results: VocabResultsIn): Promise<VocabState>
   /** Parents only */
   playerVocab(personId: number): Promise<VocabState>
+  /** His record of the listening scenes */
+  listen(): Promise<ListenState>
+  /** A listening round's answers, counted once by its key */
+  listenResults(results: ListenResultsIn): Promise<ListenState>
+  /** Parents: a child's listening record */
+  playerListen(personId: number): Promise<ListenState>
 }
 
 type Fetch = (url: string, init: RequestInit) => Promise<Response>
@@ -313,5 +333,8 @@ export function httpApi(fetchFn: Fetch = (url, init) => fetch(url, init), onRene
     deleteList: id => call('DELETE', `/api/vocab/lists/${id}`),
     vocabResults: results => call('POST', '/api/vocab/results', results, WRITING_TIMEOUT_MS),
     playerVocab: personId => call('GET', `/api/players/${personId}/vocab`),
+    listen: () => call('GET', '/api/listen'),
+    listenResults: results => call('POST', '/api/listen/results', results, WRITING_TIMEOUT_MS),
+    playerListen: personId => call('GET', `/api/players/${personId}/listen`),
   }
 }

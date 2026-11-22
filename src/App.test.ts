@@ -7,22 +7,28 @@ import { BUILDINGS } from './buildings/registry'
 import { createCity, type CityOptions } from './city/city'
 import { doorTarget } from './city/ride'
 import { unlockAudio } from './services/sound'
-import { forgetInstruction, speak } from './services/tts'
+import { forgetInstruction, speak, voiceCount } from './services/tts'
 import type { BuildingDef, BuildingResult } from './buildings/types'
 import { fakeApi, type FakeApi } from './services/fakeApi'
 import { ApiError } from './services/api'
 import { usePlayerStore } from './stores/player'
 import { useSessionStore } from './stores/session'
+import { useListenStore } from './stores/listen'
 
 vi.mock('./city/city', () => ({ createCity: vi.fn() }))
 vi.mock('./city/preview', () => ({ createPreview: () => ({ setDress: vi.fn(), dispose: vi.fn() }) }))
 vi.mock('./services/sound', () => ({ unlockAudio: vi.fn(), playBeat: vi.fn() }))
+const voices = vi.hoisted(() => ({ foreign: true }))
 vi.mock('./services/tts', async () => {
   const { ref } = await import('vue')
+  const voiceCount = ref(0)
   const speak = vi.fn<(text?: string) => Promise<void>>(() => Promise.resolve())
   const instruction = ref<string | null>(null)
   const instruct = vi.fn((text: string) => { instruction.value = text; return speak(text) })
-  return { speak, stopSpeaking: vi.fn(), instruct, instruction, forgetInstruction: vi.fn(() => { instruction.value = null }) }
+  return {
+    speak, stopSpeaking: vi.fn(), instruct, instruction, forgetInstruction: vi.fn(() => { instruction.value = null }),
+    voiceCount, watchVoices: vi.fn(() => () => {}), hasAnyForeignVoice: vi.fn(() => voices.foreign),
+  }
 })
 const device = vi.hoisted(() => ({ camera: true, touch: false, keyboard: true }))
 vi.mock('./services/device', () => ({ detectDevice: () => ({ ...device }) }))
@@ -209,6 +215,30 @@ describe('App', () => {
       await flushPromises()
       expect(w.find('[data-test="oberstufe-side"]').exists()).toBe(true)
       expect(w.find('[data-test="stub-building"]').exists()).toBe(false)
+      w.unmount()
+    })
+
+    it('a building that needs a voice opens when the voices arrive late', async () => {
+      voices.foreign = false
+      const touchy: BuildingDef = { ...camOnly, oberstufe: { component: Vok, needs: ['voice'] } }
+      api = fakeApi({ level: 'oberstufe' })
+      const w = await started([touchy])
+      cityOptions.onNearDoor('touchy')
+      await nextTick()
+      expect(w.find('[data-test="door-prompt"]').attributes('data-state')).toBe('unavailable')
+      voices.foreign = true
+      voiceCount.value++
+      await nextTick()
+      expect(w.find('[data-test="door-prompt"]').attributes('data-state')).toBe('open')
+      w.unmount()
+    })
+
+    it('loads his listening record with the game', async () => {
+      api = fakeApi({ level: 'oberstufe' })
+      api.listen_ = { 'en:travel:platform': { right: 1, last_right: '2026-11-10', last_asked: '2026-11-10' } }
+      const w = await started([school])
+      expect(api.calls).toContain('listen')
+      expect(useListenStore().progress['en:travel:platform'].right).toBe(1)
       w.unmount()
     })
 

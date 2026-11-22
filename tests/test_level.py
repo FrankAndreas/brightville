@@ -37,7 +37,7 @@ def test_oberstufe_school_gives_up_to_15(papa, mia, family_hub):
 
 def test_soon_buildings_refused_at_oberstufe(papa, mia):
     oberstufe(papa)
-    answer = mia.post("/api/visits", json={"building": "reimhaus", "stars": 3, "key": "r"})
+    answer = mia.post("/api/visits", json={"building": "yoga", "stars": 3, "key": "r"})
     assert answer.status_code == 409 and answer.json()["detail"]["code"] == "soon"
     answer = mia.post("/api/free-visits", json={"building": "ausmalen", "key": "f"})
     assert answer.status_code == 409 and answer.json()["detail"]["code"] == "soon"
@@ -55,3 +55,11 @@ def test_kindergarten_unchanged(mia):
     assert mia.post("/api/free-visits", json={"building": "ausmalen", "key": "f"}).status_code == 200
     answer = mia.post("/api/plays", json={"building": "arcade", "key": "p"})
     assert answer.status_code == 409 and answer.json()["detail"]["code"] == "locked"
+
+
+def test_schreiben_and_reimhaus_open_at_oberstufe(papa, mia):
+    oberstufe(papa)
+    answer = mia.post("/api/visits", json={"building": "schreiben", "stars": 20, "key": "s"})
+    assert answer.status_code == 200 and answer.json()["state"]["stars"] == 15
+    answer = mia.post("/api/visits", json={"building": "reimhaus", "stars": 20, "key": "r"})
+    assert answer.status_code == 200 and answer.json()["state"]["stars"] == 25

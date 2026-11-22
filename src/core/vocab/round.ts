@@ -6,10 +6,10 @@ export const ROUND_SIZE = 10
 export const NEW_PER_ROUND = 4
 const CHOICES = 4
 
-/** One word of a round and how it is asked: chosen from four, or typed (`type-de`: German shown, he types the foreign word) */
+/** One word of a round and how it is asked: chosen from four, typed (`type-de`: German shown, he types the foreign word), or dictated (heard, he types the foreign word) */
 export interface RoundItem {
   word: VocabWord
-  mode: 'choice' | 'type-de' | 'type-foreign'
+  mode: 'choice' | 'type-de' | 'type-foreign' | 'dictate'
   /** For a choice: four first answers, the right one among them */
   choices?: string[]
 }
