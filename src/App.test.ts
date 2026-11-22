@@ -13,6 +13,7 @@ import { fakeApi, type FakeApi } from './services/fakeApi'
 import { ApiError } from './services/api'
 import { usePlayerStore } from './stores/player'
 import { useSessionStore } from './stores/session'
+import { useListenStore } from './stores/listen'
 
 vi.mock('./city/city', () => ({ createCity: vi.fn() }))
 vi.mock('./city/preview', () => ({ createPreview: () => ({ setDress: vi.fn(), dispose: vi.fn() }) }))
@@ -229,6 +230,15 @@ describe('App', () => {
       voiceCount.value++
       await nextTick()
       expect(w.find('[data-test="door-prompt"]').attributes('data-state')).toBe('open')
+      w.unmount()
+    })
+
+    it('loads his listening record with the game', async () => {
+      api = fakeApi({ level: 'oberstufe' })
+      api.listen_ = { 'en:travel:platform': { right: 1, last_right: '2026-11-10', last_asked: '2026-11-10' } }
+      const w = await started([school])
+      expect(api.calls).toContain('listen')
+      expect(useListenStore().progress['en:travel:platform'].right).toBe(1)
       w.unmount()
     })
 

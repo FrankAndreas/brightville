@@ -10,7 +10,7 @@ import { nextBox } from '@/core/vocab/boxes'
 import type { VocabList } from '@/core/vocab/types'
 import {
   ApiError, type Api, type Film, type LogDay, type Me, type Person, type PlayerRow, type ServerState, type StickerRow,
-  type ListDraft, type RoomState, type SchoolState, type VocabState, type WardrobeState, type WritingState,
+  type ListDraft, type ListenState, type RoomState, type SchoolState, type VocabState, type WardrobeState, type WritingState,
 } from './api'
 
 export interface FakePainting { id: string; updated: number; image: string; thumb: string }
@@ -42,6 +42,10 @@ export interface FakeApi extends Api {
   vocab_: { lists: VocabList[]; progress: VocabState['progress'] }
   /** While true the server refuses every round's results (as an old key would) */
   refuseVocab: boolean
+  /** The Oberstufe's listening record, as the server keeps it */
+  listen_: ListenState['progress']
+  /** While true the server refuses every listening round's results */
+  refuseListen: boolean
   /** The server's calendar turns a page */
   newDay(day: string): void
 }
@@ -85,6 +89,8 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
     school_: startLadders(false),
     vocab_: { lists: [], progress: {} },
     refuseVocab: false,
+    listen_: {},
+    refuseListen: false,
     newDay(day) {
       Object.assign(state, { day, visits: 0, play_seconds: 0 })
       api.wardrobe_.bought_today = false
@@ -298,6 +304,24 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
       delete copy.seen
       return copy
     }),
+    listen: () => run('listen', () => listenCopy()),
+    // The server's rules (backend/app/listen.py record)
+    listenResults: r => run(`listenResults ${r.key}`, () => {
+      if (api.refuseListen) throw new ApiError(422, 'refused')
+      if (listenKeys.has(r.key)) return listenCopy()
+      listenKeys.add(r.key)
+      for (const a of r.answers) {
+        if (!a.scene.startsWith(`${r.lang}:`)) continue
+        const old = api.listen_[a.scene]
+        api.listen_[a.scene] = {
+          right: (old?.right ?? 0) + (a.right ? 1 : 0),
+          last_right: a.right ? state.day : old?.last_right ?? null,
+          last_asked: state.day,
+        }
+      }
+      return listenCopy()
+    }),
+    playerListen: id => run(`playerListen ${id}`, () => ({ progress: listenCopy().progress })),
     setPlayerStep: (id, ladder, step) => run(`setPlayerStep ${id} ${ladder} ${step}`, () => {
       if (!LADDERS.includes(ladder)) throw new ApiError(422, 'unknown')
       if (step < 1 || step > LAST_STEP) throw new ApiError(422, 'bad_step')
@@ -332,6 +356,8 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
   const writingKeys = new Set<string>()
   const schoolKeys = new Set<string>()
   const vocabKeys = new Set<string>()
+  const listenKeys = new Set<string>()
+  const listenCopy = (): ListenState => ({ progress: JSON.parse(JSON.stringify(api.listen_)), seen: [...listenKeys].reverse() })
   let lastList = 0
   const vocabCopy = (): VocabState => ({ ...JSON.parse(JSON.stringify(api.vocab_)), seen: [...vocabKeys].reverse() })
   /** As backend/app/vocab.py check */

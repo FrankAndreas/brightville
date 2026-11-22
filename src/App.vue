@@ -32,6 +32,7 @@ import { usePlayerStore } from '@/stores/player'
 import { useRoomStore } from '@/stores/room'
 import { useLaddersStore } from '@/stores/ladders'
 import { useVocabStore } from '@/stores/vocab'
+import { useListenStore } from '@/stores/listen'
 import { useWritingStore } from '@/stores/writing'
 import { useWardrobeStore } from '@/stores/wardrobe'
 import { useSessionStore } from '@/stores/session'
@@ -48,6 +49,7 @@ const room = useRoomStore()
 const writing = useWritingStore()
 const ladderStore = useLaddersStore()
 const vocab = useVocabStore()
+const listen = useListenStore()
 const device = detectDevice()
 // Some browsers (Safari) bring their voices late: counting them again repaints the doors that need one
 const stopWatchingVoices = watchVoices()
@@ -142,6 +144,9 @@ watch(() => (session.status === 'ready' ? session.person?.id : undefined), async
   // His words at Oberstufe, due by the game's day; asked for every child (a few bytes), so a level set later just works
   vocab.init(props.api, id, undefined, () => player.day)
   void vocab.load()
+  // Which listening scenes he understood, the same way
+  listen.init(props.api, id, undefined, () => player.day)
+  void listen.load()
   // The room is only needed in the house and the Möbelhaus: the game doesn't wait for it
   void room.load()
   await Promise.all([player.refresh(), wardrobe.load()])
@@ -358,6 +363,7 @@ const refresh = () => {
     void ladderStore.load()
     // His words changed on another device, and rounds that waited here
     void vocab.load()
+    void listen.load()
   }
 }
 let refreshTimer: ReturnType<typeof setInterval> | undefined
