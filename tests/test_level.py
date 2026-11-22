@@ -81,3 +81,9 @@ def test_kalender_opens_at_oberstufe(papa, mia):
     oberstufe(papa)
     answer = mia.post("/api/visits", json={"building": "kalender", "stars": 20, "key": "k"})
     assert answer.status_code == 200 and answer.json()["state"]["stars"] == 15
+
+
+def test_spielwelt_opens_at_oberstufe(papa, mia):
+    oberstufe(papa)
+    answer = mia.post("/api/visits", json={"building": "spielwelt", "stars": 20, "key": "w"})
+    assert answer.status_code == 200 and answer.json()["state"]["stars"] == 10

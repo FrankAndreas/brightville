@@ -13,7 +13,9 @@ import {
 } from '@/core/world'
 import { askedAgain } from '@/services/sayAgain'
 import { playBeat } from '@/services/sound'
-import { forgetInstruction, instruct, instruction, speak } from '@/services/tts'
+import { forgetInstruction, hasVoice, instruct, instruction, speak, voiceCount } from '@/services/tts'
+import type { Lang } from '@/core/vocab/types'
+import { GERMAN_TEXTS, worldTexts } from '@/core/worldWords'
 import type { BuildingResult } from '../types'
 import { ladderVisit, useVisit } from '../visit'
 import { createRaumFlow, type RaumEffect } from './flow'
@@ -28,6 +30,11 @@ const props = defineProps<{
   example?: RaumExample | null
   /** Where her arrangement is kept; the browser's storage when not given */
   storage?: Storage
+  /**
+   * The Oberstufe: the tasks in English or French (every position word from the start, no example, nothing recorded on
+   * the Raum ladder), spoken in that language's voice and written on the screen. Left out: her German Spielwelt.
+   */
+  lang?: Lang
 }>()
 const emit = defineEmits<{ finished: [result: BuildingResult] }>()
 
@@ -46,7 +53,10 @@ const LAYOUT = 1
 
 // Her step, her answers at it and the child who plays, as the visit starts
 const ladder = ladderVisit('raum')
-const step = ladder.step
+/** The Oberstufe's tasks use every position word (the last step); its visit has no example */
+const ALL_WORDS_STEP = 6
+// At Oberstufe the visit runs at the last step throughout (the camera too), whatever her Raum ladder says
+const step = props.lang ? ALL_WORDS_STEP : ladder.step
 const visit = useVisit(leave)
 const { later } = visit
 const key = `brightville.spielwelt.${ladder.player ?? 'anyone'}`
@@ -96,11 +106,24 @@ const viewW = ref(1180 / PX_PER_UNIT)
 const worldEl = ref<SVGSVGElement | null>(null)
 const stripEl = ref<HTMLElement | null>(null)
 
+const VOICE: Record<Lang, string> = { en: 'en-GB', fr: 'fr-FR' }
 const tasks = props.tasks ?? buildRaumSession(step)
-const example = props.example !== undefined ? props.example : exampleFor(step, ladder.windowLength)
+const example = props.lang ? null : props.example !== undefined ? props.example : exampleFor(step, ladder.windowLength)
 const flow = createRaumFlow(
-  tasks, example, () => arrangement.value, () => wrap(viewX.value + viewW.value / 2), step, () => objects.value,
+  tasks, example, () => arrangement.value, () => wrap(viewX.value + viewW.value / 2), step,
+  () => objects.value, props.lang ? worldTexts(props.lang) : GERMAN_TEXTS,
 )
+/** At Oberstufe: the instruction on the screen (and for 🔊), in the language */
+const written = ref<string | null>(null)
+/** At Oberstufe: what else was said since (a wrong answer), written too, so it shows without a voice */
+const note = ref<string | null>(null)
+const canSay = computed(() => {
+  void voiceCount.value
+  return !!props.lang && hasVoice(VOICE[props.lang])
+})
+function sayAgain() {
+  if (props.lang && written.value) void speak(written.value, VOICE[props.lang])
+}
 const view = reactive({ ...flow.state })
 const lit = ref<string | null>(null)
 const confetti = ref(false)
@@ -185,8 +208,18 @@ function run(effects: RaumEffect[]): Promise<boolean> {
       chain = chain.then(async () => {
         if (!live()) return
         lit.value = effect.light ?? null
-        const said = effect.ask ? instruct(effect.text) : speak(effect.text)
-        if (effect.ask) instruction.value = effect.again ?? effect.text
+        let said: Promise<void>
+        if (props.lang) {
+          // The language's own voice; the town's German 🔊 stays out of it
+          if (effect.ask) {
+            written.value = effect.again ?? effect.text
+            note.value = null
+          } else note.value = effect.text
+          said = canSay.value ? speak(effect.text, VOICE[props.lang]) : Promise.resolve()
+        } else {
+          said = effect.ask ? instruct(effect.text) : speak(effect.text)
+          if (effect.ask) instruction.value = effect.again ?? effect.text
+        }
         await said
         if (live()) lit.value = null
       })
@@ -379,7 +412,7 @@ visit.onShutDown(cleanUp)
 function leave() {
   if (visit.isClosed()) return
   visit.shutDown()
-  ladder.record(flow.state.results)
+  if (!props.lang) ladder.record(flow.state.results)
   emit('finished', { stars: flow.state.stars })
 }
 
@@ -411,6 +444,13 @@ onMounted(() => {
           :style="{ left: '0%', width: `${((viewX + viewW - WORLD_WIDTH) / WORLD_WIDTH) * 100}%` }"
         />
       </div>
+    </div>
+
+    <div v-if="lang && written && view.phase === 'asking'" class="coach" :lang="lang">
+      <p class="said" data-test="instruction">{{ written }}</p>
+      <p v-if="note" class="note" data-test="coach-note">{{ note }}</p>
+      <button v-if="canSay" type="button" class="again" data-test="say-again" aria-label="Nochmal hören" @click="sayAgain">🔊</button>
+      <p v-if="view.index === 0" class="hint" data-test="coach-hint" lang="de">Mach, was der Coach sagt</p>
     </div>
 
     <svg
@@ -488,4 +528,13 @@ button { border: 0; padding: 0; background: none; font: inherit; cursor: pointer
   color: #e53935;
 }
 .arrow:active { transform: translateY(4px); box-shadow: 0 2px 0 rgb(0 0 0 / 15%); }
+.coach {
+  position: absolute; left: 104px; right: 104px; top: 64px; z-index: 2; display: flex; flex-wrap: wrap; align-items: center;
+  justify-content: center; gap: 4px 12px; padding: 8px 16px; border-radius: 14px; background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12); pointer-events: none;
+}
+.coach .said { margin: 0; font: 700 24px/1.3 system-ui, sans-serif; color: #23264a; text-align: center; }
+.coach .again { pointer-events: auto; font-size: 24px; background: none; border: 0; }
+.coach .note { flex-basis: 100%; margin: 0; text-align: center; font: 600 18px/1.3 system-ui, sans-serif; color: #8a4b00; }
+.coach .hint { flex-basis: 100%; margin: 0; text-align: center; font: 500 15px/1.2 system-ui, sans-serif; color: #5a5f86; }
 </style>

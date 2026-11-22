@@ -37,6 +37,7 @@ const hoeren = () => import('./hoeren/Hoeren.vue')
 const grammatik = () => import('./grammatik/Grammatik.vue')
 const lesen = () => import('./lesen/Lesen.vue')
 const datum = () => import('./datum/Datum.vue')
+const welt = () => import('./welt/Welt.vue')
 
 /**
  * Every building in the town, mixed along the streets of `src/city/map.ts` so every walk passes learning, playing and
@@ -161,6 +162,8 @@ export const BUILDINGS: BuildingDef[] = [
     // A wide world for position words (Lehrplan 21 MA.2, Zugang 4): what was a plain house by the playground
     id: 'spielwelt', spokenName: 'Spielwelt', toName: 'zur Spielwelt', icon: '🚗', kind: 'earn', needs: [], door: { x: -16, z: 35.5, side: 'front' },
     component: defineAsyncComponent(spielwelt), preload: spielwelt,
+    // At Oberstufe position words in English or French
+    oberstufe: { component: defineAsyncComponent(welt), preload: welt },
   },
   {
     // Rhythm by tapping or clapping (Lehrplan 21 MU): what was a plain house on the way to the Tanzsaal
