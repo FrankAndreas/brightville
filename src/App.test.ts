@@ -240,6 +240,7 @@ describe('App', () => {
       expect(api.calls).toContain('listen')
       expect(api.calls).toContain('grammar')
       expect(api.calls).toContain('reading')
+      expect(api.calls).toContain('dates')
       expect(useListenStore().progress['en:travel:platform'].right).toBe(1)
       w.unmount()
     })

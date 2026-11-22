@@ -9,10 +9,11 @@ import { applyWrite, checkText, normalizeText, type Letters } from '@/core/writi
 import { nextBox } from '@/core/vocab/boxes'
 import { layGrammar } from '@/core/grammar/round'
 import { layReading } from '@/core/reading/rules'
+import { layDates } from '@/core/dates/round'
 import type { VocabList } from '@/core/vocab/types'
 import {
   ApiError, type Api, type Film, type LogDay, type Me, type Person, type PlayerRow, type ServerState, type StickerRow,
-  type GrammarState, type ListDraft, type ListenState, type ReadingState, type RoomState, type SchoolState, type VocabState, type WardrobeState, type WritingState,
+  type DatesState, type GrammarState, type ListDraft, type ListenState, type ReadingState, type RoomState, type SchoolState, type VocabState, type WardrobeState, type WritingState,
 } from './api'
 
 export interface FakePainting { id: string; updated: number; image: string; thumb: string }
@@ -52,6 +53,8 @@ export interface FakeApi extends Api {
   grammar_: GrammarState['progress']
   /** The Oberstufe's reading record, as the server keeps it */
   reading_: ReadingState['progress']
+  /** The Oberstufe's dates and times record, as the server keeps it */
+  dates_: DatesState['progress']
   /** The server's calendar turns a page */
   newDay(day: string): void
 }
@@ -99,6 +102,7 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
     refuseListen: false,
     grammar_: {},
     reading_: {},
+    dates_: {},
     newDay(day) {
       Object.assign(state, { day, visits: 0, play_seconds: 0 })
       api.wardrobe_.bought_today = false
@@ -345,6 +349,15 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
       api.reading_ = layReading(api.reading_, r, state.day)
       return readingCopy()
     }),
+    dates: () => run('dates', () => datesCopy()),
+    // The server's rules (backend/app/dates.py record)
+    datesResults: r => run(`datesResults ${r.key}`, () => {
+      if (datesKeys.has(r.key)) return datesCopy()
+      datesKeys.add(r.key)
+      api.dates_ = layDates(api.dates_, r)
+      return datesCopy()
+    }),
+    playerDates: id => run(`playerDates ${id}`, () => ({ progress: datesCopy().progress })),
     playerReading: id => run(`playerReading ${id}`, () => ({ progress: readingCopy().progress })),
     playerGrammar: id => run(`playerGrammar ${id}`, () => ({ progress: grammarCopy().progress })),
     playerListen: id => run(`playerListen ${id}`, () => ({ progress: listenCopy().progress })),
@@ -385,6 +398,8 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
   const listenKeys = new Set<string>()
   const grammarKeys = new Set<string>()
   const readingKeys = new Set<string>()
+  const datesKeys = new Set<string>()
+  const datesCopy = (): DatesState => ({ progress: JSON.parse(JSON.stringify(api.dates_)), seen: [...datesKeys].reverse() })
   const readingCopy = (): ReadingState => ({ progress: JSON.parse(JSON.stringify(api.reading_)), seen: [...readingKeys].reverse() })
   const grammarCopy = (): GrammarState => ({ progress: JSON.parse(JSON.stringify(api.grammar_)), seen: [...grammarKeys].reverse() })
   const listenCopy = (): ListenState => ({ progress: JSON.parse(JSON.stringify(api.listen_)), seen: [...listenKeys].reverse() })
