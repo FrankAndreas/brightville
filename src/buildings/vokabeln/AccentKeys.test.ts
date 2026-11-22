@@ -35,4 +35,19 @@ describe('AccentKeys', () => {
     expect(input.value).toBe('fenêtre')
     w.unmount()
   })
+
+  it('a mouse click keeps the focus in the field too', () => {
+    const input = document.createElement('input')
+    document.body.appendChild(input)
+    input.value = 'ecole'
+    input.setSelectionRange(0, 0)
+    const w = mount(AccentKeys, { props: { target: input }, attachTo: document.body })
+    const down = new MouseEvent('mousedown', { bubbles: true, cancelable: true })
+    w.find('[data-key="é"]').element.dispatchEvent(down)
+    expect(down.defaultPrevented).toBe(true)
+    w.find('[data-key="é"]').element.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }))
+    expect(document.activeElement).toBe(input)
+    w.unmount()
+    input.remove()
+  })
 })

@@ -11,7 +11,8 @@ const emit = defineEmits<{ done: []; cancel: [] }>()
 
 const vocab = useVocabStore()
 const name = ref(props.list?.name ?? '')
-const text = ref(props.list?.words.map(w => `${w.de} - ${w.foreign}`).join('\n') ?? '')
+// A tab between the sides: it wins over every other separator, so a side with ";" or " - " in it stays whole
+const text = ref(props.list?.words.map(w => `${w.de}\t${w.foreign}`).join('\n') ?? '')
 const parsed = computed(() => parseList(text.value))
 const message = ref('')
 const busy = ref(false)
@@ -30,6 +31,10 @@ async function save() {
   if (busy.value) return
   if (!name.value.trim() || parsed.value.pairs.length === 0) {
     message.value = SAYS.empty
+    return
+  }
+  if (parsed.value.pairs.length > 60) {
+    message.value = SAYS['too-long']
     return
   }
   busy.value = true
@@ -56,12 +61,12 @@ async function remove() {
     </label>
     <label>Wörter: eine Zeile pro Paar, zuerst Deutsch (Deutsch - {{ lang === 'en' ? 'Englisch' : 'Französisch' }})
       <textarea
-        v-model="text" data-test="list-text" rows="8" autocomplete="off" autocapitalize="off" spellcheck="false"
+        v-model="text" data-test="list-text" rows="8" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
         :placeholder="lang === 'en' ? 'der Bahnhof - railway station / train station' : 'der Bahnhof - la gare'"
       />
     </label>
     <p v-if="parsed.bad.length" class="bad" data-test="bad-lines">
-      Nicht lesbar, wird nicht gespeichert: Zeile {{ parsed.bad.join(', ') }}
+      Nicht lesbar oder länger als 60 Zeichen, wird nicht gespeichert: Zeile {{ parsed.bad.join(', ') }}
     </p>
     <ul class="pairs">
       <li v-for="(p, i) in parsed.pairs" :key="i" data-test="pair">{{ p.de }} → {{ p.foreign }}</li>

@@ -1,7 +1,8 @@
 """The Oberstufe's vocabulary trainer: his own lists per language (English, French), and how well he knows each word
 (a box from 0, new, to 5, and the day it is due again). A word's key is `<lang>:<topic>:<id>` for a built-in one
-(shared/vocab/<lang>.json) and `<lang>:own:<its first foreign answer>` for one of his. The page keeps the same rules
-(src/core/vocab/boxes.ts) to go on while the server is away; the server is the truth."""
+(shared/vocab/<lang>.json), also for a word of his that is built in too, and
+`<lang>:own:<its first foreign answer>|<its German>` for any other word of his (src/core/vocab/round.ts ownWords).
+The page keeps the same rules (src/core/vocab/boxes.ts) to go on while the server is away; the server is the truth."""
 
 import json
 import os

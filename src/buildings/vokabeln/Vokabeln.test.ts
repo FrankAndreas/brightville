@@ -84,7 +84,8 @@ describe('Vokabeln', () => {
   })
 
   it('a French round speaks French and shows the accent keys when he types', async () => {
-    api.vocab_.progress = { 'fr:own:le train': { box: 2, due: '2026-11-01' } }
+    // His word is also built in, so it has the built-in key
+    api.vocab_.progress = { 'fr:travel:train': { box: 2, due: '2026-11-01' } }
     await useVocabStore().load()
     const w = mount(Vokabeln, { attachTo: document.body })
     await tap(w, '[data-test="lang-fr"]')
@@ -109,6 +110,21 @@ describe('Vokabeln', () => {
     await flushPromises()
     expect(w.emitted('finished')).toEqual([[{ stars: 1 }]])
     expect(Object.keys(api.vocab_.progress)).toHaveLength(1)
+    w.unmount()
+  })
+
+  it('the field stays after a right typed answer (the iPad keyboard stays up), and Enter in it goes on', async () => {
+    api.vocab_.progress = { 'fr:travel:train': { box: 2, due: '2026-11-01' } }
+    await useVocabStore().load()
+    const w = mount(Vokabeln, { attachTo: document.body })
+    await tap(w, '[data-test="lang-fr"]')
+    await tap(w, '[data-test="list-2"]')
+    await w.find('[data-test="answer"]').setValue('le train')
+    await w.find('[data-test="answer"]').trigger('keydown', { key: 'Enter' })
+    expect(w.find('[data-test="verdict"]').text()).toContain('Richtig')
+    expect(w.find('[data-test="answer"]').exists()).toBe(true)
+    await w.find('[data-test="answer"]').trigger('keydown', { key: 'Enter' })
+    expect(w.find('[data-test="end"]').exists()).toBe(true)
     w.unmount()
   })
 })

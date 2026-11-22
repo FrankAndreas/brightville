@@ -31,4 +31,18 @@ describe('parseList', () => {
   it('keeps a hyphen inside a word', () => {
     expect(parseList('die Grossmutter - grand-mother').pairs).toEqual([{ de: 'die Grossmutter', foreign: 'grand-mother' }])
   })
+
+  it('composes decomposed accents and drops invisible characters from a PDF', () => {
+    const decomposed = 'die Schule - l\'e\u0301cole'
+    const hidden = 'das Haus - hou\u00adse\u200b'
+    expect(parseList(`${decomposed}\n${hidden}`).pairs).toEqual([
+      { de: 'die Schule', foreign: "l'école" }, { de: 'das Haus', foreign: 'house' },
+    ])
+  })
+
+  it('takes an em dash as a separator, and a line too long to keep is named', () => {
+    expect(parseList('das Haus — house').pairs).toEqual([{ de: 'das Haus', foreign: 'house' }])
+    const long = `das Haus - ${'x'.repeat(61)}`
+    expect(parseList(`der Zug - train\n${long}`)).toEqual({ pairs: [{ de: 'der Zug', foreign: 'train' }], bad: [2] })
+  })
 })

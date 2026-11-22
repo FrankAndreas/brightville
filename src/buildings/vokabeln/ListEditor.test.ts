@@ -53,12 +53,25 @@ describe('ListEditor', () => {
     await useVocabStore().load()
     const w = editor({ list: api.vocab_.lists[0] })
     expect((w.find('[data-test="list-name"]').element as HTMLInputElement).value).toBe('Unit 3')
-    expect((w.find('[data-test="list-text"]').element as HTMLTextAreaElement).value).toBe('der Zug - train')
+    expect((w.find('[data-test="list-text"]').element as HTMLTextAreaElement).value).toBe('der Zug\ttrain')
     await w.find('[data-test="delete"]').trigger('click')
     expect(api.vocab_.lists).toHaveLength(1)
     await w.find('[data-test="delete-sure"]').trigger('click')
     await flushPromises()
     expect(api.vocab_.lists).toEqual([])
     expect(w.emitted('done')).toHaveLength(1)
+  })
+
+  it('opens a list with a tab between the two sides, so a side with ";" or " - " in it stays whole', async () => {
+    const list = { id: 7, lang: 'en' as const, name: 'U', words: [{ de: 'a; b - c', foreign: 'x' }] }
+    const w = editor({ list })
+    expect((w.find('[data-test="list-text"]').element as HTMLTextAreaElement).value).toBe('a; b - c\tx')
+    expect(w.findAll('[data-test="pair"]').map(p => p.text())).toEqual(['a; b - c → x'])
+  })
+
+  it('the text box doesn\'t correct his words', () => {
+    const box = editor().find('[data-test="list-text"]')
+    expect(box.attributes('autocorrect')).toBe('off')
+    expect(box.attributes('autocapitalize')).toBe('off')
   })
 })

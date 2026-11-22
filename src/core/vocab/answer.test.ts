@@ -30,7 +30,14 @@ describe('checkAnswer', () => {
 })
 
 describe('ownKey', () => {
-  it('is the language and the first answer, small and with single spaces', () => {
-    expect(ownKey('en', ' Railway  Station / train station')).toBe('en:own:railway station')
+  it('is the language, the first answer and the German, small and with single spaces', () => {
+    expect(ownKey('en', ' Railway  Station / train station', 'Der  Bahnhof')).toBe('en:own:railway station|der bahnhof')
   })
+
+describe('checkAnswer with what a pasted list may hide', () => {
+  it('a decomposed accent in the list is the same letter as a typed one', () => {
+    expect(checkAnswer('école', 'e\u0301cole', { lang: 'fr' }).verdict).toBe('right')
+    expect(checkAnswer('house', 'house\u00ad', { lang: 'en' }).verdict).toBe('right')
+  })
+})
 })

@@ -183,9 +183,9 @@ export const usePlayerStore = defineStore('player', () => {
           retryLater(e.retryAfter ?? 60)
           return
         }
-        // The server will never take this one (a building that no longer exists): let it go. Anything else,
-        // an error page from a proxy included, may pass: keep it
-        const refused = e instanceof ApiError && (e.code === 'unknown_building' || e.code === 'wrong_kind')
+        // The server will never take this one (a building that no longer exists, or one that is "Bald" at the level
+        // a parent set meanwhile): let it go. Anything else, an error page from a proxy included, may pass: keep it
+        const refused = e instanceof ApiError && (e.code === 'unknown_building' || e.code === 'wrong_kind' || e.code === 'soon')
         if (!refused) return
         waiting.value = waiting.value.slice(1)
         writeOutbox()

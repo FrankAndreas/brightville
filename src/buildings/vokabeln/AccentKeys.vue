@@ -5,7 +5,7 @@ export const ACCENTS = ['é', 'è', 'ê', 'à', 'â', 'ç', 'ô', 'î', 'û', '�
 
 <script setup lang="ts">
 // A row of buttons that type an accented letter into `target` at its caret. They act on pointerdown and prevent its
-// default, so the field keeps the focus and the iPad keeps its keyboard up.
+// default (and mousedown's, which moves the focus on a laptop), so the field keeps the focus and the iPad its keyboard.
 const props = defineProps<{ target: HTMLInputElement | null }>()
 
 function type(letter: string, e: Event) {
@@ -15,6 +15,7 @@ function type(letter: string, e: Event) {
   const start = input.selectionStart ?? input.value.length
   const end = input.selectionEnd ?? start
   input.value = input.value.slice(0, start) + letter + input.value.slice(end)
+  input.focus()
   input.setSelectionRange(start + letter.length, start + letter.length)
   // v-model listens to this
   input.dispatchEvent(new Event('input', { bubbles: true }))
@@ -23,7 +24,7 @@ function type(letter: string, e: Event) {
 
 <template>
   <div class="accents" data-test="accent-keys">
-    <button v-for="a in ACCENTS" :key="a" type="button" :data-key="a" @pointerdown="type(a, $event)">{{ a }}</button>
+    <button v-for="a in ACCENTS" :key="a" type="button" :data-key="a" @pointerdown="type(a, $event)" @mousedown.prevent>{{ a }}</button>
   </div>
 </template>
 

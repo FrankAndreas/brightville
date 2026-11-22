@@ -69,19 +69,39 @@ describe('buildRound', () => {
 
 describe('ownWords', () => {
   const lists: VocabList[] = [
-    { id: 2, lang: 'en', name: 'Unit 4', words: [{ de: 'der Zug', foreign: 'train' }, { de: 'der Bahnhof', foreign: 'station' }] },
-    { id: 1, lang: 'en', name: 'Unit 3', words: [{ de: 'Bahnhof', foreign: 'Station' }] },
-    { id: 3, lang: 'fr', name: 'Unité 1', words: [{ de: 'der Zug', foreign: 'le train' }] },
+    { id: 2, lang: 'en', name: 'Unit 4', words: [{ de: 'der Kompass', foreign: 'compass' }, { de: 'der Bahnhof', foreign: 'station' }] },
+    { id: 1, lang: 'en', name: 'Unit 3', words: [{ de: 'Bahnhof', foreign: 'Station' }, { de: 'der Kompass', foreign: 'Compass' }] },
+    { id: 3, lang: 'fr', name: 'Unité 1', words: [{ de: 'der Kompass', foreign: 'la boussole' }] },
   ]
 
-  it('one language, lists in the order made, a word in two lists once', () => {
+  it('one language, lists in the order made, the same word in two lists once', () => {
     expect(ownWords(lists, 'en').map(w => [w.key, w.source])).toEqual([
-      ['en:own:station', 'own:1'], ['en:own:train', 'own:2'],
+      ['en:own:station|bahnhof', 'own:1'], ['en:own:compass|der kompass', 'own:1'], ['en:own:station|der bahnhof', 'own:2'],
     ])
-    expect(ownWords(lists, 'fr').map(w => w.key)).toEqual(['fr:own:le train'])
+    expect(ownWords(lists, 'fr').map(w => w.key)).toEqual(['fr:own:la boussole|der kompass'])
   })
 
   it('or only one list', () => {
-    expect(ownWords(lists, 'en', 2).map(w => w.key)).toEqual(['en:own:train', 'en:own:station'])
+    expect(ownWords(lists, 'en', 2).map(w => w.key)).toEqual(['en:own:compass|der kompass', 'en:own:station|der bahnhof'])
   })
+
+describe('his words and the built-in ones', () => {
+  it('a word of his that is also built in shares its progress (the built-in key)', () => {
+    const lists: VocabList[] = [{ id: 1, lang: 'en', name: 'U', words: [{ de: 'der Bahnhof', foreign: 'Railway station' }] }]
+    expect(ownWords(lists, 'en').map(w => w.key)).toEqual(['en:travel:station'])
+  })
+
+  it('one foreign word with two German meanings is two words', () => {
+    const lists: VocabList[] = [{ id: 1, lang: 'en', name: 'U', words: [{ de: 'die Bank', foreign: 'bank' }, { de: 'das Ufer', foreign: 'bank' }] }]
+    expect(ownWords(lists, 'en')).toHaveLength(2)
+  })
+
+  it('never offers a second right answer among the choices', () => {
+    const bank = { key: 'en:own:bank|die bank', de: 'die Bank', foreign: 'bank', source: 'own:1' }
+    const bench = { key: 'en:own:bench|die bank', de: 'die Bank', foreign: 'bench', source: 'own:1' }
+    for (let i = 0; i < 20; i++) {
+      expect(pickChoices(bank, [bank, bench, ...builtinWords('en')], Math.random)).not.toContain('bench')
+    }
+  })
+})
 })

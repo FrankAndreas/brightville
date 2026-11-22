@@ -261,6 +261,22 @@ describe('player store', () => {
     expect(player.stars).toBe(4)
   })
 
+  it('drops a kept visit to a building that is "soon" for him now (the level changed elsewhere), so later ones still go', async () => {
+    const player = await open()
+    api.offline = true
+    await player.earn('yoga', 3)
+    await player.earn('school', 2)
+    api.offline = false
+    const real = api.visit
+    api.visit = async (building, stars, key) => {
+      if (building === 'yoga') throw new ApiError(409, 'soon')
+      return real(building, stars, key)
+    }
+    await player.refresh()
+    expect(player.pending).toBe(0)
+    expect(player.stars).toBe(6)
+  })
+
   it('buys a round when the server agrees', async () => {
     api.state_.visits = 2
     const player = await open()

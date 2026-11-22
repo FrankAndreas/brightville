@@ -1,3 +1,4 @@
+import { clean } from './parse'
 import type { Lang } from './types'
 
 /** How a typed answer compares: right, off only in its accents or umlauts (that counts as wrong, but is shown so), or wrong */
@@ -11,12 +12,12 @@ export interface Checked {
 
 /** The answers that all count (` / ` between them), spaces collapsed */
 export function answersOf(expected: string): string[] {
-  return expected.split(' / ').map(a => a.replace(/\s+/g, ' ').trim()).filter(Boolean)
+  return clean(expected).split(' / ').map(a => a.replace(/\s+/g, ' ').trim()).filter(Boolean)
 }
 
 /** Small letters, single spaces, a straight apostrophe, no final . ! ? */
 function tidy(text: string): string {
-  return text.replace(/[’‘`´]/g, "'").replace(/\s+/g, ' ').trim().toLowerCase().replace(/\s*[.!?]$/, '')
+  return clean(text).replace(/[’‘`´]/g, "'").replace(/\s+/g, ' ').trim().toLowerCase().replace(/\s*[.!?]$/, '')
 }
 
 /** A letter without its accent (œ and æ as two letters) */
@@ -62,7 +63,17 @@ function marksIn(answer: string, typed: string): number[] {
   return marks
 }
 
-/** His own word's key: the language and its first answer, small and with single spaces */
-export function ownKey(lang: Lang, foreign: string): string {
-  return `${lang}:own:${(answersOf(foreign)[0] ?? '').toLowerCase()}`
+const small = (text: string) => clean(text).replace(/\s+/g, ' ').trim().toLowerCase()
+
+/**
+ * His own word's key: the language, its first answer and its German, small and with single spaces. The same word in
+ * two of his lists is one word; one foreign word with two German meanings ("bank": die Bank, das Ufer) is two.
+ */
+export function ownKey(lang: Lang, foreign: string, de: string): string {
+  return `${lang}:own:${small(answersOf(foreign)[0] ?? '')}|${small(de)}`
+}
+
+/** What makes two words the same word, whatever list they are in: the first answer and the German */
+export function sameWord(foreign: string, de: string): string {
+  return `${small(answersOf(foreign)[0] ?? '')}|${small(de)}`
 }

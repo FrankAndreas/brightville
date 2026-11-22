@@ -1,4 +1,5 @@
-import { answersOf, ownKey } from './answer'
+import { answersOf, ownKey, sameWord } from './answer'
+import { builtinWords } from './builtin'
 import type { Lang, Progress, VocabList, VocabWord } from './types'
 
 export const ROUND_SIZE = 10
@@ -28,11 +29,13 @@ const first = (w: VocabWord) => answersOf(w.foreign)[0] ?? w.foreign
 export function pickChoices(word: VocabWord, pool: VocabWord[], rand: () => number): string[] {
   const answer = first(word)
   const taken = new Set([answer.toLowerCase()])
+  // Another word with the same German would be a second right answer
+  const sameGerman = (other: VocabWord) => other.de.trim().toLowerCase() === word.de.trim().toLowerCase()
   const picked: string[] = []
   for (const group of [pool.filter(w => w.source === word.source), pool.filter(w => w.source !== word.source)]) {
     for (const other of shuffle(group, rand)) {
       const text = first(other)
-      if (picked.length >= CHOICES - 1 || other.key === word.key || taken.has(text.toLowerCase())) continue
+      if (picked.length >= CHOICES - 1 || other.key === word.key || sameGerman(other) || taken.has(text.toLowerCase())) continue
       taken.add(text.toLowerCase())
       picked.push(text)
     }
@@ -67,14 +70,18 @@ export function buildRound(words: VocabWord[], progress: Progress, today: string
   })
 }
 
-/** His words in one language (or one list): lists in the order made, each word once (by its key) */
+/**
+ * His words in one language (or one list): lists in the order made, each word once (by its key). A word that is also
+ * built in (same first answer, same German) takes the built-in key, so it has one box wherever he meets it.
+ */
 export function ownWords(lists: VocabList[], lang: Lang, listId?: number): VocabWord[] {
+  const builtin = new Map(builtinWords(lang).map(w => [sameWord(w.foreign, w.de), w.key]))
   const seen = new Set<string>()
   const out: VocabWord[] = []
   for (const list of [...lists].sort((a, b) => a.id - b.id)) {
     if (list.lang !== lang || (listId !== undefined && list.id !== listId)) continue
     for (const pair of list.words) {
-      const key = ownKey(lang, pair.foreign)
+      const key = builtin.get(sameWord(pair.foreign, pair.de)) ?? ownKey(lang, pair.foreign, pair.de)
       if (seen.has(key)) continue
       seen.add(key)
       out.push({ key, de: pair.de, foreign: pair.foreign, source: `own:${list.id}` })

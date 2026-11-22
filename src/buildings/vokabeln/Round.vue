@@ -28,7 +28,9 @@ const hint = computed(() => {
 })
 /** The foreign word is on the screen: asked as it, or answered */
 const foreignShown = computed(() => item.value?.mode === 'type-foreign' || state.value.phase !== 'asking')
-const showField = computed(() => (item.value?.mode !== 'choice' && state.value.phase === 'asking') || state.value.phase === 'wrong')
+/** He typed this word (or typed it out after a miss): the field stays until the next word, so the iPad keyboard stays up */
+const retyping = ref(false)
+const showField = computed(() => item.value?.mode !== 'choice' || state.value.phase === 'wrong' || (state.value.phase === 'right' && retyping.value))
 const solved = computed(() => state.value.firstTry.filter(f => f.right).length)
 const canSay = computed(() => hasVoice(VOICE[props.lang]))
 
@@ -55,19 +57,24 @@ function submit() {
   if (state.value.phase !== phase) {
     typed.value = ''
     say()
-    if (state.value.phase === 'wrong') focusField()
+    if (state.value.phase === 'wrong') retyping.value = true
+    focusField()
   }
 }
 
 function choose(choice: string) {
   props.flow.choose(choice)
   say()
-  if (state.value.phase === 'wrong') focusField()
+  if (state.value.phase === 'wrong') {
+    retyping.value = true
+    focusField()
+  }
 }
 
 function next() {
   props.flow.next()
   typed.value = ''
+  retyping.value = false
 }
 
 watch(item, () => {
@@ -107,10 +114,12 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
     <template v-if="showField">
       <input
         ref="field" v-model="typed" class="field" data-test="answer" autocomplete="off" autocapitalize="off" autocorrect="off"
-        spellcheck="false" enterkeyhint="go" @keydown.enter.prevent="submit"
+        spellcheck="false" enterkeyhint="go" :readonly="state.phase === 'right'" @keydown.enter.prevent="submit"
       >
-      <AccentKeys v-if="lang === 'fr' && item?.mode !== 'type-foreign'" :target="field" />
-      <button type="button" class="main" data-test="check" @click="submit">Prüfen</button>
+      <template v-if="state.phase !== 'right'">
+        <AccentKeys v-if="lang === 'fr' && item?.mode !== 'type-foreign'" :target="field" />
+        <button type="button" class="main" data-test="check" @click="submit">Prüfen</button>
+      </template>
     </template>
     <button v-if="state.phase === 'right'" type="button" class="main" data-test="next" @click="next">Weiter</button>
   </div>
