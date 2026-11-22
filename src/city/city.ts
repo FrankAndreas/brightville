@@ -178,15 +178,16 @@ export async function createCity(opts: CityOptions): Promise<City> {
 
     props.sync()
     props.update(dt)
-    if (rider.onBike) {
+    // She rises onto the saddle as the bike grows in under her, and steps down as it shrinks away
+    bicycle.update(f, rider.onBike, f.speed, dt, f.tumbling)
+    if (bicycle.presence > 0) {
       Object.assign(sitting, f)
-      sitting.y += SADDLE_LIFT
-      sitting.speed = 0
+      sitting.y += SADDLE_LIFT * bicycle.presence
+      if (rider.onBike) sitting.speed = 0
       blob.update(sitting, dt)
     } else {
       blob.update(f, dt)
     }
-    bicycle.update(f, rider.onBike, f.speed, dt)
     strollTownsfolk(f, dt)
     animals.update(time, dt, f)
     for (const door of town.doorVisuals) door.update(time)

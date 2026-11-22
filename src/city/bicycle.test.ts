@@ -8,7 +8,8 @@ const BODY_HALF_WIDTH = 0.5
 
 function shown() {
   const bike = createBicycle(new THREE.MeshStandardMaterial({ color: 0xff9a3c }))
-  bike.update(her, true, 0, 0)
+  // Long enough to have grown in fully
+  bike.update(her, true, 0, 1)
   bike.object.updateMatrixWorld(true)
   return bike
 }
@@ -23,7 +24,7 @@ describe('the bicycle', () => {
   it('is hidden until shown, and then stands under her', () => {
     const bike = createBicycle(new THREE.MeshStandardMaterial())
     expect(bike.object.visible).toBe(false)
-    bike.update(her, true, 0, 0)
+    bike.update(her, true, 0, 1)
     expect(bike.object.visible).toBe(true)
     expect(bike.object.position.y).toBeCloseTo(0)
   })
@@ -59,5 +60,30 @@ describe('the bicycle', () => {
     const before = wheel.rotation.x
     bike.update(her, true, 6, 0.1)
     expect(wheel.rotation.x - before).toBeCloseTo(0.6 / 0.44, 1)
+  })
+
+  it('grows in under her when a ride starts and shrinks away when it ends, instead of popping', () => {
+    const bike = createBicycle(new THREE.MeshStandardMaterial())
+    bike.update(her, true, 0, 1 / 60)
+    expect(bike.object.visible).toBe(true)
+    expect(bike.presence).toBeGreaterThan(0)
+    expect(bike.presence).toBeLessThan(0.2)
+    for (let i = 0; i < 20; i++) bike.update(her, true, 0, 1 / 60)
+    expect(bike.presence).toBe(1)
+    expect(bike.object.scale.x).toBeCloseTo(1)
+    bike.update(her, false, 0, 1 / 60)
+    expect(bike.object.visible).toBe(true)
+    expect(bike.presence).toBeLessThan(1)
+    for (let i = 0; i < 20; i++) bike.update(her, false, 0, 1 / 60)
+    expect(bike.presence).toBe(0)
+    expect(bike.object.visible).toBe(false)
+  })
+
+  it('is gone at once when she is knocked off it, not drawn under her tumble', () => {
+    const bike = createBicycle(new THREE.MeshStandardMaterial())
+    bike.update(her, true, 0, 1)
+    bike.update(her, false, 0, 1 / 60, true)
+    expect(bike.presence).toBe(0)
+    expect(bike.object.visible).toBe(false)
   })
 })

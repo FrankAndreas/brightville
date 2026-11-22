@@ -22,7 +22,7 @@ export interface DoorDef extends DoorSpot {
 /** A door building is 8 m wide and 5 m deep, and stands 1 m behind its door */
 export const HOUSE_WIDTH = 8
 export const HOUSE_DEPTH = 5
-const SETBACK = 1
+export const SETBACK = 1
 
 export interface Footprint {
   minX: number

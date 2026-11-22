@@ -1,5 +1,5 @@
 import type { DoorState } from '@/core/access'
-import { footprint, type DoorSpot, type Footprint } from './doors'
+import { SETBACK, footprint, type DoorSpot, type Footprint } from './doors'
 import type { Area, DistrictId, StopId } from './districts/types'
 import { ALL_STREETS, BOUNDS, DISTRICTS, HILLS, LAKE, PLAZA, STOPS, type Hill, type Street } from './map'
 
@@ -21,6 +21,8 @@ export interface MapMarker {
   x: number
   z: number
   state: DoorState | 'stop'
+  /** Stars a play building costs, shown on it when she hasn't enough */
+  cost?: number
   /**
    * Where its picture is drawn: the middle of the house, or the landmark a stop looks at, moved apart from its
    * neighbours until every picture is MIN_PIN_GAP from the next (two doors across a street are only 7 m apart)
@@ -45,8 +47,8 @@ export interface MapPicture {
 
 /** A marker is drawn this wide, in metres: 45 px on a 1024 × 768 screen, where the whole map is 3.9 px a metre */
 export const MARKER_SIZE = 11.5
-/** No two pictures closer than this, middle to middle: they never overlap */
-export const MIN_PIN_GAP = MARKER_SIZE
+/** No two pictures closer than this, middle to middle: a little gap between them, so a small finger finds the right one */
+export const MIN_PIN_GAP = MARKER_SIZE + 1.5
 /** The mountains' band above the town's back edge, and the margin round it all */
 const BAND = 14
 const MARGIN = 3
@@ -55,9 +57,13 @@ const LANDMARK_AHEAD = 7
 
 const STOP_NAMES: Record<StopId, string> = { platz: 'Platz', bauernhof: 'Bauernhof', wald: 'Wald', werkstatt: 'Werkstatt' }
 
-/** Pushes pictures that are too close apart, a little at a time, and keeps them inside `inside` */
-function spread(pins: Point[], inside: Footprint): void {
-  const clamp = (p: Point) => {
+/**
+ * Pushes pictures that are too close apart, a little at a time, and keeps them inside `inside` and each building's
+ * picture on its own house: never nearer the street than the house's front (`keep`, one per pin, may move it back)
+ */
+function spread(pins: Point[], inside: Footprint, keep: ((p: Point) => void)[]): void {
+  const clamp = (p: Point, i: number) => {
+    keep[i](p)
     p.x = Math.min(inside.maxX, Math.max(inside.minX, p.x))
     p.z = Math.min(inside.maxZ, Math.max(inside.minZ, p.z))
   }
@@ -74,8 +80,8 @@ function spread(pins: Point[], inside: Footprint): void {
         const push = (MIN_PIN_GAP - d) / 2 + 1e-3
         a.x -= (dx / d) * push; a.z -= (dz / d) * push
         b.x += (dx / d) * push; b.z += (dz / d) * push
-        clamp(a)
-        clamp(b)
+        clamp(a, i)
+        clamp(b, j)
         moved = true
       }
     }
@@ -85,7 +91,7 @@ function spread(pins: Point[], inside: Footprint): void {
 
 /** The map of the town with these buildings on it; those this device can never go into are left out */
 export function mapPicture(
-  buildings: { id: string; icon: string; name: string; door: DoorSpot; state: DoorState }[],
+  buildings: { id: string; icon: string; name: string; door: DoorSpot; state: DoorState; cost?: number }[],
 ): MapPicture {
   const box: Footprint = {
     minX: BOUNDS.minX - MARGIN, maxX: BOUNDS.maxX + MARGIN, minZ: BOUNDS.minZ - BAND - MARGIN, maxZ: BOUNDS.maxZ + MARGIN,
@@ -94,7 +100,7 @@ export function mapPicture(
     ...buildings.filter(b => b.state !== 'unavailable').map((b): MapMarker => {
       const f = footprint(b.door)
       return {
-        kind: 'building', id: b.id, icon: b.icon, name: b.name, x: b.door.x, z: b.door.z, state: b.state,
+        kind: 'building', id: b.id, icon: b.icon, name: b.name, x: b.door.x, z: b.door.z, state: b.state, cost: b.cost,
         pin: { x: (f.minX + f.maxX) / 2, z: (f.minZ + f.maxZ) / 2 },
       }
     }),
@@ -104,7 +110,21 @@ export function mapPicture(
     })),
   ]
   const half = MARKER_SIZE / 2
-  spread(markers.map(m => m.pin), { minX: box.minX + half, maxX: box.maxX - half, minZ: box.minZ + half, maxZ: box.maxZ - half })
+  const keep = markers.map(m => {
+    if (m.kind !== 'building') return () => {}
+    // From the door straight back into the house: the picture stays at least as far back as the house's front
+    const back = { x: m.pin.x - m.x, z: m.pin.z - m.z }
+    const length = Math.hypot(back.x, back.z)
+    const ux = back.x / length, uz = back.z / length
+    return (p: Point) => {
+      const along = (p.x - m.x) * ux + (p.z - m.z) * uz
+      if (along < SETBACK) {
+        p.x += (SETBACK - along) * ux
+        p.z += (SETBACK - along) * uz
+      }
+    }
+  })
+  spread(markers.map(m => m.pin), { minX: box.minX + half, maxX: box.maxX - half, minZ: box.minZ + half, maxZ: box.maxZ - half }, keep)
   return {
     viewBox: `${box.minX} ${box.minZ} ${box.maxX - box.minX} ${box.maxZ - box.minZ}`,
     box,
