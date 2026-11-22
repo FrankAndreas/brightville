@@ -63,7 +63,7 @@ export function layReading(progress: ReadingProgress, item: { lang: string; answ
   const next = { ...progress }
   for (const a of item.answers) {
     const parts = a.text.split(':')
-    if (parts.length < 3 || parts[0] !== item.lang) continue
+    if (parts.length < 3 || parts[0] !== item.lang || parts.some(x => !x)) continue
     next[a.text] = { reads: (next[a.text]?.reads ?? 0) + 1, last_read: today, last_right: a.right }
   }
   return next
