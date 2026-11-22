@@ -4,6 +4,7 @@ import type { Place } from '@/core/outfits'
 import type { Spot } from '@/core/furniture'
 import type { Ladder, Ladders } from '@/core/ladders'
 import type { Letters } from '@/core/writing/levels'
+import type { DatesProgress } from '@/core/dates/round'
 import type { GrammarProgress } from '@/core/grammar/round'
 import type { ListenProgress } from '@/core/listen/round'
 import type { ReadingProgress } from '@/core/reading/rules'
@@ -107,6 +108,19 @@ export interface ReadingResultsIn {
   key: string
   lang: Lang
   answers: { text: string; right: number }[]
+}
+
+/** The Oberstufe's dates and times (backend/app/dates.py): his record per task kind, his rounds the server has */
+export interface DatesState {
+  progress: DatesProgress
+  seen?: string[]
+}
+
+/** One round's first answers by task kind (`<lang>:<kind>`), counted once by `key` */
+export interface DatesResultsIn {
+  key: string
+  lang: Lang
+  answers: { kind: string; right: boolean }[]
 }
 
 /** Her look and her add-ons (backend/app/wardrobe.py) */
@@ -281,6 +295,12 @@ export interface Api {
   readingResults(results: ReadingResultsIn): Promise<ReadingState>
   /** Parents: a child's reading record */
   playerReading(personId: number): Promise<ReadingState>
+  /** His dates and times record */
+  dates(): Promise<DatesState>
+  /** A dates round's first answers, counted once by its key */
+  datesResults(results: DatesResultsIn): Promise<DatesState>
+  /** Parents: a child's dates and times record */
+  playerDates(personId: number): Promise<DatesState>
 }
 
 type Fetch = (url: string, init: RequestInit) => Promise<Response>
@@ -382,5 +402,8 @@ export function httpApi(fetchFn: Fetch = (url, init) => fetch(url, init), onRene
     reading: () => call('GET', '/api/reading'),
     readingResults: results => call('POST', '/api/reading/results', results, WRITING_TIMEOUT_MS),
     playerReading: personId => call('GET', `/api/players/${personId}/reading`),
+    dates: () => call('GET', '/api/dates'),
+    datesResults: results => call('POST', '/api/dates/results', results, WRITING_TIMEOUT_MS),
+    playerDates: personId => call('GET', `/api/players/${personId}/dates`),
   }
 }

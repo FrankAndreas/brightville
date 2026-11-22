@@ -15,6 +15,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from . import (
     auth,
+    dates,
     films,
     game,
     grammar,
@@ -226,6 +227,17 @@ class ReadingResultsIn(BaseModel):
     key: str = Field(min_length=1, max_length=64)
     lang: Literal["en", "fr"]
     answers: list[ReadingAnswerIn] = Field(max_length=5)
+
+
+class DatesAnswerIn(BaseModel):
+    kind: str = Field(min_length=1, max_length=40)
+    right: bool
+
+
+class DatesResultsIn(BaseModel):
+    key: str = Field(min_length=1, max_length=64)
+    lang: Literal["en", "fr"]
+    answers: list[DatesAnswerIn] = Field(max_length=40)
 
 
 class FilmIn(BaseModel):
@@ -789,6 +801,29 @@ def player_reading(
     if not people.is_active(db, person_id):
         raise error(404, "unknown_person")
     return reading.state(db, person_id, seen=False)
+
+
+@app.get("/api/dates")
+def dates_state(person: Person = Depends(auth.current_person), db: sqlite3.Connection = Depends(get_db)) -> dict:
+    return dates.state(db, person.id)
+
+
+@app.post("/api/dates/results")
+def dates_results(
+    body: DatesResultsIn, person: Person = Depends(auth.current_person), db: sqlite3.Connection = Depends(get_db)
+) -> dict:
+    dates.record(db, person.id, body.key, body.lang, [dates.Answer(kind=a.kind, right=a.right) for a in body.answers])
+    return dates.state(db, person.id)
+
+
+@app.get("/api/players/{person_id}/dates")
+def player_dates(
+    person_id: int, request: Request, _: Person = Depends(auth.parent), db: sqlite3.Connection = Depends(get_db)
+) -> dict:
+    auth.refresh_people(request, db)
+    if not people.is_active(db, person_id):
+        raise error(404, "unknown_person")
+    return dates.state(db, person_id, seen=False)
 
 
 @app.get("/api/players/{person_id}/writing")

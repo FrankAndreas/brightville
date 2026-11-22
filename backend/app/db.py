@@ -262,6 +262,21 @@ CREATE TABLE reading_keys (
     day TEXT NOT NULL,
     PRIMARY KEY (person_id, key)
 );
+""",  # The Oberstufe's dates and times: per child and task kind (`<lang>:<kind>`), the first answers of the last 10 (a
+    # JSON list of 0/1, newest last); and the results counted
+    """
+CREATE TABLE dates_progress (
+    person_id INTEGER NOT NULL,
+    kind TEXT NOT NULL,
+    recent TEXT NOT NULL,
+    PRIMARY KEY (person_id, kind)
+);
+CREATE TABLE dates_keys (
+    person_id INTEGER NOT NULL,
+    key TEXT NOT NULL,
+    day TEXT NOT NULL,
+    PRIMARY KEY (person_id, key)
+);
 """,
 ]
 VERSION = len(MIGRATIONS)

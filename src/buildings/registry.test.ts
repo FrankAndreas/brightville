@@ -139,7 +139,7 @@ describe('building registry', () => {
     expect(b).toMatchObject({ spokenName: 'Kalender', icon: '🗓️', kind: 'earn', needs: [], door: { x: 3.5, z: -24, side: 'right' } })
     expect(b?.preload).toBeTypeOf('function')
     const shared = (sharedBuildings as { id: string }[]).find(x => x.id === 'kalender')
-    expect(shared).toEqual({ id: 'kalender', kind: 'earn', maxStars: 10, minSecondsPerStar: 2 })
+    expect(shared).toEqual({ id: 'kalender', kind: 'earn', maxStars: 10, minSecondsPerStar: 2, oberstufe: { maxStars: 15 } })
     expect(SCENERY_HOUSES.some(h => h.spot.x === 3.5 && h.spot.z === -24)).toBe(false)
   })
 

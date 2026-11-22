@@ -36,6 +36,7 @@ const diktat = () => import('./diktat/Diktat.vue')
 const hoeren = () => import('./hoeren/Hoeren.vue')
 const grammatik = () => import('./grammatik/Grammatik.vue')
 const lesen = () => import('./lesen/Lesen.vue')
+const datum = () => import('./datum/Datum.vue')
 
 /**
  * Every building in the town, mixed along the streets of `src/city/map.ts` so every walk passes learning, playing and
@@ -153,6 +154,8 @@ export const BUILDINGS: BuildingDef[] = [
     // Finding her way in time (Lehrplan 21 MA.3, Zugang 3): what was a plain house next to the Bibliothek
     id: 'kalender', spokenName: 'Kalender', toName: 'zum Kalender', icon: '🗓️', kind: 'earn', needs: [], door: { x: 3.5, z: -24, side: 'right' },
     component: defineAsyncComponent(kalender), preload: kalender,
+    // At Oberstufe dates and times in English or French
+    oberstufe: { component: defineAsyncComponent(datum), preload: datum },
   },
   {
     // A wide world for position words (Lehrplan 21 MA.2, Zugang 4): what was a plain house by the playground
