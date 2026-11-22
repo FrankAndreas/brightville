@@ -8,6 +8,7 @@ import { createPoseTracker } from '@/services/poseTracker'
 import { playBeat } from '@/services/sound'
 import { speak } from '@/services/tts'
 import { requestLeave } from '../leave'
+import { coachWords } from '@/core/coach/words'
 import YogaStudio from './YogaStudio.vue'
 
 vi.mock('@/services/camera', async importOriginal => ({
@@ -24,7 +25,10 @@ vi.mock('@/services/tts', async () => {
   // An instruction is spoken like anything else, and kept for the 🔊 button
   const instruction = ref<string | null>(null)
   const instruct = vi.fn((text: string) => { instruction.value = text; return speak(text) })
-  return { speak, stopSpeaking: vi.fn(), instruct, instruction, forgetInstruction: vi.fn(() => { instruction.value = null }) }
+  return {
+    speak, stopSpeaking: vi.fn(), instruct, instruction, forgetInstruction: vi.fn(() => { instruction.value = null }),
+    hasVoice: vi.fn(() => true), voiceCount: ref(1),
+  }
 })
 
 const poses: PoseId[] = ['stern', 'frosch', 'riese']
@@ -273,5 +277,30 @@ describe('YogaStudio', () => {
     const none = await open()
     expect(none.text()).toBe('')
     none.unmount()
+  })
+
+  it('at Oberstufe the coach describes the pose in French, and the picture only comes as a hint', async () => {
+    const fr = coachWords('fr')
+    const w = mount(YogaStudio, { props: { poses, lang: 'fr' }, attachTo: document.body })
+    await run(50)
+    seen = standing()
+    await run(1200)
+    expect(w.find('[data-test="coach-say"]').text()).toContain(fr.poseSay('stern'))
+    expect(w.find('[data-test="coach-title"]').text()).toBe(fr.poseTitle('stern'))
+    expect(vi.mocked(speak).mock.calls.at(-1)).toEqual([fr.poseSay('stern'), 'fr-FR'])
+    expect(w.find('[data-test="pose-hint"]').exists()).toBe(false)
+    await run(6100)
+    expect(w.find('[data-test="pose-hint"]').exists()).toBe(true)
+    vi.mocked(speak).mockClear()
+    await w.find('[data-test="coach-again"]').trigger('click')
+    expect(vi.mocked(speak).mock.calls).toEqual([[fr.poseSay('stern'), 'fr-FR']])
+    w.unmount()
+  })
+
+  it('in the Kindergarten the teacher shows the pose at once, as always', async () => {
+    const w = await calibrated()
+    expect(w.find('[data-test="pose-hint"]').exists()).toBe(true)
+    expect(w.find('[data-test="coach-say"]').exists()).toBe(false)
+    w.unmount()
   })
 })

@@ -2,6 +2,7 @@ import { isBodyVisible, type Body } from '@/core/pose/body'
 import { createCalibration } from '@/core/pose/calibration'
 import { createHold, type Hold } from '@/core/pose/hold'
 import { POSES, matchPose, poseDef, type PoseId } from '@/core/pose/poses'
+import type { CoachWords } from '@/core/coach/words'
 
 export const POSES_PER_VISIT = 3
 export const STARS_PER_POSE = 3
@@ -44,8 +45,8 @@ export type YogaEvent =
 
 /** Things for the screen to do; the flow itself touches no browser API. */
 export type YogaEffect =
-  /** `ask`: an instruction, kept for the 🔊 button */
-  | { type: 'speak'; text: string; ask?: boolean }
+  /** `ask`: an instruction, kept for the 🔊 button; `coach`: in the Oberstufe coach's language */
+  | { type: 'speak'; text: string; ask?: boolean; coach?: boolean }
   | { type: 'chime' }
   | { type: 'confetti' }
 
@@ -54,8 +55,11 @@ export interface YogaFlow {
   send(event: YogaEvent): YogaEffect[]
 }
 
-/** One visit to the studio: camera, step into view, the poses, done. */
-export function createYogaFlow(poses: PoseId[]): YogaFlow {
+/**
+ * One visit to the studio: camera, step into view, the poses, done. `words`: the Oberstufe coach's, who describes the
+ * poses in English or French (the setup lines stay German); left out, her German studio.
+ */
+export function createYogaFlow(poses: PoseId[], words?: CoachWords): YogaFlow {
   const state: YogaState = { phase: 'starting', pose: null, poseNumber: 0, progress: 0, bodyVisible: false, stars: 0 }
   const calibration = createCalibration()
   let hold: Hold = createHold()
@@ -66,13 +70,15 @@ export function createYogaFlow(poses: PoseId[]): YogaFlow {
     if (!pose) {
       state.phase = 'done'
       state.pose = null
-      return [{ type: 'confetti' }, { type: 'speak', text: SAY_DONE }]
+      return [{ type: 'confetti' }, words ? { type: 'speak', text: words.done, coach: true } : { type: 'speak', text: SAY_DONE }]
     }
     state.phase = 'posing'
     state.pose = pose
     state.poseNumber += 1
     hold = createHold()
-    return [{ type: 'speak', text: poseDef(pose).voice, ask: true }]
+    return [words
+      ? { type: 'speak', text: words.poseSay(pose), ask: true, coach: true }
+      : { type: 'speak', text: poseDef(pose).voice, ask: true }]
   }
 
   function onFrame(body: Body | null, dtMs: number): YogaEffect[] {
