@@ -27,7 +27,7 @@ import { httpApi, type Api } from '@/services/api'
 import { detectDevice } from '@/services/device'
 import { renewOnce } from '@/services/renew'
 import { unlockAudio } from '@/services/sound'
-import { forgetInstruction, speak } from '@/services/tts'
+import { forgetInstruction, hasAnyForeignVoice, speak, voiceCount, watchVoices } from '@/services/tts'
 import { usePlayerStore } from '@/stores/player'
 import { useRoomStore } from '@/stores/room'
 import { useLaddersStore } from '@/stores/ladders'
@@ -49,8 +49,14 @@ const writing = useWritingStore()
 const ladderStore = useLaddersStore()
 const vocab = useVocabStore()
 const device = detectDevice()
-/** The device, and whether the parents chose films for the Cinema */
-const caps = computed(() => ({ ...device, films: player.films.length > 0 }))
+// Some browsers (Safari) bring their voices late: counting them again repaints the doors that need one
+const stopWatchingVoices = watchVoices()
+onBeforeUnmount(stopWatchingVoices)
+/** The device (with its voices, counted again when they arrive), and whether the parents chose films for the Cinema */
+const caps = computed(() => {
+  void voiceCount.value
+  return { ...device, voice: hasAnyForeignVoice(), films: player.films.length > 0 }
+})
 // Doors follow the Stars, the daily goal, the play time and the films: the town repaints them when they change
 const doors = computed(() => toDoors(props.buildings, caps.value, player.goalReached, player.stars, player.timeUp, player.level))
 const stateFor = (b: BuildingDef) => stateOf(b, caps.value, player.goalReached, player.stars, player.timeUp, player.level)

@@ -1,8 +1,8 @@
 import type { Component } from 'vue'
 import type { DoorSpot } from '@/city/doors'
 
-/** What a building needs to be playable: from the device, or films chosen by the parents */
-export type Need = 'camera' | 'touch' | 'keyboard' | 'films'
+/** What a building needs to be playable: from the device (`voice`: an English or French voice), or films chosen by the parents */
+export type Need = 'camera' | 'touch' | 'keyboard' | 'films' | 'voice'
 
 /** What a building reports when the child leaves it */
 export interface BuildingResult {
@@ -41,6 +41,7 @@ export interface BuildingDef {
   /**
    * Open at Oberstufe (as "oberstufe" in shared/buildings.json); left out, its door says "Bald" there. `component`: its
    * Oberstufe side, when it has one of its own (the School's vocabulary trainer); otherwise the same component.
+   * `needs`: what it needs there, when that differs (left out: the same as `needs`).
    */
-  oberstufe?: { component?: Component; preload?: () => Promise<unknown> }
+  oberstufe?: { component?: Component; preload?: () => Promise<unknown>; needs?: Need[] }
 }

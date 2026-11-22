@@ -2,7 +2,7 @@ import sharedBuildings from '../../shared/buildings.json'
 import { EMPTY_LOTS, SCENERY_HOUSES } from '@/city/map'
 import { describe, expect, it } from 'vitest'
 import { defineComponent } from 'vue'
-import { BUILDINGS, canServe, toDoors } from './registry'
+import { BUILDINGS, canServe, stateOf, toDoors } from './registry'
 import type { BuildingDef } from './types'
 
 const component = defineComponent({ render: () => null })
@@ -121,7 +121,7 @@ describe('building registry', () => {
     expect(b).toMatchObject({ spokenName: 'Reimhaus', icon: '👂', kind: 'earn', needs: [], door: { x: 35.5, z: -16, side: 'right' } })
     expect(b?.preload).toBeTypeOf('function')
     const shared = (sharedBuildings as { id: string; maxStars?: number; minSecondsPerStar?: number }[]).find(x => x.id === 'reimhaus')
-    expect(shared).toEqual({ id: 'reimhaus', kind: 'earn', maxStars: 10, minSecondsPerStar: 2 })
+    expect(shared).toEqual({ id: 'reimhaus', kind: 'earn', maxStars: 10, minSecondsPerStar: 2, oberstufe: { needs: ['voice'] } })
   })
 
   it('lists the Musterwerkstatt as an earning building that needs nothing, on the last free lot', () => {
@@ -189,6 +189,8 @@ describe('building registry', () => {
   })
 })
 
+const find = (id: string) => BUILDINGS.find(b => b.id === id)
+
 describe('the buildings file the server reads', () => {
   it('agrees with the town on what earns and what costs', async () => {
     const shared = (await import('../../shared/buildings.json')).default as { id: string; kind: string; cost?: number; maxStars?: number }[]
@@ -207,14 +209,33 @@ describe('the buildings file the server reads', () => {
   })
 
   it('the School has its own Oberstufe side, the others are the same', () => {
-    const find = (id: string) => BUILDINGS.find(b => b.id === id)
     expect(find('school')?.oberstufe?.component).toBeDefined()
     expect(find('school')?.oberstufe?.preload).toBeDefined()
     expect(find('malen')?.oberstufe?.component).toBeUndefined()
   })
 
+  it('what a building needs at Oberstufe is what shared/buildings.json says', () => {
+    const shared = sharedBuildings as { id: string; oberstufe?: { needs?: string[] } }[]
+    for (const b of BUILDINGS.filter(x => x.oberstufe)) {
+      expect(b.oberstufe?.needs ?? []).toEqual(shared.find(x => x.id === b.id)?.oberstufe?.needs ?? [])
+    }
+    expect(find('schreiben')?.oberstufe?.component).toBeDefined()
+    expect(find('reimhaus')?.oberstufe?.component).toBeDefined()
+  })
+
+  it('needs can depend on the level', () => {
+    const schreiben = find('schreiben')!
+    const reimhaus = find('reimhaus')!
+    expect(canServe(schreiben, { camera: false, touch: false, keyboard: true, voice: true }, 'oberstufe')).toBe(true)
+    expect(canServe(schreiben, { camera: false, touch: false, keyboard: true, voice: true }, 'kindergarten')).toBe(false)
+    expect(canServe(schreiben, { camera: false, touch: true, keyboard: false, voice: false }, 'kindergarten')).toBe(true)
+    expect(canServe(reimhaus, { camera: false, touch: true, keyboard: true, voice: false }, 'oberstufe')).toBe(false)
+    expect(canServe(reimhaus, { camera: false, touch: false, keyboard: false, voice: false })).toBe(true)
+    expect(stateOf(schreiben, { camera: false, touch: true, keyboard: false, voice: false }, true, 0, false, 'oberstufe')).toBe('unavailable')
+  })
+
   it('a soon door is shut in the town', () => {
-    const reimhaus = BUILDINGS.find(b => b.id === 'reimhaus')!
-    expect(toDoors([reimhaus], { camera: true, touch: true, keyboard: true }, true, 99, false, 'oberstufe')[0]).toMatchObject({ open: false, locked: false })
+    const yoga = BUILDINGS.find(b => b.id === 'yoga')!
+    expect(toDoors([yoga], { camera: true, touch: true, keyboard: true }, true, 99, false, 'oberstufe')[0]).toMatchObject({ open: false, locked: false })
   })
 })
