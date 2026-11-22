@@ -5,15 +5,16 @@ import { builtinWords } from '@/core/vocab/builtin'
 import { GRAMMAR } from '@/core/grammar/content'
 import { isSure, weakest } from '@/core/grammar/round'
 import { allScenes } from '@/core/listen/scenes'
+import { allTexts } from '@/core/reading/texts'
 import { ownWords } from '@/core/vocab/round'
 import { spellKey } from '@/core/vocab/spelling'
 import { LANGS, type Lang } from '@/core/vocab/types'
-import type { Api, GrammarState, ListenState, VocabState } from '@/services/api'
+import type { Api, GrammarState, ListenState, ReadingState, VocabState } from '@/services/api'
 
 // On the parents' page, in the card of a child at Oberstufe: per language how many words he has learned (box 3 and up,
 // counting only words that exist now), how many are due today, how many he spells right (Schreiben: spelling box 3 and
 // up), how many listening scenes he understood (the Reimhaus: right at least once), his grammar topics sure and weak
-// (the Musterwerkstatt), and his lists to read. Fetched the
+// (the Musterwerkstatt), the texts he read (the Bibliothek), and his lists to read. Fetched the
 // first time it opens.
 const props = defineProps<{ api: Api; personId: number; today: string }>()
 
@@ -22,13 +23,15 @@ const status = ref<'idle' | 'loading' | 'ready' | 'error'>('idle')
 const data = ref<VocabState | null>(null)
 const heard = ref<ListenState | null>(null)
 const grammar = ref<GrammarState | null>(null)
+const texts = ref<ReadingState | null>(null)
 
 async function opened(event: Event) {
   if (!(event.target as HTMLDetailsElement).open || status.value === 'ready' || status.value === 'loading') return
   status.value = 'loading'
   try {
-    ;[data.value, heard.value, grammar.value] = await Promise.all([
+    ;[data.value, heard.value, grammar.value, texts.value] = await Promise.all([
       props.api.playerVocab(props.personId), props.api.playerListen(props.personId), props.api.playerGrammar(props.personId),
+      props.api.playerReading(props.personId),
     ])
     status.value = 'ready'
   } catch {
@@ -56,6 +59,8 @@ const perLang = computed(() => LANGS.map(lang => {
     sure: GRAMMAR[lang].filter(t => isSure(topics[`${lang}:${t.id}`])).length,
     topics: GRAMMAR[lang].length,
     weak: weakest(lang, topics).map(nameOf),
+    read: allTexts(lang).filter(x => texts.value?.progress[x.key]).length,
+    texts: allTexts(lang).length,
     lists: lists.filter(l => l.lang === lang),
   }
 }))
@@ -74,6 +79,7 @@ const perLang = computed(() => LANGS.map(lang => {
         <p>{{ l.understood }} von {{ l.scenes }} Hörszenen verstanden</p>
         <p>Grammatik: {{ l.sure }} von {{ l.topics }} Themen sicher</p>
         <p v-if="l.weak.length" data-test="weak">Schwach: {{ l.weak.join(', ') }}</p>
+        <p>{{ l.read }} von {{ l.texts }} Texten gelesen</p>
         <p v-if="!l.lists.length" class="none">Keine eigenen Listen.</p>
         <details v-for="list in l.lists" :key="list.id" :data-test="`vocab-list-${list.id}`">
           <summary>{{ list.name }} ({{ list.words.length }})</summary>
