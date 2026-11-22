@@ -18,7 +18,7 @@ type TopicRecord = GrammarProgress[string] | undefined
 export const rightOfLast10 = (p: TopicRecord) => (p?.recent ?? []).slice(-10).filter(Boolean).length
 export const typesNow = (p: TopicRecord) => rightOfLast10(p) >= TYPE_FROM
 export const isSure = (p: TopicRecord) => rightOfLast10(p) >= SURE_FROM
-export const isWeak = (p: TopicRecord) => (p?.recent.length ?? 0) >= WEAK_AFTER && rightOfLast10(p) < SURE_FROM
+export const isWeak = (p: TopicRecord) => (p?.recent?.length ?? 0) >= WEAK_AFTER && rightOfLast10(p) < SURE_FROM
 
 /** The weak topics of a language, the fewest right first (at most `n`) */
 export function weakest(lang: Lang, progress: GrammarProgress, n = 3): string[] {
@@ -43,7 +43,10 @@ function shuffle<T>(items: T[], rand: () => number): T[] {
 export function toRoundItem(item: GrammarItem, typed: boolean, rand: () => number): RoundItem {
   const word = { key: item.key, de: item.text, foreign: item.answers.join(' / '), source: item.topic }
   if (typed) return { word, mode: 'type-de' }
-  const choices = shuffle([item.answers[0], ...shuffle(item.wrong, rand).slice(0, 3)], rand)
+  // A gap that starts the sentence: its choices start with a capital, as the sentence will
+  const start = item.text.startsWith('___')
+  const shown = (c: string) => (start ? c.charAt(0).toUpperCase() + c.slice(1) : c)
+  const choices = shuffle([item.answers[0], ...shuffle(item.wrong, rand).slice(0, 3)], rand).map(shown)
   return { word, mode: 'choice', choices }
 }
 

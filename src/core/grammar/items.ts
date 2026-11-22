@@ -56,7 +56,10 @@ function formItems(lang: Lang, topic: Extract<Topic, { kind: 'form' }>): Grammar
           })
         } else {
           const answers = parts.map(v => withSubject(person, v))
-          const others = topic.persons.filter(p => p !== person).map(p => answersOf(formOf(p))[0])
+          // "on" may stand for a woman or several people: il's and elle's forms aren't clearly wrong for it
+          const others = topic.persons
+            .filter(p => p !== person && !(person === 'on' && (p === 'il' || p === 'elle')))
+            .map(p => answersOf(formOf(p))[0])
           out.push({
             key, topic: topic.id, text: frame.text, hint: `(${person} · ${verbName})`, answers,
             wrong: distinctWrong([...others, ...(verb.wrong ?? [])].map(v => withSubject(person, v)), answers),
