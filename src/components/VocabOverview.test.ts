@@ -95,4 +95,20 @@ describe('VocabOverview', () => {
     expect(w.find('[data-test="lang-en"]').text()).toContain('2 von 36 Texten gelesen')
     expect(w.find('[data-test="lang-fr"]').text()).toContain('1 von 36 Texten gelesen')
   })
+
+  it('per language: dates and times kinds sure, and the weak ones named', async () => {
+    const api = fakeApi()
+    const rec = (right: number, tries = 10) => ({ recent: Array.from({ length: tries }, (_, i) => i >= tries - right) })
+    api.dates_ = { 'en:clock-words': rec(9), 'en:date-words': rec(3), 'en:spelling': rec(6), 'en:words-date': rec(1, 4), 'fr:spelling': rec(10) }
+    const w = mount(VocabOverview, { props: { api, personId: 2, today: '2026-11-12' } })
+    ;(w.find('details').element as HTMLDetailsElement).open = true
+    await w.find('details').trigger('toggle')
+    await flushPromises()
+    const en = w.find('[data-test="lang-en"]').text()
+    expect(en).toContain('Uhrzeit und Datum: 1 von 5 Aufgabenarten sicher')
+    expect(en).toContain('Schwach (Kalender): Datum schreiben, Tage und Monate')
+    const fr = w.find('[data-test="lang-fr"]').text()
+    expect(fr).toContain('Uhrzeit und Datum: 1 von 5 Aufgabenarten sicher')
+    expect(fr).not.toContain('Schwach (Kalender)')
+  })
 })
