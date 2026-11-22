@@ -4,6 +4,7 @@ import type { Place } from '@/core/outfits'
 import type { Spot } from '@/core/furniture'
 import type { Ladder, Ladders } from '@/core/ladders'
 import type { Letters } from '@/core/writing/levels'
+import type { GrammarProgress } from '@/core/grammar/round'
 import type { ListenProgress } from '@/core/listen/round'
 import type { Lang, Progress, VocabList } from '@/core/vocab/types'
 
@@ -79,6 +80,19 @@ export interface ListenResultsIn {
   key: string
   lang: Lang
   answers: { scene: string; right: boolean }[]
+}
+
+/** The Oberstufe's grammar (backend/app/grammar.py): his record per topic, his results the server has */
+export interface GrammarState {
+  progress: GrammarProgress
+  seen?: string[]
+}
+
+/** One grammar round's first answers (items `<lang>:<topic>:<id>`), counted once by `key` */
+export interface GrammarResultsIn {
+  key: string
+  lang: Lang
+  answers: { item: string; right: boolean }[]
 }
 
 /** Her look and her add-ons (backend/app/wardrobe.py) */
@@ -241,6 +255,12 @@ export interface Api {
   listenResults(results: ListenResultsIn): Promise<ListenState>
   /** Parents: a child's listening record */
   playerListen(personId: number): Promise<ListenState>
+  /** His grammar record */
+  grammar(): Promise<GrammarState>
+  /** A grammar round's first answers, counted once by its key */
+  grammarResults(results: GrammarResultsIn): Promise<GrammarState>
+  /** Parents: a child's grammar record */
+  playerGrammar(personId: number): Promise<GrammarState>
 }
 
 type Fetch = (url: string, init: RequestInit) => Promise<Response>
@@ -336,5 +356,8 @@ export function httpApi(fetchFn: Fetch = (url, init) => fetch(url, init), onRene
     listen: () => call('GET', '/api/listen'),
     listenResults: results => call('POST', '/api/listen/results', results, WRITING_TIMEOUT_MS),
     playerListen: personId => call('GET', `/api/players/${personId}/listen`),
+    grammar: () => call('GET', '/api/grammar'),
+    grammarResults: results => call('POST', '/api/grammar/results', results, WRITING_TIMEOUT_MS),
+    playerGrammar: personId => call('GET', `/api/players/${personId}/grammar`),
   }
 }

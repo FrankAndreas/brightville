@@ -34,6 +34,7 @@ const trommelhaus = () => import('./trommelhaus/Trommelhaus.vue')
 const vokabeln = () => import('./vokabeln/Vokabeln.vue')
 const diktat = () => import('./diktat/Diktat.vue')
 const hoeren = () => import('./hoeren/Hoeren.vue')
+const grammatik = () => import('./grammatik/Grammatik.vue')
 
 /**
  * Every building in the town, mixed along the streets of `src/city/map.ts` so every walk passes learning, playing and
@@ -142,6 +143,8 @@ export const BUILDINGS: BuildingDef[] = [
     // Seeing rules in things: rows to continue and things to sort (Lehrplan 21 MA.1.B, MA.3), past the Yoga studio
     id: 'muster', spokenName: 'Musterwerkstatt', toName: 'zur Musterwerkstatt', icon: '🧩', kind: 'earn', needs: [], door: { x: 3.5, z: 51, side: 'right' },
     component: defineAsyncComponent(muster), preload: muster,
+    // At Oberstufe a grammar trainer for English or French
+    oberstufe: { component: defineAsyncComponent(grammatik), preload: grammatik },
   },
   {
     // Finding her way in time (Lehrplan 21 MA.3, Zugang 3): what was a plain house next to the Bibliothek

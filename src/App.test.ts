@@ -238,6 +238,7 @@ describe('App', () => {
       api.listen_ = { 'en:travel:platform': { right: 1, last_right: '2026-11-10', last_asked: '2026-11-10' } }
       const w = await started([school])
       expect(api.calls).toContain('listen')
+      expect(api.calls).toContain('grammar')
       expect(useListenStore().progress['en:travel:platform'].right).toBe(1)
       w.unmount()
     })

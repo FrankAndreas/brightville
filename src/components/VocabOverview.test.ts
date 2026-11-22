@@ -59,4 +59,28 @@ describe('VocabOverview', () => {
     expect(fr).toContain('1 Wort richtig geschrieben')
     expect(fr).toContain('1 von 72 Hörszenen verstanden')
   })
+
+  it('per language: grammar topics sure, and the weak ones named (fewest right first, at most three)', async () => {
+    const api = fakeApi()
+    const rec = (right: number, tries = 10) => ({ recent: Array.from({ length: tries }, (_, i) => i >= tries - right), missed: [] })
+    api.grammar_ = {
+      'en:modals': rec(9),
+      'en:passive': rec(2),
+      'en:adverbs': rec(5),
+      'en:relatives': rec(0, 4),
+      'en:some-any': rec(6),
+      'en:if-will': rec(7),
+      'fr:articles': rec(10),
+    }
+    const w = mount(VocabOverview, { props: { api, personId: 2, today: '2026-11-12' } })
+    ;(w.find('details').element as HTMLDetailsElement).open = true
+    await w.find('details').trigger('toggle')
+    await flushPromises()
+    const en = w.find('[data-test="lang-en"]').text()
+    const fr = w.find('[data-test="lang-fr"]').text()
+    expect(en).toContain('Grammatik: 1 von 12 Themen sicher')
+    expect(en).toContain('Schwach: Passiv, Adverbien (-ly), some / any, much / many')
+    expect(fr).toContain('Grammatik: 1 von 12 Themen sicher')
+    expect(fr).not.toContain('Schwach')
+  })
 })

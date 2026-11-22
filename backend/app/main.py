@@ -17,6 +17,7 @@ from . import (
     auth,
     films,
     game,
+    grammar,
     hub,
     listen,
     local,
@@ -202,6 +203,17 @@ class ListenResultsIn(BaseModel):
     key: str = Field(min_length=1, max_length=64)
     lang: Literal["en", "fr"]
     answers: list[ListenAnswerIn] = Field(max_length=20)
+
+
+class GrammarAnswerIn(BaseModel):
+    item: str = Field(min_length=1, max_length=120)
+    right: bool
+
+
+class GrammarResultsIn(BaseModel):
+    key: str = Field(min_length=1, max_length=64)
+    lang: Literal["en", "fr"]
+    answers: list[GrammarAnswerIn] = Field(max_length=40)
 
 
 class FilmIn(BaseModel):
@@ -715,6 +727,31 @@ def player_listen(
     if not people.is_active(db, person_id):
         raise error(404, "unknown_person")
     return listen.state(db, person_id, seen=False)
+
+
+@app.get("/api/grammar")
+def grammar_state(person: Person = Depends(auth.current_person), db: sqlite3.Connection = Depends(get_db)) -> dict:
+    return grammar.state(db, person.id)
+
+
+@app.post("/api/grammar/results")
+def grammar_results(
+    body: GrammarResultsIn, person: Person = Depends(auth.current_person), db: sqlite3.Connection = Depends(get_db)
+) -> dict:
+    grammar.record(
+        db, person.id, body.key, body.lang, [grammar.Answer(item=a.item, right=a.right) for a in body.answers]
+    )
+    return grammar.state(db, person.id)
+
+
+@app.get("/api/players/{person_id}/grammar")
+def player_grammar(
+    person_id: int, request: Request, _: Person = Depends(auth.parent), db: sqlite3.Connection = Depends(get_db)
+) -> dict:
+    auth.refresh_people(request, db)
+    if not people.is_active(db, person_id):
+        raise error(404, "unknown_person")
+    return grammar.state(db, person_id, seen=False)
 
 
 @app.get("/api/players/{person_id}/writing")

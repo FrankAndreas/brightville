@@ -7,10 +7,11 @@ import { applyResults, LADDERS, LAST_STEP, startLadders, type Ladders } from '@/
 import { GLYPHS } from '@/core/writing/letters'
 import { applyWrite, checkText, normalizeText, type Letters } from '@/core/writing/levels'
 import { nextBox } from '@/core/vocab/boxes'
+import { layGrammar } from '@/core/grammar/round'
 import type { VocabList } from '@/core/vocab/types'
 import {
   ApiError, type Api, type Film, type LogDay, type Me, type Person, type PlayerRow, type ServerState, type StickerRow,
-  type ListDraft, type ListenState, type RoomState, type SchoolState, type VocabState, type WardrobeState, type WritingState,
+  type GrammarState, type ListDraft, type ListenState, type RoomState, type SchoolState, type VocabState, type WardrobeState, type WritingState,
 } from './api'
 
 export interface FakePainting { id: string; updated: number; image: string; thumb: string }
@@ -46,6 +47,8 @@ export interface FakeApi extends Api {
   listen_: ListenState['progress']
   /** While true the server refuses every listening round's results */
   refuseListen: boolean
+  /** The Oberstufe's grammar record, as the server keeps it */
+  grammar_: GrammarState['progress']
   /** The server's calendar turns a page */
   newDay(day: string): void
 }
@@ -91,6 +94,7 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
     refuseVocab: false,
     listen_: {},
     refuseListen: false,
+    grammar_: {},
     newDay(day) {
       Object.assign(state, { day, visits: 0, play_seconds: 0 })
       api.wardrobe_.bought_today = false
@@ -321,6 +325,15 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
       }
       return listenCopy()
     }),
+    grammar: () => run('grammar', () => grammarCopy()),
+    // The server's rules (backend/app/grammar.py record)
+    grammarResults: r => run(`grammarResults ${r.key}`, () => {
+      if (grammarKeys.has(r.key)) return grammarCopy()
+      grammarKeys.add(r.key)
+      api.grammar_ = layGrammar(api.grammar_, r)
+      return grammarCopy()
+    }),
+    playerGrammar: id => run(`playerGrammar ${id}`, () => ({ progress: grammarCopy().progress })),
     playerListen: id => run(`playerListen ${id}`, () => ({ progress: listenCopy().progress })),
     setPlayerStep: (id, ladder, step) => run(`setPlayerStep ${id} ${ladder} ${step}`, () => {
       if (!LADDERS.includes(ladder)) throw new ApiError(422, 'unknown')
@@ -357,6 +370,8 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
   const schoolKeys = new Set<string>()
   const vocabKeys = new Set<string>()
   const listenKeys = new Set<string>()
+  const grammarKeys = new Set<string>()
+  const grammarCopy = (): GrammarState => ({ progress: JSON.parse(JSON.stringify(api.grammar_)), seen: [...grammarKeys].reverse() })
   const listenCopy = (): ListenState => ({ progress: JSON.parse(JSON.stringify(api.listen_)), seen: [...listenKeys].reverse() })
   let lastList = 0
   const vocabCopy = (): VocabState => ({ ...JSON.parse(JSON.stringify(api.vocab_)), seen: [...vocabKeys].reverse() })

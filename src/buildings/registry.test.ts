@@ -129,7 +129,7 @@ describe('building registry', () => {
     expect(b).toMatchObject({ spokenName: 'Musterwerkstatt', icon: '🧩', kind: 'earn', needs: [], door: { x: 3.5, z: 51, side: 'right' } })
     expect(b?.preload).toBeTypeOf('function')
     const shared = (sharedBuildings as { id: string }[]).find(x => x.id === 'muster')
-    expect(shared).toEqual({ id: 'muster', kind: 'earn', maxStars: 10, minSecondsPerStar: 2 })
+    expect(shared).toEqual({ id: 'muster', kind: 'earn', maxStars: 10, minSecondsPerStar: 2, oberstufe: { maxStars: 15 } })
     // The old town's two lots left are gardens; the districts' lots come after them
     expect(EMPTY_LOTS.slice(0, 2)).toEqual([{ x: -3.5, z: -40, side: 'left' }, { x: -51, z: 3.5, side: 'front' }])
   })
