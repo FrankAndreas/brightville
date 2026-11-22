@@ -79,7 +79,7 @@ async function remove() {
 </template>
 
 <style scoped>
-.editor { display: flex; flex-direction: column; gap: 12px; width: min(720px, 92vw); text-align: left; }
+.editor { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 720px; text-align: left; }
 label { display: flex; flex-direction: column; gap: 6px; font: 600 18px/1.3 system-ui, sans-serif; color: #23264a; }
 input, textarea { font: 400 20px/1.4 system-ui, sans-serif; padding: 10px; border: 2px solid #c6cbec; border-radius: 10px; }
 .pairs { max-height: 22vh; overflow: auto; margin: 0; padding-left: 20px; font: 400 17px/1.5 system-ui, sans-serif; }

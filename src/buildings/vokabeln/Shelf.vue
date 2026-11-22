@@ -37,7 +37,7 @@ const topics = computed(() => BUILTIN[props.lang])
 </template>
 
 <style scoped>
-.shelf { width: min(860px, 94vw); text-align: left; }
+.shelf { width: 100%; max-width: 860px; text-align: left; }
 .head { display: flex; align-items: center; gap: 16px; }
 h2 { margin: 0; font: 700 30px/1.2 system-ui, sans-serif; color: #23264a; }
 h3 { margin: 18px 0 8px; font: 600 20px/1.2 system-ui, sans-serif; color: #5a5f86; }

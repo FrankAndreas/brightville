@@ -122,7 +122,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 <style scoped>
 .vokabeln {
   position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
-  padding: 6vh 16px 16px; box-sizing: border-box; overflow: auto; background: #f6f4ff;
+  /* Clear of the leave button in the top left corner (and the same on the right, to stay centred) */
+  padding: 6vh 104px 16px; box-sizing: border-box; overflow: auto; background: #f6f4ff;
 }
 .langs { display: flex; flex-direction: column; gap: 16px; align-items: center; margin-top: 8vh; }
 .langs h2 { font: 700 32px/1.2 system-ui, sans-serif; color: #23264a; margin: 0 0 8px; }

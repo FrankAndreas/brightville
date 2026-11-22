@@ -117,7 +117,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 </template>
 
 <style scoped>
-.round { display: flex; flex-direction: column; align-items: center; gap: 14px; width: min(760px, 94vw); }
+.round { display: flex; flex-direction: column; align-items: center; gap: 14px; width: 100%; max-width: 760px; }
 .hint { margin: 0; font: 500 19px/1.3 system-ui, sans-serif; color: #5a5f86; }
 .word { display: flex; align-items: center; gap: 12px; font: 700 40px/1.2 system-ui, sans-serif; color: #23264a; text-align: center; }
 .say { font-size: 30px; background: none; border: 0; }
