@@ -18,9 +18,13 @@ export function speak(text: string, lang = 'de-DE', opts: SpeakOptions = {}): Pr
   u.lang = lang
   if (opts.rate !== undefined) u.rate = opts.rate
   if (opts.pitch !== undefined) u.pitch = opts.pitch
-  if (opts.voice) u.voice = opts.voice
+  // A foreign language gets a voice of its own language even without the exact region (an en-US voice for en-GB):
+  // left to the browser, a device without en-GB may read English in its default, German voice. German stays as before.
+  const voice = opts.voice ?? (lang.toLowerCase().startsWith('de') ? undefined : voicesFor(lang)[0])
+  if (voice) u.voice = voice
   const done = new Promise<void>(resolve => {
-    const timer = setTimeout(resolve, MAX_BASE_MS + text.length * MAX_PER_CHAR_MS)
+    // Slow speech takes longer: the safety timeout grows with it
+    const timer = setTimeout(resolve, (MAX_BASE_MS + text.length * MAX_PER_CHAR_MS) / (opts.rate ?? 1))
     u.onend = u.onerror = () => { clearTimeout(timer); resolve() }
   })
   window.speechSynthesis.speak(u)
@@ -53,14 +57,25 @@ export function hasAnyForeignVoice(): boolean {
  */
 export const voiceCount = ref(0)
 
-/** Counts the voices now and whenever they change; returns the way to stop listening */
+/**
+ * Counts the voices now and whenever they change; also on a tap and when the page comes back, since older Safari
+ * never says that its voices arrived. Returns the way to stop listening.
+ */
 export function watchVoices(): () => void {
   const synth = window.speechSynthesis
-  const count = () => { voiceCount.value = synth?.getVoices?.().length ?? 0 }
+  const count = () => {
+    const n = synth?.getVoices?.().length ?? 0
+    if (n !== voiceCount.value) voiceCount.value = n
+  }
   count()
-  if (!synth?.addEventListener) return () => {}
-  synth.addEventListener('voiceschanged', count)
-  return () => synth.removeEventListener('voiceschanged', count)
+  window.addEventListener('pointerdown', count, { passive: true })
+  document.addEventListener('visibilitychange', count)
+  synth?.addEventListener?.('voiceschanged', count)
+  return () => {
+    window.removeEventListener('pointerdown', count)
+    document.removeEventListener('visibilitychange', count)
+    synth?.removeEventListener?.('voiceschanged', count)
+  }
 }
 
 const LINE_PAUSE_MS = 400
@@ -68,13 +83,15 @@ const SECOND_SPEAKER_PITCH = 0.8
 
 /**
  * Speaks a scene line by line (a line may name its speaker, "A: " / "B: ", which isn't spoken), with a short pause
- * between lines. The second speaker gets the language's second voice if the device has one, else a lower pitch.
+ * between lines. The second speaker gets a second voice of the first one's region if the device has one (never one of
+ * another region: on Apple devices those include novelty voices), else the first voice at a lower pitch.
  * Stops as soon as isCurrent() is false (the child left or went on).
  */
 export async function speakLines(
   lines: string[], lang: string, opts: { rate?: number } = {}, isCurrent: () => boolean = () => true,
 ): Promise<void> {
-  const voices = voicesFor(lang)
+  const all = voicesFor(lang)
+  const voices = all.filter(v => all[0] && norm(v.lang) === norm(all[0].lang))
   for (const [i, line] of lines.entries()) {
     if (!isCurrent()) return
     if (i > 0) {
@@ -86,6 +103,7 @@ export async function speakLines(
     const extra: SpeakOptions = voices.length >= 2
       ? { voice: voices[second ? 1 : 0] }
       : second ? { pitch: SECOND_SPEAKER_PITCH } : {}
+    if (!extra.voice && all[0]) extra.voice = all[0]
     await speak(text, lang, { ...opts, ...extra })
   }
 }

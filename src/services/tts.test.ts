@@ -168,4 +168,58 @@ describe('tts service', () => {
       expect(mockSynth.speak).toHaveBeenCalledTimes(1)
     })
   })
+
+  it('speaks a foreign language in a voice of that language, even when the device lacks the exact region', () => {
+    const us = { lang: 'en-US', name: 'Samantha' }
+    vi.stubGlobal('speechSynthesis', { ...mockSynth, getVoices: () => [{ lang: 'de-CH', name: 'de' }, us] })
+    speak('station', 'en-GB')
+    expect(spoken().voice).toBe(us)
+    // German stays with the device's own choice
+    speak('Hallo')
+    expect(spoken(1).voice).toBeUndefined()
+  })
+
+  it('counts the voices again on the first tap (old Safari never says they arrived)', () => {
+    let voices: { lang: string }[] = []
+    vi.stubGlobal('speechSynthesis', { ...mockSynth, getVoices: () => voices })
+    const stop = watchVoices()
+    expect(voiceCount.value).toBe(0)
+    voices = [{ lang: 'en-GB' }]
+    window.dispatchEvent(new Event('pointerdown'))
+    expect(voiceCount.value).toBe(1)
+    stop()
+  })
+
+  describe('a slow line', () => {
+    beforeEach(() => vi.useFakeTimers())
+    afterEach(() => vi.useRealTimers())
+
+    it('is given more time before the safety timeout', async () => {
+      let done = false
+      void speak('x'.repeat(80), 'en-GB', { rate: 0.6 }).then(() => { done = true })
+      await vi.advanceTimersByTimeAsync(11000)
+      expect(done).toBe(false)
+      await vi.advanceTimersByTimeAsync(6000)
+      expect(done).toBe(true)
+    })
+  })
+
+  describe('the second speaker', () => {
+    beforeEach(() => vi.useFakeTimers())
+    afterEach(() => vi.useRealTimers())
+
+    it('gets a lower pitch, not a voice of another region (no novelty or foreign-accent voice)', async () => {
+      const voices = [{ lang: 'en-GB', name: 'Daniel' }, { lang: 'en-US', name: 'Albert' }]
+      vi.stubGlobal('speechSynthesis', { ...mockSynth, getVoices: () => voices })
+      const done = speakLines(['A: Hi', 'B: Hello'], 'en-GB')
+      await vi.advanceTimersByTimeAsync(0)
+      spoken(0).onend!()
+      await vi.advanceTimersByTimeAsync(400)
+      spoken(1).onend!()
+      await done
+      expect(spoken(0).voice).toBe(voices[0])
+      expect(spoken(1).voice).toBe(voices[0])
+      expect(spoken(1).pitch).toBe(0.8)
+    })
+  })
 })
