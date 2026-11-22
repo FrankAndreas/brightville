@@ -52,8 +52,10 @@ const device = detectDevice()
 /** The device, and whether the parents chose films for the Cinema */
 const caps = computed(() => ({ ...device, films: player.films.length > 0 }))
 // Doors follow the Stars, the daily goal, the play time and the films: the town repaints them when they change
-const doors = computed(() => toDoors(props.buildings, caps.value, player.goalReached, player.stars, player.timeUp))
-const stateFor = (b: BuildingDef) => stateOf(b, caps.value, player.goalReached, player.stars, player.timeUp)
+const doors = computed(() => toDoors(props.buildings, caps.value, player.goalReached, player.stars, player.timeUp, player.level))
+const stateFor = (b: BuildingDef) => stateOf(b, caps.value, player.goalReached, player.stars, player.timeUp, player.level)
+/** What a building shows inside: its Oberstufe side at Oberstufe, when it has one of its own */
+const sideOf = (b: BuildingDef) => (player.level === 'oberstufe' && b.oberstufe?.component) || b.component
 /** No mouse, so most likely no keyboard: explain and prompt with fingers */
 const fingersOnly = device.touch && !device.keyboard
 
@@ -207,6 +209,7 @@ function doorLine(b: BuildingDef): string {
     case 'locked': return b.kind === 'shop' ? 'Erst lernen, dann einkaufen!' : 'Erst lernen, dann spielen!'
     case 'timeUp': return 'Für heute ist genug gespielt. Morgen wieder!'
     case 'poor': return `Du brauchst ${cost} Sterne.`
+    case 'soon': return `${b.spokenName}. Hier gibt es bald etwas für dich.`
     case 'open': return b.kind === 'play' && b.cost ? `${b.spokenName}. Das kostet ${cost} Sterne.` : b.spokenName
     default: return b.spokenName
   }
@@ -244,7 +247,7 @@ async function onEnter(id: string) {
   entering = true
   try {
     try {
-      await building.preload?.()
+      await (player.level === 'oberstufe' && building.oberstufe?.preload ? building.oberstufe.preload() : building.preload?.())
     } catch {
       // Offline or a new version on the server: stay in the town, keep the Stars
       return
@@ -415,7 +418,7 @@ onBeforeUnmount(() => {
       @close="closeParents" @saved="onSaved" @switch="switchPerson" @films-changed="player.refresh()"
     />
     <section v-if="inside" class="building">
-      <component :is="inside.component" @finished="onFinished" />
+      <component :is="sideOf(inside)" @finished="onFinished" />
       <LeaveButton />
       <SayAgain />
     </section>

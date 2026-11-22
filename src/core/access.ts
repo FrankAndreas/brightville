@@ -5,17 +5,24 @@
  *  - locked: a play building before today's learning is done
  *  - timeUp: a play building after today's play time is used up
  *  - poor: a play building the child doesn't have the Stars for
+ *  - soon: at Oberstufe, a building that has no Oberstufe content yet ("Bald")
  */
-export type DoorState = 'open' | 'unavailable' | 'locked' | 'timeUp' | 'poor'
+export type DoorState = 'open' | 'unavailable' | 'locked' | 'timeUp' | 'poor' | 'soon'
+
+/** A child's level: which content the buildings show, and which doors open */
+export type Level = 'kindergarten' | 'oberstufe'
 
 export function doorState(
-  building: { kind: 'earn' | 'play' | 'free' | 'shop'; cost?: number },
+  building: { kind: 'earn' | 'play' | 'free' | 'shop'; cost?: number; oberstufe?: object },
   canServe: boolean,
   goalReached: boolean,
   stars: number,
   timeUp = false,
+  level: Level = 'kindergarten',
 ): DoorState {
   if (!canServe) return 'unavailable'
+  // At Oberstufe only what has Oberstufe content opens (shared/buildings.json "oberstufe"; the server refuses the rest)
+  if (level === 'oberstufe' && !building.oberstufe) return 'soon'
   // The Kleiderladen: learn first, like play, but play time is no reason and looking costs nothing
   if (building.kind === 'shop') return goalReached ? 'open' : 'locked'
   // Learning and making things are always open

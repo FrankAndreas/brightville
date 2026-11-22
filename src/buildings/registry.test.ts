@@ -200,4 +200,21 @@ describe('the buildings file the server reads', () => {
       if (b.kind === 'earn') expect(s.maxStars).toBeGreaterThan(0)
     }
   })
+
+  it('the buildings open at Oberstufe are exactly those with "oberstufe" in shared/buildings.json', () => {
+    const shared = sharedBuildings as { id: string; oberstufe?: object }[]
+    expect(BUILDINGS.filter(b => b.oberstufe).map(b => b.id).sort()).toEqual(shared.filter(b => b.oberstufe).map(b => b.id).sort())
+  })
+
+  it('the School has its own Oberstufe side, the others are the same', () => {
+    const find = (id: string) => BUILDINGS.find(b => b.id === id)
+    expect(find('school')?.oberstufe?.component).toBeDefined()
+    expect(find('school')?.oberstufe?.preload).toBeDefined()
+    expect(find('malen')?.oberstufe?.component).toBeUndefined()
+  })
+
+  it('a soon door is shut in the town', () => {
+    const reimhaus = BUILDINGS.find(b => b.id === 'reimhaus')!
+    expect(toDoors([reimhaus], { camera: true, touch: true, keyboard: true }, true, 99, false, 'oberstufe')[0]).toMatchObject({ open: false, locked: false })
+  })
 })

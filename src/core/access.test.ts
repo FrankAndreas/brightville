@@ -66,4 +66,28 @@ describe('doorState', () => {
     expect(doorState(free, true, true, 0, true)).toBe('open')
     expect(doorState(free, false, true, 99)).toBe('unavailable')
   })
+
+  it('at Oberstufe a building without Oberstufe content is "soon", whatever else holds', () => {
+    expect(doorState(earn, true, true, 99, false, 'oberstufe')).toBe('soon')
+    expect(doorState(play, true, true, 99, false, 'oberstufe')).toBe('soon')
+    expect(doorState(free, true, true, 99, false, 'oberstufe')).toBe('soon')
+    expect(doorState({ ...earn, oberstufe: {} }, true, false, 0, false, 'oberstufe')).toBe('open')
+    expect(doorState({ ...free, oberstufe: {} }, true, false, 0, false, 'oberstufe')).toBe('open')
+    // The shops keep their rule: learn first
+    expect(doorState({ ...shop, oberstufe: {} }, true, false, 0, false, 'oberstufe')).toBe('locked')
+    expect(doorState({ ...shop, oberstufe: {} }, true, true, 0, false, 'oberstufe')).toBe('open')
+    // A device that can't serve it says so first
+    expect(doorState(earn, false, true, 99, false, 'oberstufe')).toBe('unavailable')
+  })
+
+  it('at Kindergarten the Oberstufe makes no difference', () => {
+    expect(doorState(earn, true, false, 0, false, 'kindergarten')).toBe('open')
+    expect(doorState({ ...earn, oberstufe: {} }, true, false, 0)).toBe('open')
+    expect(doorState(play, true, false, 99)).toBe('locked')
+  })
+
+  it('at Oberstufe exactly the School, Malen, Mein Haus and the two shops open', () => {
+    const open = BUILDINGS.filter(b => doorState(b, true, true, 99, false, 'oberstufe') !== 'soon').map(b => b.id)
+    expect(open.sort()).toEqual(['haus', 'laden', 'malen', 'moebel', 'school'])
+  })
 })
