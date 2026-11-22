@@ -1,6 +1,6 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
-import { ApiError, type Api, type Film, type ServerState, type StickerRow } from '@/services/api'
+import { ApiError, type Api, type Film, type Level, type ServerState, type StickerRow } from '@/services/api'
 
 /** Why a round of play can't start: the server's reasons, or no answer from it */
 export type BuyResult = 'ok' | 'locked' | 'poor' | 'time_up' | 'offline'
@@ -24,6 +24,8 @@ export const usePlayerStore = defineStore('player', () => {
   const stars = ref(0)
   const visitsToday = ref(0)
   const dailyGoal = ref(2)
+  /** Kindergarten or Oberstufe: which content the buildings show, and which doors open */
+  const level = ref<Level>('kindergarten')
   const playSeconds = ref(0)
   /** Minutes of play per day; null for no limit */
   const playMinutes = ref<number | null>(null)
@@ -92,6 +94,7 @@ export const usePlayerStore = defineStore('player', () => {
     stars.value = state.stars
     visitsToday.value = state.visits
     dailyGoal.value = state.daily_goal
+    level.value = state.level ?? 'kindergarten'
     playSeconds.value = state.play_seconds
     playMinutes.value = state.play_minutes
     savings.value = state.savings ?? 0
@@ -299,7 +302,7 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   return {
-    stars, savings, day, visitsToday, dailyGoal, playSeconds, playMinutes, goalReached, timeUp, loaded, pending,
+    stars, savings, day, visitsToday, dailyGoal, level, playSeconds, playMinutes, goalReached, timeUp, loaded, pending,
     films, init, refresh, earn, buy, reportPlayTime,
     /** The server's numbers after something it did elsewhere (a purchase in the Kleiderladen) */
     applyState: (state: ServerState) => {

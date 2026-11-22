@@ -127,4 +127,21 @@ describe('httpApi', () => {
     expect(JSON.parse(calls[0][1].body as string)).toEqual({ building: 'malen', key: 'k1' })
     expect(JSON.parse(calls[2][1].body as string)).toEqual({ ids: ['buecherwurm'] })
   })
+  it('knows the vocabulary routes', async () => {
+    const fetchFn = vi.fn(async () => json(200, {}))
+    const api = httpApi(fetchFn)
+    const list = { lang: 'en' as const, name: 'Unit 3', words: [{ de: 'der Zug', foreign: 'train' }] }
+    await api.vocab()
+    await api.createList(list)
+    await api.updateList(4, list)
+    await api.deleteList(4)
+    await api.vocabResults({ key: 'k', lang: 'fr', answers: [{ word: 'fr:own:le train', right: true }] })
+    await api.playerVocab(2)
+    const calls = fetchFn.mock.calls.map(c => c as unknown as [string, RequestInit])
+    expect(calls.map(([url, init]) => [url, init.method])).toEqual([
+      ['/api/vocab', 'GET'], ['/api/vocab/lists', 'POST'], ['/api/vocab/lists/4', 'PUT'], ['/api/vocab/lists/4', 'DELETE'],
+      ['/api/vocab/results', 'POST'], ['/api/players/2/vocab', 'GET'],
+    ])
+    expect(JSON.parse(calls[1][1].body as string)).toEqual(list)
+  })
 })

@@ -4,6 +4,7 @@ import type { Place } from '@/core/outfits'
 import type { Spot } from '@/core/furniture'
 import type { Ladder, Ladders } from '@/core/ladders'
 import type { Letters } from '@/core/writing/levels'
+import type { Lang, Progress, VocabList } from '@/core/vocab/types'
 
 export type { LogDay, LogEntry } from '@/core/diary'
 
@@ -37,6 +38,33 @@ export interface ServerState {
   play_minutes: number | null
   /** Stars saved before the shop came: they count half there (core/outfits.ts shopMoney) */
   savings: number
+  /** At Oberstufe only the buildings with Oberstufe content open; a server from before it doesn't say (Kindergarten) */
+  level?: Level
+}
+
+/** A child's level, set by the parents */
+export type Level = 'kindergarten' | 'oberstufe'
+
+/** The Oberstufe's vocabulary (backend/app/vocab.py): his lists, how well he knows each word, his results the server has */
+export interface VocabState {
+  lists: VocabList[]
+  progress: Progress
+  seen?: string[]
+}
+
+/** His list as he sends it: `id` for one that exists */
+export interface ListDraft {
+  id?: number
+  lang: Lang
+  name: string
+  words: { de: string; foreign: string }[]
+}
+
+/** One round's first answers, counted once by `key` */
+export interface VocabResultsIn {
+  key: string
+  lang: Lang
+  answers: { word: string; right: boolean }[]
 }
 
 /** Her look and her add-ons (backend/app/wardrobe.py) */
@@ -53,6 +81,8 @@ export interface Rules {
   play_minutes: number | null
   /** Left out: the Stars stay as they are, with whatever was earned since the page was loaded */
   stars?: number
+  /** Left out: the level stays */
+  level?: Level
 }
 
 /** For the parents' page; `owned`: the add-ons a player has (stage 7), `furniture`: her furniture (stage 8) */
@@ -182,6 +212,15 @@ export interface Api {
   playerSchool(personId: number): Promise<SchoolState>
   /** Parents only; step 1–6. Rejects with 'bad_step' or 'unknown'. */
   setPlayerStep(personId: number, ladder: Ladder, step: number): Promise<SchoolState>
+  vocab(): Promise<VocabState>
+  /** Rejects with 'too-many', 'too-long', 'empty' or 'bad-lang' */
+  createList(list: Omit<ListDraft, 'id'>): Promise<VocabList>
+  /** As createList, and 'unknown' for a list that isn't his */
+  updateList(id: number, list: Omit<ListDraft, 'id'>): Promise<VocabList>
+  deleteList(id: number): Promise<VocabState>
+  vocabResults(results: VocabResultsIn): Promise<VocabState>
+  /** Parents only */
+  playerVocab(personId: number): Promise<VocabState>
 }
 
 type Fetch = (url: string, init: RequestInit) => Promise<Response>
@@ -268,5 +307,11 @@ export function httpApi(fetchFn: Fetch = (url, init) => fetch(url, init), onRene
     schoolResults: results => call('POST', '/api/school/results', results, WRITING_TIMEOUT_MS),
     playerSchool: personId => call('GET', `/api/players/${personId}/school`),
     setPlayerStep: (personId, ladder, step) => call('PUT', `/api/players/${personId}/school`, { ladder, step }),
+    vocab: () => call('GET', '/api/vocab'),
+    createList: list => call('POST', '/api/vocab/lists', list),
+    updateList: (id, list) => call('PUT', `/api/vocab/lists/${id}`, list),
+    deleteList: id => call('DELETE', `/api/vocab/lists/${id}`),
+    vocabResults: results => call('POST', '/api/vocab/results', results, WRITING_TIMEOUT_MS),
+    playerVocab: personId => call('GET', `/api/players/${personId}/vocab`),
   }
 }

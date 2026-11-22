@@ -44,7 +44,8 @@ def test_a_list_is_made_changed_and_deleted(mia):
     changed = mia.put(f"/api/vocab/lists/{body['id']}", json={"lang": "en", "name": "Unit 4", "words": words(2)})
     assert changed.json()["name"] == "Unit 4" and len(changed.json()["words"]) == 2
     assert [x["name"] for x in mia.get("/api/vocab").json()["lists"]] == ["Unit 4"]
-    assert mia.delete(f"/api/vocab/lists/{body['id']}").status_code == 204
+    deleted = mia.delete(f"/api/vocab/lists/{body['id']}")
+    assert deleted.status_code == 200 and deleted.json()["lists"] == []
     assert mia.get("/api/vocab").json()["lists"] == []
 
 

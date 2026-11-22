@@ -42,6 +42,17 @@ describe('player store', () => {
     expect(player.loaded).toBe(true)
   })
 
+  it('knows the child\'s level, Kindergarten when the server doesn\'t say', async () => {
+    expect((await open()).level).toBe('kindergarten')
+    setActivePinia(createPinia())
+    api = fakeApi({ level: 'oberstufe' })
+    expect((await open()).level).toBe('oberstufe')
+    setActivePinia(createPinia())
+    api = fakeApi()
+    delete (api.state_ as { level?: string }).level
+    expect((await open()).level).toBe('kindergarten')
+  })
+
   it('knows the Cinema\'s films, and keeps them when the server is away for a moment', async () => {
     api.films_ = [{ id: 1, youtube_id: 'dQw4w9WgXcQ', title: 'Lieder' }]
     const player = await open()

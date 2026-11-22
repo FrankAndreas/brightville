@@ -636,15 +636,16 @@ def vocab_update(
         raise _vocab_refused(refused) from None
 
 
-@app.delete("/api/vocab/lists/{list_id}", status_code=204)
+@app.delete("/api/vocab/lists/{list_id}")
 def vocab_delete(
     list_id: int, person: Person = Depends(auth.current_person), db: sqlite3.Connection = Depends(get_db)
-) -> Response:
+) -> dict:
+    """Answers with his vocabulary as it is now (the page reads every answer as JSON)"""
     try:
         vocab.delete(db, person.id, list_id)
     except game.Refused as refused:
         raise _vocab_refused(refused) from None
-    return Response(status_code=204)
+    return vocab.state(db, person.id)
 
 
 @app.post("/api/vocab/results")

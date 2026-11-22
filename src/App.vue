@@ -31,6 +31,7 @@ import { forgetInstruction, speak } from '@/services/tts'
 import { usePlayerStore } from '@/stores/player'
 import { useRoomStore } from '@/stores/room'
 import { useLaddersStore } from '@/stores/ladders'
+import { useVocabStore } from '@/stores/vocab'
 import { useWritingStore } from '@/stores/writing'
 import { useWardrobeStore } from '@/stores/wardrobe'
 import { useSessionStore } from '@/stores/session'
@@ -46,6 +47,7 @@ const wardrobe = useWardrobeStore()
 const room = useRoomStore()
 const writing = useWritingStore()
 const ladderStore = useLaddersStore()
+const vocab = useVocabStore()
 const device = detectDevice()
 /** The device, and whether the parents chose films for the Cinema */
 const caps = computed(() => ({ ...device, films: player.films.length > 0 }))
@@ -129,6 +131,9 @@ watch(() => (session.status === 'ready' ? session.person?.id : undefined), async
   ladderStore.init(props.api, id)
   // Her School steps: until they come, the School asks at the first steps
   void ladderStore.load()
+  // His words at Oberstufe, due by the game's day; asked for every child (a few bytes), so a level set later just works
+  vocab.init(props.api, id, undefined, () => player.day)
+  void vocab.load()
   // The room is only needed in the house and the Möbelhaus: the game doesn't wait for it
   void room.load()
   await Promise.all([player.refresh(), wardrobe.load()])
@@ -342,6 +347,8 @@ const refresh = () => {
     void room.load()
     // A step a parent set (here or elsewhere) reaches the School
     void ladderStore.load()
+    // His words changed on another device, and rounds that waited here
+    void vocab.load()
   }
 }
 let refreshTimer: ReturnType<typeof setInterval> | undefined
