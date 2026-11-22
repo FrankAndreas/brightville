@@ -177,6 +177,10 @@ CREATE TABLE school_keys (
 INSERT INTO school_ladders (person_id, ladder, step, recent)
     SELECT DISTINCT person_id, 'rechnen', 2, '[]' FROM events WHERE building = 'school';
 """,
+    # The Oberstufe: each child's level; every child so far is at Kindergarten
+    """
+ALTER TABLE players ADD COLUMN level TEXT NOT NULL DEFAULT 'kindergarten';
+""",
 ]
 VERSION = len(MIGRATIONS)
 

@@ -10,6 +10,10 @@ from . import clock
 from .buildings import Building
 from .db import writing
 
+KINDERGARTEN = "kindergarten"
+OBERSTUFE = "oberstufe"
+LEVELS = (KINDERGARTEN, OBERSTUFE)
+
 
 @dataclass
 class State:
@@ -21,6 +25,8 @@ class State:
     play_minutes: Optional[int]
     # Stars saved before the shop came (stage 7): they count half there, and never more than the Stars she has
     savings: int = 0
+    # 'kindergarten' or 'oberstufe': at Oberstufe only the buildings with Oberstufe content open (shared/buildings.json)
+    level: str = KINDERGARTEN
 
     def goal_reached(self) -> bool:
         return self.visits >= self.daily_goal
@@ -69,6 +75,7 @@ def _row(db: sqlite3.Connection, person_id: int) -> State:
         play_seconds=row["play_seconds"] if same_day else 0,
         play_minutes=row["play_minutes"],
         savings=row["savings"],
+        level=row["level"],
     )
 
 
@@ -76,12 +83,25 @@ def _store(db: sqlite3.Connection, person_id: int, state: State) -> None:
     # Savings are part of the Stars: whatever takes Stars (a round, a parent's change) takes them down too
     state.savings = max(0, min(state.savings, state.stars))
     db.execute(
-        "INSERT INTO players (person_id, stars, day, visits, play_seconds, daily_goal, play_minutes, savings)"
-        " VALUES (:id, :stars, :day, :visits, :play_seconds, :daily_goal, :play_minutes, :savings)"
+        "INSERT INTO players (person_id, stars, day, visits, play_seconds, daily_goal, play_minutes, savings, level)"
+        " VALUES (:id, :stars, :day, :visits, :play_seconds, :daily_goal, :play_minutes, :savings, :level)"
         " ON CONFLICT (person_id) DO UPDATE SET stars = :stars, day = :day, visits = :visits,"
-        " play_seconds = :play_seconds, daily_goal = :daily_goal, play_minutes = :play_minutes, savings = :savings",
+        " play_seconds = :play_seconds, daily_goal = :daily_goal, play_minutes = :play_minutes, savings = :savings,"
+        " level = :level",
         {"id": person_id, **state.as_dict()},
     )
+
+
+def check_open(state: State, building: Building) -> None:
+    """At Oberstufe a building without Oberstufe content is closed ("Bald"): Refused('soon')"""
+    if state.level == OBERSTUFE and not building.oberstufe:
+        raise Refused("soon")
+
+
+def _max_stars(state: State, building: Building) -> int:
+    if state.level == OBERSTUFE and building.oberstufe_max_stars is not None:
+        return building.oberstufe_max_stars
+    return building.max_stars
 
 
 def _seen(db: sqlite3.Connection, person_id: int, key: str) -> bool:
@@ -128,7 +148,8 @@ def visit(db: sqlite3.Connection, person_id: int, building: Building, stars: int
     whether this visit reached today's goal. A key seen before changes nothing."""
     with writing(db):
         now = _row(db, person_id)
-        earned = min(stars, building.max_stars)
+        check_open(now, building)
+        earned = min(stars, _max_stars(now, building))
         if earned <= 0 or _seen(db, person_id, key):
             return now, False
         _check_pace(db, person_id, building, earned)
@@ -150,6 +171,7 @@ def visit(db: sqlite3.Connection, person_id: int, building: Building, stars: int
 def free_visit(db: sqlite3.Connection, person_id: int, building: Building, key: str) -> None:
     """A visit to a free building: no Stars either way, only remembered for the logbook and the stickers."""
     with writing(db):
+        check_open(_row(db, person_id), building)
         if not _seen(db, person_id, key):
             _log(db, person_id, key, "free", building.id, 0)
 
@@ -161,6 +183,7 @@ def play(db: sqlite3.Connection, person_id: int, building: Building, key: str) -
         # Sent again because the answer was lost: the round is bought already
         if _seen_today(db, person_id, key):
             return now
+        check_open(now, building)
         if not now.goal_reached():
             raise Refused("locked")
         if now.time_up():
@@ -186,13 +209,21 @@ def add_play_time(db: sqlite3.Connection, person_id: int, seconds: int) -> State
 
 
 def set_rules(
-    db: sqlite3.Connection, person_id: int, daily_goal: int, play_minutes: Optional[int], stars: Optional[int]
+    db: sqlite3.Connection,
+    person_id: int,
+    daily_goal: int,
+    play_minutes: Optional[int],
+    stars: Optional[int],
+    level: Optional[str] = None,
 ) -> State:
-    """A parent's settings; today's visits and play time stay as they are, and the Stars too when `stars` is None."""
+    """A parent's settings; today's visits and play time stay as they are, the Stars too when `stars` is None and the
+    level when `level` is None."""
     with writing(db):
         now = _row(db, person_id)
         now.daily_goal, now.play_minutes = daily_goal, play_minutes
         if stars is not None:
             now.stars = stars
+        if level is not None:
+            now.level = level
         _store(db, person_id, now)
         return now

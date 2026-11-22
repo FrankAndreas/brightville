@@ -28,6 +28,7 @@ def test_a_parent_sees_everyone_who_may_play_children_first(papa, mia):
         "play_seconds": 0,
         "play_minutes": None,
         "savings": 0,
+        "level": "kindergarten",
         "owned": [],
         "furniture": [],
     }
@@ -44,6 +45,7 @@ def test_a_parent_sets_the_goal_the_play_time_and_the_stars(papa, mia):
         "play_seconds": 0,
         "play_minutes": 20,
         "savings": 0,
+        "level": "kindergarten",
     }
     mia.post("/api/visits", json={"building": "school", "stars": 1, "key": "v"})
     assert mia.post("/api/plays", json={"building": "arcade", "key": "p"}).status_code == 200

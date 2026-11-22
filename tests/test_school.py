@@ -56,7 +56,8 @@ def test_a_child_who_used_the_old_school_starts_rechnen_at_2(tmp_path, monkeypat
     """Decided once, when the ladders came: her School visits from before them"""
     monkeypatch.setenv("DATA_DIR", str(tmp_path))
     old = sqlite3.connect(tmp_path / "brightville.db")
-    before = len(database.MIGRATIONS) - 1
+    # Just before the ladders came
+    before = next(i for i, step in enumerate(database.MIGRATIONS) if "CREATE TABLE school_ladders" in step)
     for step in database.MIGRATIONS[:before]:
         old.executescript(step)
     old.execute(
