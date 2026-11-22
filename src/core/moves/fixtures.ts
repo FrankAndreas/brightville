@@ -32,6 +32,8 @@ export const ARMS_UP = changed({ lElbow: [0.6, 0.2], rElbow: [0.4, 0.2], lWrist:
 export const ARMS_T = changed({ lElbow: [0.7, 0.3], rElbow: [0.3, 0.3], lWrist: [0.82, 0.3], rWrist: [0.18, 0.3] })
 export const HANDS_ON_HIPS = changed({ lElbow: [0.68, 0.42], rElbow: [0.32, 0.42], lWrist: [0.57, 0.55], rWrist: [0.43, 0.55] })
 export const HANDS_ON_HEAD = changed({ lElbow: [0.68, 0.18], rElbow: [0.32, 0.18], lWrist: [0.55, 0.14], rWrist: [0.45, 0.14] })
+/** His own left arm up (MediaPipe's left landmarks are the person's left), the right one down */
+export const LEFT_ARM_UP = changed({ lElbow: [0.66, 0.2], lWrist: [0.7, 0.06] })
 export const WAVE = changed({ lElbow: [0.66, 0.2], lWrist: [0.7, 0.06] })
 export const CLAP = changed({ lElbow: [0.62, 0.45], rElbow: [0.38, 0.45], lWrist: [0.52, 0.42], rWrist: [0.48, 0.42] })
 /** Down in a squat: the upper body 0.8 shoulder widths lower */
