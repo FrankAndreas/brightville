@@ -105,3 +105,23 @@ describe('the round', () => {
     expect(flow.state.stars).toBe(3)
   })
 })
+
+describe('a dictated word', () => {
+  const dictated: RoundItem = { word: { key: 'fr:spell:t:w', de: 'die Schule', foreign: "l'école", source: 't' }, mode: 'dictate' }
+
+  it('is checked against the foreign word, accents counting', () => {
+    const flow = createRoundFlow([dictated], 'fr')
+    flow.answer("l'ecole")
+    expect(flow.state.phase).toBe('wrong')
+    expect(flow.state.checked?.verdict).toBe('accent')
+    flow.retype("l'école")
+    expect(flow.state.phase).toBe('right')
+  })
+
+  it('a right spelling is right', () => {
+    const flow = createRoundFlow([dictated], 'fr')
+    flow.answer("L'école")
+    expect(flow.state.phase).toBe('right')
+    expect(flow.state.firstTry).toEqual([{ key: 'fr:spell:t:w', right: true }])
+  })
+})

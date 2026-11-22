@@ -24,7 +24,7 @@ export interface RoundState {
   stars: number
 }
 
-/** What a word's answer is compared with, and in which language: German for a typed foreign word, else the foreign word */
+/** What a word's answer is compared with, and in which language: German for a typed foreign word, else (also a dictated word) the foreign word */
 export function expectedOf(item: RoundItem, lang: Lang): { text: string; lang: Lang | 'de' } {
   return item.mode === 'type-foreign' ? { text: item.word.de, lang: 'de' } : { text: item.word.foreign, lang }
 }
