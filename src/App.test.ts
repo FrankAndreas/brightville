@@ -203,6 +203,26 @@ describe('App', () => {
     const school: BuildingDef = { ...stub, id: 'school', oberstufe: { component: Vok } }
     const other: BuildingDef = { ...stub, id: 'other', spokenName: 'Reimhaus', door: { x: 9, z: 9 } }
 
+    it('a parent who switches their own level gets that town at once, without reloading', async () => {
+      api = fakeApi({}, { person: { id: 7, name: 'Papa', role: 'PARENT', color: null } })
+      const w = await started([school, other])
+      cityOptions.onNearDoor('other')
+      await nextTick()
+      expect(w.find('[data-test="door-prompt"]').attributes('data-state')).not.toBe('soon')
+      // Saved on the parents' page: the town asks the server again (App onSaved)
+      api.state_.level = 'oberstufe'
+      await usePlayerStore().refresh()
+      await nextTick()
+      cityOptions.onNearDoor('other')
+      await nextTick()
+      expect(w.find('[data-test="door-prompt"]').attributes('data-state')).toBe('soon')
+      cityOptions.onNearDoor('school')
+      cityOptions.onEnter('school')
+      await flushPromises()
+      expect(w.find('[data-test="oberstufe-side"]').exists()).toBe(true)
+      w.unmount()
+    })
+
     it('the School opens its Oberstufe side, another building says "soon"', async () => {
       api = fakeApi({ level: 'oberstufe' })
       const w = await started([school, other])
