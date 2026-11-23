@@ -9,7 +9,10 @@ const TEN = Array.from({ length: 10 }, (_, i) => item(i))
 function ears() {
   const waiting: { resolve: (h: string[]) => void; reject: (e: Error) => void }[] = []
   const hear = vi.fn(() => new Promise<string[]>((resolve, reject) => { waiting.push({ resolve, reject }) }))
-  return { hear, say: (...h: string[]) => waiting.shift()!.resolve(h), refuse: () => waiting.shift()!.reject(new Error('not-allowed')) }
+  return {
+    hear, say: (...h: string[]) => waiting.shift()!.resolve(h), refuse: () => waiting.shift()!.reject(new Error('not-allowed')),
+    fail: () => waiting.shift()!.reject(new Error('failed')),
+  }
 }
 
 describe('a speaking round, step by step', () => {
@@ -52,6 +55,19 @@ describe('a speaking round, step by step', () => {
     e.refuse()
     await p
     expect(f.state).toMatchObject({ phase: 'denied', tries: 0 })
+  })
+
+  it('a recogniser that fails is told apart from a refused microphone, and is no try either', async () => {
+    const e = ears()
+    const f = createSpeakFlow(TEN, 'en', e.hear)
+    const p = f.listen()
+    e.fail()
+    await p
+    expect(f.state).toMatchObject({ phase: 'failed', tries: 0 })
+    const q = f.listen()
+    e.say('word0')
+    await q
+    expect(f.state.phase).toBe('right')
   })
 
   it('a second tap while listening starts nothing', async () => {

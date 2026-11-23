@@ -14,12 +14,17 @@ interface Recognition {
   onerror: ((e: { error: string }) => void) | null
   onend: (() => void) | null
   start(): void
+  stop(): void
   abort(): void
 }
 type RecognitionClass = new () => Recognition
 
 const LOCALE: Record<Lang, string> = { en: 'en-GB', fr: 'fr-FR' }
 const REFUSED = new Set(['not-allowed', 'service-not-allowed'])
+/** Errors that are just silence or our own stopping: nothing heard */
+const QUIET = new Set(['no-speech', 'aborted'])
+/** After asking the recogniser to stop, how long to wait for its end before taking what it heard */
+const END_GRACE_MS = 1500
 
 function recognitionClass(): RecognitionClass | null {
   if (typeof window === 'undefined') return null
@@ -46,10 +51,12 @@ export function stopRecognising(): void {
 
 /**
  * Listens for one utterance in the language and hands back what the recogniser heard, every alternative it offers
- * (best first). Nothing heard, an error or the time running out: an empty list. Rejects only with Error('not-allowed')
- * when the microphone or the recogniser is refused. Call it on a tap (the iPad wants that).
+ * (best first); silence: an empty list. When the time runs out the recogniser is asked to stop (it then hands over what
+ * it heard so far). Rejects with Error('not-allowed') when the microphone or the recogniser is refused, and with
+ * Error('failed') when it can't work just now (the microphone busy, no connection, it won't start). Call it on a tap
+ * (the iPad wants that).
  */
-export function recognise(lang: Lang, timeoutMs = 7000): Promise<string[]> {
+export function recognise(lang: Lang, timeoutMs = 10000): Promise<string[]> {
   stopRecognising()
   const Class = recognitionClass()
   if (!Class) return Promise.resolve([])
@@ -57,11 +64,18 @@ export function recognise(lang: Lang, timeoutMs = 7000): Promise<string[]> {
     const recognition = new Class()
     let done = false
     let heard: string[] = []
-    const timer = setTimeout(() => { if (!done) stopRecognising() }, timeoutMs)
+    let grace: ReturnType<typeof setTimeout> | undefined
+    // Time's up: stop listening and keep what was heard (abort would throw it away); if no end follows, take it anyway
+    const timer = setTimeout(() => {
+      if (done) return
+      grace = setTimeout(() => settle(heard), END_GRACE_MS)
+      try { recognition.stop() } catch { settle(heard) }
+    }, timeoutMs)
     const finish = (fn: () => void) => {
       if (done) return
       done = true
       clearTimeout(timer)
+      clearTimeout(grace)
       if (current?.recognition === recognition) current = null
       fn()
     }
@@ -77,13 +91,14 @@ export function recognise(lang: Lang, timeoutMs = 7000): Promise<string[]> {
     }
     recognition.onerror = e => {
       if (REFUSED.has(e.error)) finish(() => reject(new Error('not-allowed')))
-      else settle([])
+      else if (QUIET.has(e.error)) settle(heard)
+      else finish(() => reject(new Error('failed')))
     }
     recognition.onend = () => settle(heard)
     try {
       recognition.start()
     } catch {
-      settle([])
+      finish(() => reject(new Error('failed')))
     }
   })
 }

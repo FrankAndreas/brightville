@@ -15,7 +15,7 @@ export interface SpeakState {
   tries: number
   /** What the recogniser heard last time (its best guess) */
   heard: string | null
-  phase: 'ready' | 'listening' | 'right' | 'wrong' | 'shown' | 'nothing' | 'denied' | 'done'
+  phase: 'ready' | 'listening' | 'right' | 'wrong' | 'shown' | 'nothing' | 'denied' | 'failed' | 'done'
   stars: number
   /** The items finished: said right, or shown after the last try */
   results: { key: string; right: boolean }[]
@@ -33,16 +33,17 @@ export function createSpeakFlow(items: SpeakItem[], lang: Lang, hear: (lang: Lan
   const current = () => items[state.index]
 
   async function listen(): Promise<void> {
-    if (stopped || !['ready', 'wrong', 'nothing', 'denied'].includes(state.phase)) return
+    if (stopped || !['ready', 'wrong', 'nothing', 'denied', 'failed'].includes(state.phase)) return
     const mine = ++asking
     const item = current()
     state.phase = 'listening'
     let alternatives: string[]
     try {
       alternatives = await hear(lang)
-    } catch {
+    } catch (e) {
       if (stopped || mine !== asking) return
-      state.phase = 'denied'
+      // Neither is a try: the microphone refused, or the recogniser not working just now
+      state.phase = e instanceof Error && e.message === 'not-allowed' ? 'denied' : 'failed'
       return
     }
     if (stopped || mine !== asking) return

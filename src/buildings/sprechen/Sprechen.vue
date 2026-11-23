@@ -6,7 +6,7 @@ import { builtinWords } from '@/core/vocab/builtin'
 import { ownWords } from '@/core/vocab/round'
 import type { Lang } from '@/core/vocab/types'
 import { playBeat } from '@/services/sound'
-import { hasVoice, speak } from '@/services/tts'
+import { hasVoice, speak, stopSpeaking } from '@/services/tts'
 import { usePlayerStore } from '@/stores/player'
 import { useSpeakStore } from '@/stores/speak'
 import { useVocabStore } from '@/stores/vocab'
@@ -77,7 +77,10 @@ watch(() => flow.value?.state.phase, phase => {
 })
 
 function mic() {
-  void flow.value?.listen()
+  if (!flow.value || flow.value.state.phase === 'listening') return
+  // The game's own voice must not be what the recogniser hears
+  stopSpeaking()
+  void flow.value.listen()
 }
 
 function leave() {
@@ -110,7 +113,7 @@ onBeforeUnmount(() => {
 
       <template v-if="item.mode === 'repeat'">
         <p class="big" data-test="say" :lang="lang">{{ item.shown }}</p>
-        <button v-if="voiced" type="button" class="again" aria-label="Nochmal hören" data-test="hear" @click="say(item.shown)">🔊</button>
+        <button v-if="voiced && flow.state.phase !== 'listening'" type="button" class="again" aria-label="Nochmal hören" data-test="hear" @click="say(item.shown)">🔊</button>
       </template>
       <template v-else>
         <p class="big" data-test="prompt-de" lang="de">{{ item.de }}</p>
@@ -131,6 +134,9 @@ onBeforeUnmount(() => {
       <p v-if="flow.state.phase === 'nothing'" class="line" data-test="nothing">Nichts gehört – tipp nochmal auf 🎤</p>
       <p v-if="flow.state.phase === 'denied'" class="line" data-test="denied">
         Das Mikrofon ist nicht erlaubt. Bitte in den Einstellungen erlauben, dann nochmal auf 🎤 tippen.
+      </p>
+      <p v-if="flow.state.phase === 'failed'" class="line" data-test="failed">
+        Die Spracherkennung geht gerade nicht (Mikrofon oder Internet). Nochmal auf 🎤 tippen.
       </p>
       <template v-if="flow.state.phase === 'shown'">
         <p class="line" data-test="heard">Gehört: „{{ flow.state.heard }}“</p>

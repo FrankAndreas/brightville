@@ -3,7 +3,7 @@ import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { fakeApi, type FakeApi } from '@/services/fakeApi'
 import { recognise, stopRecognising } from '@/services/recogniser'
-import { speak } from '@/services/tts'
+import { speak, stopSpeaking } from '@/services/tts'
 import { usePlayerStore } from '@/stores/player'
 import { useSpeakStore } from '@/stores/speak'
 import { useVocabStore } from '@/stores/vocab'
@@ -150,6 +150,27 @@ describe('the Trommelhaus at Oberstufe', () => {
     await flushPromises()
     expect(w.emitted('finished')).toEqual([[{ stars: 1 }]])
     expect(Object.keys(api.speak_)).toHaveLength(1)
+    w.unmount()
+  })
+
+  it('tapping 🎤 silences the game\'s own voice first, and 🔊 is gone while it listens (it must not answer for him)', async () => {
+    const w = await opened()
+    vi.mocked(stopSpeaking).mockClear()
+    vi.mocked(speak).mockClear()
+    vi.mocked(recognise).mockReturnValueOnce(new Promise(() => {}))
+    await w.find('[data-test="mic"]').trigger('click')
+    expect(stopSpeaking).toHaveBeenCalled()
+    expect(vi.mocked(stopSpeaking).mock.invocationCallOrder[0]).toBeLessThan(vi.mocked(recognise).mock.invocationCallOrder.at(-1)!)
+    expect(w.find('[data-test="hear"]').exists()).toBe(false)
+    expect(speak).not.toHaveBeenCalled()
+    w.unmount()
+  })
+
+  it('a failing recogniser says so', async () => {
+    const w = await opened()
+    vi.mocked(recognise).mockRejectedValueOnce(new Error('failed'))
+    await mic(w)
+    expect(w.find('[data-test="failed"]').text()).toContain('Die Spracherkennung geht gerade nicht')
     w.unmount()
   })
 

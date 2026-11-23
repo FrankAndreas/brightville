@@ -21,6 +21,10 @@ class FakeRecognition {
     this.onend?.()
   }
   fail(error: string) { this.onerror?.({ error }); this.onend?.() }
+  /** A result while still listening (no end yet) */
+  partly(text: string) {
+    this.onresult?.({ results: [Object.assign([{ transcript: text, confidence: 0.9 }], { isFinal: true })], resultIndex: 0 })
+  }
 }
 
 const rec = () => FakeRecognition.last!
@@ -56,11 +60,49 @@ describe('the recogniser', () => {
     const ended = recognise('en')
     rec().onend?.()
     expect(await ended).toEqual([])
-    const slow = recognise('en', 7000)
+  })
+
+  it('when the time runs out it stops (not aborts) and keeps what it heard', async () => {
+    const slow = recognise('en', 10000)
     const r = rec()
-    await vi.advanceTimersByTimeAsync(7000)
-    expect(await slow).toEqual([])
-    expect(r.abort).toHaveBeenCalled()
+    r.stop = vi.fn()
+    r.partly('it is raining again')
+    await vi.advanceTimersByTimeAsync(10000)
+    expect(r.stop).toHaveBeenCalled()
+    expect(r.abort).not.toHaveBeenCalled()
+    r.onend?.()
+    expect(await slow).toEqual(['it is raining again'])
+  })
+
+  it('if the recogniser never ends after stopping, what it heard still comes back', async () => {
+    const stuck = recognise('en', 10000)
+    const r = rec()
+    r.stop = vi.fn()
+    r.partly('hello')
+    await vi.advanceTimersByTimeAsync(10000 + 2000)
+    expect(await stuck).toEqual(['hello'])
+  })
+
+  it('listens ten seconds by default', async () => {
+    const quiet = recognise('en')
+    const r = rec()
+    r.stop = vi.fn(() => r.onend?.())
+    await vi.advanceTimersByTimeAsync(9000)
+    expect(r.stop).not.toHaveBeenCalled()
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(await quiet).toEqual([])
+  })
+
+  it('a microphone that fails, no connection or a start that throws: told apart from silence', async () => {
+    const busy = recognise('en')
+    rec().fail('audio-capture')
+    await expect(busy).rejects.toThrow('failed')
+    const offline = recognise('en')
+    rec().fail('network')
+    await expect(offline).rejects.toThrow('failed')
+    const Throwing = class extends FakeRecognition { start = vi.fn(() => { throw new Error('InvalidStateError') }) }
+    ;(window as unknown as { webkitSpeechRecognition: unknown }).webkitSpeechRecognition = Throwing
+    await expect(recognise('en')).rejects.toThrow('failed')
   })
 
   it('a refused microphone is told apart', async () => {
