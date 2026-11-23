@@ -36,6 +36,8 @@ import { useListenStore } from '@/stores/listen'
 import { useGrammarStore } from '@/stores/grammar'
 import { useReadingStore } from '@/stores/reading'
 import { useDatesStore } from '@/stores/dates'
+import { useSpeakStore } from '@/stores/speak'
+import { hasSpeech } from '@/services/recogniser'
 import { useWritingStore } from '@/stores/writing'
 import { useWardrobeStore } from '@/stores/wardrobe'
 import { useSessionStore } from '@/stores/session'
@@ -56,6 +58,7 @@ const listen = useListenStore()
 const grammar = useGrammarStore()
 const reading = useReadingStore()
 const dates = useDatesStore()
+const speakRecord = useSpeakStore()
 const device = detectDevice()
 // Some browsers (Safari) bring their voices late: counting them again repaints the doors that need one
 const stopWatchingVoices = watchVoices()
@@ -63,7 +66,7 @@ onBeforeUnmount(stopWatchingVoices)
 /** The device (with its voices, counted again when they arrive), and whether the parents chose films for the Cinema */
 const caps = computed(() => {
   void voiceCount.value
-  return { ...device, voice: hasAnyForeignVoice(), films: player.films.length > 0 }
+  return { ...device, voice: hasAnyForeignVoice(), speech: hasSpeech(), films: player.films.length > 0 }
 })
 // Doors follow the Stars, the daily goal, the play time and the films: the town repaints them when they change
 const doors = computed(() => toDoors(props.buildings, caps.value, player.goalReached, player.stars, player.timeUp, player.level))
@@ -162,6 +165,9 @@ watch(() => (session.status === 'ready' ? session.person?.id : undefined), async
   // His dates and times record, the same way
   dates.init(props.api, id, undefined, () => player.day)
   void dates.load()
+  // What he said right in the Trommelhaus, the same way
+  speakRecord.init(props.api, id, undefined, () => player.day)
+  void speakRecord.load()
   // The room is only needed in the house and the Möbelhaus: the game doesn't wait for it
   void room.load()
   await Promise.all([player.refresh(), wardrobe.load()])
@@ -382,6 +388,7 @@ const refresh = () => {
     void grammar.load()
     void reading.load()
     void dates.load()
+    void speakRecord.load()
   }
 }
 let refreshTimer: ReturnType<typeof setInterval> | undefined

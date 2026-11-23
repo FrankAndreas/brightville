@@ -156,7 +156,7 @@ describe('building registry', () => {
     const b = BUILDINGS.find(x => x.id === 'trommelhaus')
     expect(b).toMatchObject({ spokenName: 'Trommelhaus', icon: '🥁', kind: 'earn', needs: [], door: { x: 24, z: -3.5, side: 'back' } })
     const shared = (sharedBuildings as { id: string }[]).find(x => x.id === 'trommelhaus')
-    expect(shared).toEqual({ id: 'trommelhaus', kind: 'earn', maxStars: 10, minSecondsPerStar: 3 })
+    expect(shared).toEqual({ id: 'trommelhaus', kind: 'earn', maxStars: 10, minSecondsPerStar: 3, oberstufe: { maxStars: 15, needs: ['speech'] } })
     expect(SCENERY_HOUSES.some(h => h.spot.x === 24 && h.spot.z === -3.5)).toBe(false)
   })
 

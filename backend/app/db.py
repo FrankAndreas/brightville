@@ -292,6 +292,24 @@ UPDATE sqlite_sequence SET seq = (SELECT seq FROM sqlite_sequence WHERE name = '
 DROP TABLE films;
 ALTER TABLE films_new RENAME TO films;
 """,
+    # The Oberstufe's speaking (the Trommelhaus): per child and item, how often he said it right, the last day right
+    # (or null) and the last day asked; and the results counted
+    """
+CREATE TABLE speak_progress (
+    person_id INTEGER NOT NULL,
+    item TEXT NOT NULL,
+    right_count INTEGER NOT NULL,
+    last_right TEXT,
+    last_asked TEXT NOT NULL,
+    PRIMARY KEY (person_id, item)
+);
+CREATE TABLE speak_keys (
+    person_id INTEGER NOT NULL,
+    key TEXT NOT NULL,
+    day TEXT NOT NULL,
+    PRIMARY KEY (person_id, key)
+);
+""",
 ]
 VERSION = len(MIGRATIONS)
 

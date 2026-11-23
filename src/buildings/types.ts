@@ -1,8 +1,11 @@
 import type { Component } from 'vue'
 import type { DoorSpot } from '@/city/doors'
 
-/** What a building needs to be playable: from the device (`voice`: an English or French voice), or films chosen by the parents */
-export type Need = 'camera' | 'touch' | 'keyboard' | 'films' | 'voice'
+/**
+ * What a building needs to be playable: from the device (`voice`: an English or French voice; `speech`: the browser can
+ * recognise speech and there is a microphone), or films chosen by the parents
+ */
+export type Need = 'camera' | 'touch' | 'keyboard' | 'films' | 'voice' | 'speech'
 
 /** What a building reports when the child leaves it */
 export interface BuildingResult {
