@@ -86,8 +86,8 @@ describe('doorState', () => {
     expect(doorState(play, true, false, 99)).toBe('locked')
   })
 
-  it('at Oberstufe exactly the School, Schreiben, the Reimhaus, the Musterwerkstatt, the Bibliothek, the Kalender, the Spielwelt, Yoga, the Hüpfhalle, the Tanzsaal, the play buildings, Malen, Mein Haus and the two shops open', () => {
+  it('at Oberstufe exactly the School, Schreiben, the Reimhaus, the Musterwerkstatt, the Bibliothek, the Kalender, the Spielwelt, Yoga, the Hüpfhalle, the Tanzsaal, the play buildings, the Trommelhaus, Malen, Mein Haus and the two shops open', () => {
     const open = BUILDINGS.filter(b => doorState(b, true, true, 99, false, 'oberstufe') !== 'soon').map(b => b.id)
-    expect(open.sort()).toEqual(['arcade', 'bibliothek', 'bonbonjagd', 'flatterflug', 'haus', 'huepfhalle', 'kalender', 'kino', 'laden', 'malen', 'moebel', 'muster', 'reimhaus', 'schlange', 'school', 'schreiben', 'spielwelt', 'tanzsaal', 'yoga'])
+    expect(open.sort()).toEqual(['arcade', 'bibliothek', 'bonbonjagd', 'flatterflug', 'haus', 'huepfhalle', 'kalender', 'kino', 'laden', 'malen', 'moebel', 'muster', 'reimhaus', 'schlange', 'school', 'schreiben', 'spielwelt', 'tanzsaal', 'trommelhaus', 'yoga'])
   })
 })

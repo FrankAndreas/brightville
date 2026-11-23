@@ -102,3 +102,11 @@ def test_play_buildings_open_at_oberstufe(papa, mia):
     for building in ["arcade", "schlange", "bonbonjagd", "kino", "flatterflug"]:
         answer = mia.post("/api/plays", json={"building": building, "key": building})
         assert answer.status_code == 200, building
+
+
+def test_trommelhaus_speaks_at_oberstufe(papa, mia):
+    answer = mia.post("/api/visits", json={"building": "trommelhaus", "stars": 20, "key": "kg"})
+    assert answer.status_code == 200 and answer.json()["state"]["stars"] == 10
+    oberstufe(papa)
+    answer = mia.post("/api/visits", json={"building": "trommelhaus", "stars": 20, "key": "o"})
+    assert answer.status_code == 200 and answer.json()["state"]["stars"] == 10 + 15

@@ -3,7 +3,7 @@ import type { DoorDef } from '@/city/doors'
 import type { DeviceCaps } from '@/services/device'
 
 /** What the device can do, and what the town has: the Cinema needs films */
-export type Capabilities = DeviceCaps & { films?: boolean }
+export type Capabilities = DeviceCaps & { films?: boolean; speech?: boolean }
 import type { BuildingDef } from './types'
 import { defineAsyncComponent } from 'vue'
 
@@ -185,6 +185,8 @@ export const BUILDINGS: BuildingDef[] = [
     // Rhythm by tapping or clapping (Lehrplan 21 MU): what was a plain house on the way to the Tanzsaal
     id: 'trommelhaus', spokenName: 'Trommelhaus', toName: 'zum Trommelhaus', icon: '🥁', kind: 'earn', needs: [], door: { x: 24, z: -3.5, side: 'back' },
     component: defineAsyncComponent(trommelhaus), preload: trommelhaus,
+    // At Oberstufe a speaking room in English or French: the browser's recogniser and a microphone
+    oberstufe: { needs: ['speech'] },
   },
 ]
 

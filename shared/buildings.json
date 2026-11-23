@@ -11,7 +11,7 @@
   { "id": "muster", "kind": "earn", "maxStars": 10, "minSecondsPerStar": 2, "oberstufe": { "maxStars": 15 } },
   { "id": "kalender", "kind": "earn", "maxStars": 10, "minSecondsPerStar": 2, "oberstufe": { "maxStars": 15 } },
   { "id": "spielwelt", "kind": "earn", "maxStars": 10, "minSecondsPerStar": 2, "oberstufe": { "maxStars": 10 } },
-  { "id": "trommelhaus", "kind": "earn", "maxStars": 10, "minSecondsPerStar": 3 },
+  { "id": "trommelhaus", "kind": "earn", "maxStars": 10, "minSecondsPerStar": 3, "oberstufe": { "maxStars": 15, "needs": ["speech"] } },
   { "id": "ausmalen", "kind": "free" },
   { "id": "malen", "kind": "free", "oberstufe": {} },
   { "id": "haus", "kind": "free", "oberstufe": {} },
