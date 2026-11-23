@@ -144,12 +144,12 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
       return { ...row }
     }),
     films: () => run('films', () => api.films_.map(f => ({ ...f }))),
-    addFilm: (url, title) => run(`addFilm ${url}`, () => {
-      // Enough of the server's rule for tests: the 11 characters after youtu.be/ or v=
+    addFilm: (url, title, level = 'kindergarten') => run(`addFilm ${url}`, () => {
+      // Enough of the server's rule for tests: the 11 characters after youtu.be/ or v=; unique per level
       const id = /(?:youtu\.be\/|v=)([A-Za-z0-9_-]{11})/.exec(url)?.[1]
       if (!id) throw new ApiError(422, 'not_youtube')
-      if (api.films_.some(f => f.youtube_id === id)) throw new ApiError(409, 'already_there')
-      const film = { id: Math.max(0, ...api.films_.map(f => f.id)) + 1, youtube_id: id, title: title.trim() }
+      if (api.films_.some(f => f.youtube_id === id && (f.level ?? 'kindergarten') === level)) throw new ApiError(409, 'already_there')
+      const film = { id: Math.max(0, ...api.films_.map(f => f.id)) + 1, youtube_id: id, title: title.trim(), level }
       api.films_.push(film)
       return { ...film }
     }),

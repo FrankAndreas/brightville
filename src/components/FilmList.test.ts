@@ -1,11 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { fakeApi } from '@/services/fakeApi'
+import type { Film } from '@/services/api'
 import FilmList from './FilmList.vue'
 
-async function open() {
+async function open(more: Film[] = []) {
   const api = fakeApi()
-  api.films_ = [{ id: 1, youtube_id: 'dQw4w9WgXcQ', title: 'Lieder' }]
+  api.films_ = [{ id: 1, youtube_id: 'dQw4w9WgXcQ', title: 'Lieder' }, ...more]
   const w = mount(FilmList, { props: { api } })
   await flushPromises()
   return { api, w }
@@ -68,5 +69,20 @@ describe('FilmList', () => {
     await w.find('form').trigger('submit')
     await flushPromises()
     expect(w.find('[data-test="film-message"]').text()).toBe('Das hat nicht geklappt. Bitte nochmal versuchen.')
+  })
+
+  it('keeps one list per level: hers first, his after the switch, and adds to the one shown', async () => {
+    const { api, w } = await open([{ id: 2, youtube_id: 'bbbbbbbbbbb', title: 'Song', level: 'oberstufe' }])
+    await w.find('[data-test="film-level-kindergarten"]').trigger('click')
+    await flushPromises()
+    expect(rows(w).map(r => r.text())).toEqual([expect.stringContaining('Lieder')])
+    await w.find('[data-test="film-level-oberstufe"]').trigger('click')
+    expect(rows(w).map(r => r.text())).toEqual([expect.stringContaining('Song')])
+    await w.find('[data-test="film-url"]').setValue('https://youtu.be/ccccccccccc')
+    await w.find('[data-test="film-title"]').setValue('Series')
+    await w.find('form').trigger('submit')
+    await flushPromises()
+    expect(api.films_.find(f => f.title === 'Series')?.level).toBe('oberstufe')
+    expect(rows(w)).toHaveLength(2)
   })
 })

@@ -94,7 +94,7 @@ describe('httpApi', () => {
     expect(calls.map(([url, init]) => [url, init.method])).toEqual([
       ['/api/films', 'GET'], ['/api/films', 'POST'], ['/api/films/4', 'DELETE'],
     ])
-    expect(JSON.parse(calls[1][1].body as string)).toEqual({ url: 'https://youtu.be/dQw4w9WgXcQ', title: 'Lieder' })
+    expect(JSON.parse(calls[1][1].body as string)).toEqual({ url: 'https://youtu.be/dQw4w9WgXcQ', title: 'Lieder', level: 'kindergarten' })
   })
 
   it('knows the paintings', async () => {
