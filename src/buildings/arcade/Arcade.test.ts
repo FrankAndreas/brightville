@@ -14,7 +14,10 @@ vi.mock('@/services/tts', async () => {
   // An instruction is spoken like anything else, and kept for the 🔊 button
   const instruction = ref<string | null>(null)
   const instruct = vi.fn((text: string) => { instruction.value = text; return speak(text) })
-  return { speak, stopSpeaking: vi.fn(), instruct, instruction, forgetInstruction: vi.fn(() => { instruction.value = null }) }
+  return {
+    speak, stopSpeaking: vi.fn(), instruct, instruction, forgetInstruction: vi.fn(() => { instruction.value = null }),
+    hasVoice: vi.fn(() => true),
+  }
 })
 
 // A deck in a known order: the two cards of a pair lie next to each other
@@ -189,6 +192,14 @@ describe('Arcade', () => {
   it('shows no text besides the pictures', async () => {
     const w = await open()
     expect(w.text()).toBe('')
+    w.unmount()
+  })
+
+  it('in the Kindergarten the cards show the animals and say their German names', async () => {
+    const w = await open()
+    await click(w, 0)
+    expect(cards(w)[0].find('.picture').text()).toBe(ANIMALS[0].emoji)
+    expect(speak).toHaveBeenLastCalledWith(ANIMALS[0].say)
     w.unmount()
   })
 })
