@@ -287,6 +287,8 @@ CREATE TABLE films_new (
     UNIQUE (youtube_id, level)
 );
 INSERT INTO films_new (id, youtube_id, title, level) SELECT id, youtube_id, title, 'kindergarten' FROM films;
+-- Keep the id counter: a deleted film's id is never given again (a page left open might still show it)
+UPDATE sqlite_sequence SET seq = (SELECT seq FROM sqlite_sequence WHERE name = 'films') WHERE name = 'films_new';
 DROP TABLE films;
 ALTER TABLE films_new RENAME TO films;
 """,

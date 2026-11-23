@@ -159,3 +159,27 @@ def test_the_migration_keeps_existing_films_as_kindergarten(tmp_path, monkeypatc
         (9, "bbbbbbbbbbb", "Lieder", "kindergarten"),
     ]
     connection.close()
+
+
+def test_the_migration_never_gives_a_deleted_film_id_again(tmp_path, monkeypatch):
+    import sqlite3
+
+    from app import db as database
+
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    version = next(i for i, m in enumerate(database.MIGRATIONS) if "CREATE TABLE dates_progress" in m) + 1
+    old = sqlite3.connect(tmp_path / "brightville.db")
+    for step in database.MIGRATIONS[:version]:
+        old.executescript(step)
+    for i in range(1, 6):
+        old.execute("INSERT INTO films (youtube_id, title) VALUES (?, '')", (f"{i:011d}",))
+    old.execute("DELETE FROM films WHERE id >= 4")
+    old.execute(f"PRAGMA user_version = {version}")
+    old.commit()
+    old.close()
+    connection = database.connect()
+    from app import films
+
+    assert films.add(connection, "https://youtu.be/zzzzzzzzzzz", "Neu")["id"] == 6
+    connection.close()

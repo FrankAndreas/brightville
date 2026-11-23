@@ -39,6 +39,16 @@ describe('word memory', () => {
     }
   })
 
+  it('leaves out a word too long to read on a card', () => {
+    const long = w('en:t:long', 'a very long phrase that would never fit on a card', 'ein sehr langer Satz')
+    const longDe = w('en:t:longde', 'short', 'ein sehr langer deutscher Satz, der nie auf eine Karte passt')
+    for (let i = 0; i < 30; i++) {
+      const keys = pickMemoryWords([long, longDe, ...many(6)], {}, Math.random).map(x => x.key)
+      expect(keys).not.toContain('en:t:long')
+      expect(keys).not.toContain('en:t:longde')
+    }
+  })
+
   it('deals twelve cards: the word and its German, both written, the same pair', () => {
     const picked = many(6)
     const deck = wordDeck(picked, 'fr', Math.random)

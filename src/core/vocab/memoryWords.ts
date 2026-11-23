@@ -5,6 +5,8 @@ import type { Lang, Progress, VocabWord } from './types'
 // The Spielhalle at Oberstufe: a memory of words, each a pair of cards: the word in the language and its German.
 
 export const MEMORY_PAIRS = 6
+/** Longer texts don't fit on a card on the iPad (his own lists allow 200 characters) */
+export const MAX_CARD_TEXT = 28
 const VOICE: Record<Lang, string> = { en: 'en-GB', fr: 'fr-FR' }
 
 /** A card of the word memory: its text, the voice it is said in, and the word (key) its pair stands for */
@@ -26,7 +28,7 @@ function shuffle<T>(items: T[], rand: () => number): T[] {
 
 /**
  * Six words for a round: those he met in the School first (box ≥ 1, at random), then new ones. Never a word that looks
- * the same in both languages, and never two cards with the same text (two words sharing their word or their German).
+ * the same in both languages, nor one too long for a card, and never two cards with the same text (two words sharing their word or their German).
  */
 export function pickMemoryWords(words: VocabWord[], progress: Progress, rand: () => number, n = MEMORY_PAIRS): VocabWord[] {
   const met = shuffle(words.filter(w => (progress[w.key]?.box ?? 0) >= 1), rand)
@@ -37,6 +39,7 @@ export function pickMemoryWords(words: VocabWord[], progress: Progress, rand: ()
     if (out.length >= n) break
     const f = plain(first(w))
     const d = plain(w.de)
+    if (f.length > MAX_CARD_TEXT || d.length > MAX_CARD_TEXT) continue
     if (f === bare(w.de) || f === d || texts.has(f) || texts.has(d)) continue
     texts.add(f)
     texts.add(d)
