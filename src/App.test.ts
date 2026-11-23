@@ -32,6 +32,8 @@ vi.mock('./services/tts', async () => {
 })
 const device = vi.hoisted(() => ({ camera: true, touch: false, keyboard: true }))
 vi.mock('./services/device', () => ({ detectDevice: () => ({ ...device }) }))
+const speech = vi.hoisted(() => ({ can: true }))
+vi.mock('./services/recogniser', () => ({ hasSpeech: () => speech.can, recognise: vi.fn(async () => []), stopRecognising: vi.fn() }))
 
 const city = {
   pause: vi.fn(), resume: vi.fn(), dispose: vi.fn(), setDoors: vi.fn(), setDress: vi.fn(),
@@ -230,6 +232,30 @@ describe('App', () => {
       voiceCount.value++
       await nextTick()
       expect(w.find('[data-test="door-prompt"]').attributes('data-state')).toBe('open')
+      w.unmount()
+    })
+
+    it('a building that needs speech is crossed out without a recogniser, and open with one', async () => {
+      const talky: BuildingDef = { ...camOnly, id: 'talky', oberstufe: { component: Vok, needs: ['speech'] } }
+      api = fakeApi({ level: 'oberstufe' })
+      speech.can = false
+      const w = await started([talky])
+      cityOptions.onNearDoor('talky')
+      await nextTick()
+      expect(w.find('[data-test="door-prompt"]').attributes('data-state')).toBe('unavailable')
+      w.unmount()
+      speech.can = true
+      const w2 = await started([talky])
+      cityOptions.onNearDoor('talky')
+      await nextTick()
+      expect(w2.find('[data-test="door-prompt"]').attributes('data-state')).toBe('open')
+      w2.unmount()
+    })
+
+    it('loads his speaking record with the game', async () => {
+      api = fakeApi({ level: 'oberstufe' })
+      const w = await started([school])
+      expect(api.calls).toContain('speak')
       w.unmount()
     })
 
