@@ -35,9 +35,11 @@ const emit = defineEmits<{ tap: [item: T] }>()
 </template>
 
 <style scoped>
-.label { display: flex; flex-direction: column; align-items: center; line-height: 1.1; max-width: 100%; }
-.label .main { font: 700 clamp(12px, 1.7vh, 17px) system-ui, sans-serif; color: #23264a; text-align: center; }
-.label .de { font: 500 clamp(10px, 1.3vh, 13px) system-ui, sans-serif; color: #5b6070; text-align: center; }
+/* Sized by the narrower side, so the names fit the tiles on an upright iPad too; a long word may break */
+.label { display: flex; flex-direction: column; align-items: center; line-height: 1.1; max-width: 100%; padding: 0 3px; box-sizing: border-box; }
+.label .main, .label .de { max-width: 100%; text-align: center; overflow-wrap: anywhere; hyphens: auto; }
+.label .main { font: 700 clamp(9px, min(1.7vh, 1.55vw), 17px) system-ui, sans-serif; color: #23264a; }
+.label .de { font: 500 clamp(8px, min(1.3vh, 1.25vw), 13px) system-ui, sans-serif; color: #5b6070; }
 .shelves { display: flex; flex-direction: column; gap: 2.4vh; }
 .shelf {
   position: relative;
