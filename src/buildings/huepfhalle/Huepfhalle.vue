@@ -6,7 +6,12 @@ import { standing } from '@/core/pose/fixtures'
 import { ARMS_UP, BEND, HOP, SQUAT } from '@/core/moves/fixtures'
 import type { MoveId } from '@/core/moves/reps'
 import { playBeat, playNote } from '@/services/sound'
-import { instruct, speak } from '@/services/tts'
+import { forgetInstruction, instruct, speak } from '@/services/tts'
+import { coachWords } from '@/core/coach/words'
+import { createWorkoutFlow, pickWorkout, type WorkoutPart } from '@/core/coach/workout'
+import type { Lang } from '@/core/vocab/types'
+import CoachLine from '../coach/CoachLine.vue'
+import { coachQuiet, coachSay } from '../coach/voice'
 import { useCameraLoop, type CameraEvent } from '../cameraLoop'
 import MoveFigure from '../MoveFigure.vue'
 import NoCamera from '../NoCamera.vue'
@@ -17,6 +22,10 @@ import { REPS_PER_ROUND, createJumpFlow, pickMoves } from './flow'
 const props = defineProps<{
   /** The moves of this visit; picked at random when not given */
   moves?: MoveId[]
+  /** The Oberstufe: a coach gives a counted workout in English or French */
+  lang?: Lang
+  /** The Oberstufe's workout of this visit; picked at random when not given */
+  workout?: WorkoutPart[][]
 }>()
 const emit = defineEmits<{ finished: [result: BuildingResult] }>()
 
@@ -33,9 +42,21 @@ const SHOWN: Record<MoveId, [Body, Body]> = {
   strecken: [ARMS_UP, BEND],
 }
 
+/** What both flows have in common, as the screen reads it: `done` is the round's reps (the Kindergarten: `count`) */
+interface Hall {
+  state: { phase: string; move: MoveId | null; round: number; count: number; done?: number; stars: number; seen: boolean; lost: boolean }
+  send(event: CameraEvent): { type: string; text?: string; ask?: boolean; coach?: boolean }[]
+}
 const moves = props.moves ?? pickMoves()
-const flow = createJumpFlow(moves)
+const workout = props.lang ? props.workout ?? pickWorkout(Math.random) : null
+const flow: Hall = props.lang && workout ? createWorkoutFlow(workout, coachWords(props.lang)) : createJumpFlow(moves)
+const roundCount = workout?.length ?? moves.length
 const view = reactive({ ...flow.state })
+/** Reps of the round so far, for the meter and the round marks */
+const inRound = computed(() => (props.lang ? view.done ?? 0 : view.count))
+/** At Oberstufe: the coach's current instruction */
+const coachText = ref<string | null>(null)
+const firstLine = ref(true)
 const video = ref<HTMLVideoElement | null>(null)
 const showPeak = ref(false)
 const shown = computed(() => (view.move ? SHOWN[view.move][showPeak.value ? 1 : 0] : standing()))
@@ -48,8 +69,16 @@ function send(event: CameraEvent) {
   const effects = flow.send(event)
   Object.assign(view, flow.state)
   for (const effect of effects) {
-    if (effect.type === 'speak') void (effect.ask ? instruct : speak)(effect.text)
-    else if (effect.type === 'beat') playNote(SCALE[Math.min(SCALE.length, flow.state.count) - 1])
+    if (effect.type === 'speak' && effect.coach && props.lang) {
+      if (effect.ask) {
+        if (coachText.value) firstLine.value = false
+        coachText.value = effect.text ?? null
+        // The town's German 🔊 must not repeat the setup line now; the coach has its own
+        forgetInstruction()
+      }
+      void coachSay(props.lang, effect.text ?? '')
+    } else if (effect.type === 'speak') void (effect.ask ? instruct : speak)(effect.text ?? '')
+    else if (effect.type === 'beat') playNote(SCALE[Math.min(SCALE.length, inRound.value || flow.state.count) - 1])
     else if (effect.type === 'chime') playBeat('chime')
     else if (effect.type === 'confetti') doneTimer = setTimeout(leave, CONFETTI_MS)
   }
@@ -69,6 +98,7 @@ function leave() {
   clearTimeout(doneTimer)
   clearInterval(showTimer)
   camera.close()
+  if (props.lang) coachQuiet()
   emit('finished', { stars: flow.state.stars })
 }
 
@@ -88,10 +118,10 @@ onBeforeUnmount(() => {
     <template v-else>
       <div class="rounds" aria-hidden="true">
         <span
-          v-for="(_, i) in moves" :key="i" class="round" data-test="round"
-          :data-state="i + 1 < view.round || (i + 1 === view.round && view.count >= REPS_PER_ROUND) ? 'done' : i + 1 === view.round ? 'now' : 'todo'"
+          v-for="i in roundCount" :key="i" class="round" data-test="round"
+          :data-state="i < view.round || (i === view.round && inRound >= REPS_PER_ROUND) ? 'done' : i === view.round ? 'now' : 'todo'"
         >
-          <svg v-if="i + 1 < view.round || (i + 1 === view.round && view.count >= REPS_PER_ROUND)" viewBox="0 0 72 24" class="burst">
+          <svg v-if="i < view.round || (i === view.round && inRound >= REPS_PER_ROUND)" viewBox="0 0 72 24" class="burst">
             <path v-for="n in 3" :key="n" :transform="`translate(${(n - 1) * 24} 0)`" d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.2 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z" />
           </svg>
         </span>
@@ -109,9 +139,10 @@ onBeforeUnmount(() => {
 
         <div class="lesson">
           <MoveFigure class="figure" :body="shown" color="#4fb3e8" />
-          <div class="meter" data-test="meter" :data-count="view.count" aria-hidden="true">
-            <i v-for="n in REPS_PER_ROUND" :key="n" :data-on="n <= view.count" />
+          <div class="meter" data-test="meter" :data-count="inRound" aria-hidden="true">
+            <i v-for="n in REPS_PER_ROUND" :key="n" :data-on="n <= inRound" />
           </div>
+          <CoachLine v-if="lang && coachText" class="coach" :lang="lang" :text="coachText" :first="firstLine" />
         </div>
       </div>
 
@@ -196,4 +227,5 @@ video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
 }
 .meter i { flex: 1; border-radius: 10px; background: rgb(255 255 255 / 80%); transition: background 0.2s ease, transform 0.2s ease; }
 .meter i[data-on='true'] { background: linear-gradient(90deg, #ffd93d, #ff9a3c); animation: pop 0.35s ease; }
+.coach { position: absolute; left: 4%; right: 4%; top: 4%; }
 </style>

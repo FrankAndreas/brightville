@@ -25,7 +25,10 @@ vi.mock('@/services/tts', async () => {
   // An instruction is spoken like anything else, and kept for the 🔊 button
   const instruction = ref<string | null>(null)
   const instruct = vi.fn((text: string) => { instruction.value = text; return speak(text) })
-  return { speak, stopSpeaking: vi.fn(), instruct, instruction, forgetInstruction: vi.fn(() => { instruction.value = null }) }
+  return {
+    speak, stopSpeaking: vi.fn(), instruct, instruction, forgetInstruction: vi.fn(() => { instruction.value = null }),
+    hasVoice: vi.fn(() => true), voiceCount: ref(1),
+  }
 })
 
 const stream = { id: 'fake-stream' } as unknown as MediaStream
@@ -155,5 +158,24 @@ describe('Huepfhalle', () => {
     press('Escape')
     await run(50)
     expect(w.emitted('finished')).toEqual([[{ stars: 0 }]])
+  })
+
+  it('at Oberstufe a coach gives the parts in English and counts every rep', async () => {
+    const round = [{ move: 'kniebeuge' as const, n: 4 }, { move: 'hampelmann' as const, n: 6 }]
+    const w = mount(Huepfhalle, { props: { lang: 'en', workout: [round, round, round] }, attachTo: document.body })
+    await run(50)
+    seen = standing()
+    await run(1300)
+    expect(w.find('[data-test="coach-say"]').text()).toContain('Do four squats!')
+    expect(w.find('[data-test="coach-hint"]').exists()).toBe(true)
+    expect(vi.mocked(speak).mock.calls.at(-1)).toEqual(['Do four squats!', 'en-GB'])
+    vi.mocked(speak).mockClear()
+    await reps(SQUAT, 4)
+    const spoken = vi.mocked(speak).mock.calls as unknown as [string, string][]
+    expect(spoken.map(c => c[0])).toEqual(['one', 'two', 'three', 'four', 'Great!', 'Do six jumping jacks!'])
+    expect(spoken.every(c => c[1] === 'en-GB')).toBe(true)
+    expect(w.find('[data-test="coach-say"]').text()).toContain('Do six jumping jacks!')
+    expect(w.find('[data-test="meter"]').attributes('data-count')).toBe('4')
+    w.unmount()
   })
 })

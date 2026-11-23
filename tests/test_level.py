@@ -37,7 +37,7 @@ def test_oberstufe_school_gives_up_to_15(papa, mia, family_hub):
 
 def test_soon_buildings_refused_at_oberstufe(papa, mia):
     oberstufe(papa)
-    answer = mia.post("/api/visits", json={"building": "yoga", "stars": 3, "key": "r"})
+    answer = mia.post("/api/visits", json={"building": "unterschiede", "stars": 3, "key": "r"})
     assert answer.status_code == 409 and answer.json()["detail"]["code"] == "soon"
     answer = mia.post("/api/free-visits", json={"building": "ausmalen", "key": "f"})
     assert answer.status_code == 409 and answer.json()["detail"]["code"] == "soon"
@@ -87,3 +87,10 @@ def test_spielwelt_opens_at_oberstufe(papa, mia):
     oberstufe(papa)
     answer = mia.post("/api/visits", json={"building": "spielwelt", "stars": 20, "key": "w"})
     assert answer.status_code == 200 and answer.json()["state"]["stars"] == 10
+
+
+def test_movement_buildings_open_at_oberstufe(papa, mia):
+    oberstufe(papa)
+    for building, key, stars in [("yoga", "y", 9), ("huepfhalle", "h", 18), ("tanzsaal", "t", 28)]:
+        answer = mia.post("/api/visits", json={"building": building, "stars": 20, "key": key})
+        assert answer.status_code == 200 and answer.json()["state"]["stars"] == stars

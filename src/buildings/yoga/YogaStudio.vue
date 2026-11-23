@@ -7,7 +7,11 @@ import { keyboardIntents, type IntentSource } from '@/input/intents'
 import { closeCamera, onCameraLost, openCamera } from '@/services/camera'
 import { createPoseTracker, type PoseTracker } from '@/services/poseTracker'
 import { playBeat } from '@/services/sound'
-import { instruct, speak, stopSpeaking } from '@/services/tts'
+import { forgetInstruction, instruct, speak, stopSpeaking } from '@/services/tts'
+import { coachWords } from '@/core/coach/words'
+import type { Lang } from '@/core/vocab/types'
+import CoachLine from '../coach/CoachLine.vue'
+import { coachQuiet, coachSay } from '../coach/voice'
 import { onLeaveRequest } from '../leave'
 import type { BuildingResult } from '../types'
 import HoldRing from './HoldRing.vue'
@@ -17,6 +21,8 @@ import { createYogaFlow, pickPoses, type YogaEvent } from './flow'
 const props = defineProps<{
   /** The poses of this visit; picked at random when not given */
   poses?: PoseId[]
+  /** The Oberstufe: an English or French coach describes the poses; the picture only comes as a hint */
+  lang?: Lang
 }>()
 const emit = defineEmits<{ finished: [result: BuildingResult] }>()
 
@@ -28,9 +34,24 @@ const CONFETTI_MS = 3000
 // Enter is ignored this long after the no-camera picture appears, so a second
 // press at the door doesn't skip it before it is seen. Esc always works.
 const NO_CAMERA_GRACE_MS = 1000
+/** At Oberstufe the teacher's picture of the pose comes as a hint after this long on a pose */
+const HINT_MS = 6000
 
 const poses = props.poses ?? pickPoses()
-const flow = createYogaFlow(poses)
+const words = props.lang ? coachWords(props.lang) : undefined
+const flow = createYogaFlow(poses, words)
+/** At Oberstufe: the coach's current line, and whether the pose picture shows yet */
+const coachText = ref<string | null>(null)
+const hint = ref(!props.lang)
+let hintTimer: ReturnType<typeof setTimeout> | undefined
+/** The picture comes if he hasn't found the pose by then; while he holds it, it waits a little more */
+function armHint(ms: number) {
+  clearTimeout(hintTimer)
+  hintTimer = setTimeout(() => {
+    if (view.progress > 0) armHint(1000)
+    else hint.value = true
+  }, ms)
+}
 const view = reactive({ ...flow.state })
 /** How each finished pose went, in order */
 const results = ref<('held' | 'missed')[]>([])
@@ -60,8 +81,21 @@ function send(event: YogaEvent) {
     closeCamera(stream)
     stream = null
   }
+  if (props.lang && flow.state.poseNumber > before) {
+    // A new pose: its picture only comes later, as a hint
+    hint.value = false
+    clearTimeout(hintTimer)
+    armHint(HINT_MS)
+  }
   for (const effect of effects) {
-    if (effect.type === 'speak') void (effect.ask ? instruct : speak)(effect.text)
+    if (effect.type === 'speak' && effect.coach && props.lang) {
+      if (effect.ask) {
+        coachText.value = effect.text
+        // The town's German 🔊 must not repeat the setup line now; the coach has its own
+        forgetInstruction()
+      }
+      void coachSay(props.lang, effect.text)
+    } else if (effect.type === 'speak') void (effect.ask ? instruct : speak)(effect.text)
     else if (effect.type === 'chime') playBeat('chime')
     else if (effect.type === 'confetti') doneTimer = setTimeout(leave, CONFETTI_MS)
   }
@@ -78,12 +112,14 @@ function shutDown() {
   closed = true
   cancelAnimationFrame(raf)
   clearTimeout(doneTimer)
+  clearTimeout(hintTimer)
   // Each step on its own: one failing must not keep the camera on or the child inside
   const steps = [
     () => { if (stream) closeCamera(stream) },
     () => tracker?.close(),
     () => intents?.dispose(),
     () => stopSpeaking(),
+    () => { if (props.lang) coachQuiet() },
     () => stopLeaveRequests(),
     () => window.removeEventListener('keydown', logBody),
   ]
@@ -208,7 +244,11 @@ onBeforeUnmount(shutDown)
 
         <div class="lesson">
           <HoldRing class="ring" :progress="view.progress" />
-          <YogaTeacher class="figure" :pose="view.pose" />
+          <YogaTeacher v-if="hint" class="figure" :pose="view.pose" />
+          <CoachLine
+            v-if="lang && coachText && view.pose" class="coach" :lang="lang" :text="coachText"
+            :title="words?.poseTitle(view.pose)" :first="view.poseNumber === 1"
+          />
         </div>
       </div>
 
@@ -261,6 +301,7 @@ video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
 .lesson { background: #fff7e6; display: grid; place-items: center; overflow: visible; }
 .ring, .figure { position: absolute; height: 92%; aspect-ratio: 1; max-width: 92%; }
 .figure { height: 74%; }
+.coach { position: absolute; left: 4%; right: 4%; top: 4%; }
 
 .no-camera { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6vh; }
 .camera-off { width: min(40vw, 40vh); }

@@ -223,6 +223,15 @@ describe('the buildings file the server reads', () => {
     expect(find('reimhaus')?.oberstufe?.component).toBeDefined()
   })
 
+  it('the movement buildings still need the camera at Oberstufe', () => {
+    for (const id of ['yoga', 'huepfhalle', 'tanzsaal']) {
+      const b = find(id)!
+      expect(b.oberstufe?.component, id).toBeDefined()
+      expect(canServe(b, { camera: false, touch: true, keyboard: true, voice: true }, 'oberstufe'), id).toBe(false)
+      expect(canServe(b, { camera: true, touch: true, keyboard: true, voice: false }, 'oberstufe'), id).toBe(true)
+    }
+  })
+
   it('needs can depend on the level', () => {
     const schreiben = find('schreiben')!
     const reimhaus = find('reimhaus')!
@@ -235,7 +244,7 @@ describe('the buildings file the server reads', () => {
   })
 
   it('a soon door is shut in the town', () => {
-    const yoga = BUILDINGS.find(b => b.id === 'yoga')!
-    expect(toDoors([yoga], { camera: true, touch: true, keyboard: true }, true, 99, false, 'oberstufe')[0]).toMatchObject({ open: false, locked: false })
+    const unterschiede = BUILDINGS.find(b => b.id === 'unterschiede')!
+    expect(toDoors([unterschiede], { camera: true, touch: true, keyboard: true }, true, 99, false, 'oberstufe')[0]).toMatchObject({ open: false, locked: false })
   })
 })

@@ -38,6 +38,9 @@ const grammatik = () => import('./grammatik/Grammatik.vue')
 const lesen = () => import('./lesen/Lesen.vue')
 const datum = () => import('./datum/Datum.vue')
 const welt = () => import('./welt/Welt.vue')
+const coachYoga = () => import('./coach/CoachYoga.vue')
+const coachWorkout = () => import('./coach/CoachWorkout.vue')
+const coachSimon = () => import('./coach/CoachSimon.vue')
 
 /**
  * Every building in the town, mixed along the streets of `src/city/map.ts` so every walk passes learning, playing and
@@ -60,6 +63,8 @@ export const BUILDINGS: BuildingDef[] = [
   {
     id: 'yoga', spokenName: 'Yoga', toName: 'zum Yoga', icon: '🧘', kind: 'earn', needs: ['camera'], door: { x: -3.5, z: 40, side: 'left' },
     component: defineAsyncComponent(yoga), preload: yoga,
+    // At Oberstufe held poses described by an English or French coach
+    oberstufe: { component: defineAsyncComponent(coachYoga), preload: coachYoga },
   },
   {
     id: 'unterschiede', spokenName: 'Unterschiede', toName: 'zu den Unterschieden', icon: '🔍', kind: 'earn', needs: [], door: { x: -15, z: 3.5, side: 'front' },
@@ -89,10 +94,14 @@ export const BUILDINGS: BuildingDef[] = [
     // Moving: the camera counts jumps and dance moves
     id: 'huepfhalle', spokenName: 'Hüpfhalle', toName: 'zur Hüpfhalle', icon: '🦘', kind: 'earn', needs: ['camera'], door: { x: -40, z: 3.5, side: 'front' },
     component: defineAsyncComponent(huepfhalle), preload: huepfhalle,
+    // At Oberstufe a counted workout with an English or French coach
+    oberstufe: { component: defineAsyncComponent(coachWorkout), preload: coachWorkout },
   },
   {
     id: 'tanzsaal', spokenName: 'Tanzsaal', toName: 'zum Tanzsaal', icon: '🪩', kind: 'earn', needs: ['camera'], door: { x: 40, z: -3.5 },
     component: defineAsyncComponent(tanzsaal), preload: tanzsaal,
+    // At Oberstufe "Simon says" / "Jacques a dit"
+    oberstufe: { component: defineAsyncComponent(coachSimon), preload: coachSimon },
   },
   {
     id: 'arcade', spokenName: 'Spielhalle', toName: 'zur Spielhalle', icon: '🃏', kind: 'play', cost: 3, needs: [], door: { x: -3.5, z: -13, side: 'left' },

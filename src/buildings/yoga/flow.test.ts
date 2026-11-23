@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Body } from '@/core/pose/body'
 import { FIXTURES, standing } from '@/core/pose/fixtures'
 import type { PoseId } from '@/core/pose/poses'
+import { coachWords } from '@/core/coach/words'
 import { POSES_PER_VISIT, STARS_PER_POSE, createYogaFlow, pickPoses, type YogaEffect, type YogaFlow } from './flow'
 
 const poses: PoseId[] = ['stern', 'frosch', 'riese']
@@ -125,5 +126,13 @@ describe('yoga flow', () => {
     broken.send({ type: 'cameraFailed' })
     expect(broken.send({ type: 'cameraReady' })).toEqual([])
     expect(broken.state.phase).toBe('noCamera')
+  })
+
+  it('with the coach, the pose is described in the language, and the end too', () => {
+    const fr = coachWords('fr')
+    const flow = createYogaFlow(poses, fr)
+    flow.send({ type: 'cameraReady' })
+    const first = feed(flow, standing(), 1000)
+    expect(first.find(e => e.type === 'speak')).toEqual({ type: 'speak', text: fr.poseSay(poses[0]), ask: true, coach: true })
   })
 })
