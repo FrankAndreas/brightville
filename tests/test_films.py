@@ -113,3 +113,49 @@ def test_the_cinema_is_a_play_building(papa, mia):
     answer = mia.post("/api/plays", json={"building": "kino", "key": "k1"})
     assert answer.status_code == 200
     assert answer.json()["state"]["stars"] == 7
+
+
+def test_films_have_a_level_and_are_unique_per_level(papa, mia):
+    assert add(papa, f"https://youtu.be/{ID}", "Lieder").json()["level"] == "kindergarten"
+    his = papa.post("/api/films", json={"url": f"https://youtu.be/{ID}", "title": "Song", "level": "oberstufe"})
+    assert his.status_code == 200 and his.json()["level"] == "oberstufe"
+    again = papa.post("/api/films", json={"url": f"https://youtu.be/{ID}", "title": "X", "level": "oberstufe"})
+    assert again.json()["detail"]["code"] == "already_there"
+    assert [(f["title"], f["level"]) for f in mia.get("/api/films").json()] == [
+        ("Lieder", "kindergarten"),
+        ("Song", "oberstufe"),
+    ]
+
+
+def test_thirty_films_per_level(papa):
+    for i in range(MAX_FILMS):
+        assert add(papa, f"https://youtu.be/{i:011d}").status_code == 200
+    assert add(papa, "https://youtu.be/zzzzzzzzzzz").json()["detail"]["code"] == "too_many"
+    answer = papa.post("/api/films", json={"url": "https://youtu.be/zzzzzzzzzzz", "title": "", "level": "oberstufe"})
+    assert answer.status_code == 200
+
+
+def test_the_migration_keeps_existing_films_as_kindergarten(tmp_path, monkeypatch):
+    import sqlite3
+
+    from app import db as database
+
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    version = next(i for i, m in enumerate(database.MIGRATIONS) if "CREATE TABLE dates_progress" in m) + 1
+    old = sqlite3.connect(tmp_path / "brightville.db")
+    for step in database.MIGRATIONS[:version]:
+        old.executescript(step)
+    old.execute(
+        "INSERT INTO films (id, youtube_id, title) VALUES (5, 'aaaaaaaaaaa', 'Tiere'), (9, 'bbbbbbbbbbb', 'Lieder')"
+    )
+    old.execute(f"PRAGMA user_version = {version}")
+    old.commit()
+    old.close()
+    connection = database.connect()
+    rows = connection.execute("SELECT id, youtube_id, title, level FROM films ORDER BY id").fetchall()
+    assert [tuple(r) for r in rows] == [
+        (5, "aaaaaaaaaaa", "Tiere", "kindergarten"),
+        (9, "bbbbbbbbbbb", "Lieder", "kindergarten"),
+    ]
+    connection.close()

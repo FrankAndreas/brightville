@@ -41,6 +41,7 @@ const welt = () => import('./welt/Welt.vue')
 const coachYoga = () => import('./coach/CoachYoga.vue')
 const coachWorkout = () => import('./coach/CoachWorkout.vue')
 const coachSimon = () => import('./coach/CoachSimon.vue')
+const wordMemory = () => import('./arcade/WordMemory.vue')
 
 /**
  * Every building in the town, mixed along the streets of `src/city/map.ts` so every walk passes learning, playing and
@@ -106,19 +107,24 @@ export const BUILDINGS: BuildingDef[] = [
   {
     id: 'arcade', spokenName: 'Spielhalle', toName: 'zur Spielhalle', icon: '🃏', kind: 'play', cost: 3, needs: [], door: { x: -3.5, z: -13, side: 'left' },
     component: defineAsyncComponent(arcade), preload: arcade,
+    // At Oberstufe a word memory in English or French
+    oberstufe: { component: defineAsyncComponent(wordMemory), preload: wordMemory },
   },
   {
     id: 'schlange', spokenName: 'Schlange', toName: 'zur Schlange', icon: '🐍', kind: 'play', cost: 3, needs: [], door: { x: -40, z: -3.5 },
     component: defineAsyncComponent(schlange), preload: schlange,
+    oberstufe: {},
   },
   {
     id: 'bonbonjagd', spokenName: 'Bonbonjagd', toName: 'zur Bonbonjagd', icon: '🍬', kind: 'play', cost: 3, needs: [], door: { x: 3.5, z: 40, side: 'right' },
     component: defineAsyncComponent(bonbonjagd), preload: bonbonjagd,
+    oberstufe: {},
   },
   {
     // Shown, but closed, until the parents chose films
     id: 'kino', spokenName: 'Kino', toName: 'ins Kino', icon: '🎬', kind: 'play', cost: 3, needs: ['films'], door: { x: 3.5, z: -40, side: 'right' },
     component: defineAsyncComponent(kino), preload: kino,
+    oberstufe: {},
   },
   {
     // The child's own: the logbook and the sticker book
@@ -145,6 +151,7 @@ export const BUILDINGS: BuildingDef[] = [
     // Her wobbly gets wings: flying through the clouds
     id: 'flatterflug', spokenName: 'Flatterflug', toName: 'zum Flatterflug', icon: '🪽', kind: 'play', cost: 3, needs: [], door: { x: 40, z: 3.5, side: 'front' },
     component: defineAsyncComponent(flatterflug), preload: flatterflug,
+    oberstufe: {},
   },
   {
     // Hearing words: rhymes, first sounds and syllables (Lehrplan 21 D.1.A.1), on the lot by the Tanzsaal

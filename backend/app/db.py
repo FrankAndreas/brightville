@@ -277,6 +277,18 @@ CREATE TABLE dates_keys (
     day TEXT NOT NULL,
     PRIMARY KEY (person_id, key)
 );
+""",  # The Cinema's films get a level: Kindergarten (every film so far) or Oberstufe; a film is unique per level
+    """
+CREATE TABLE films_new (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    youtube_id TEXT NOT NULL,
+    title TEXT NOT NULL DEFAULT '',
+    level TEXT NOT NULL DEFAULT 'kindergarten',
+    UNIQUE (youtube_id, level)
+);
+INSERT INTO films_new (id, youtube_id, title, level) SELECT id, youtube_id, title, 'kindergarten' FROM films;
+DROP TABLE films;
+ALTER TABLE films_new RENAME TO films;
 """,
 ]
 VERSION = len(MIGRATIONS)

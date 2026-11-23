@@ -42,8 +42,6 @@ def test_soon_buildings_refused_at_oberstufe(papa, mia):
     answer = mia.post("/api/free-visits", json={"building": "ausmalen", "key": "f"})
     assert answer.status_code == 409 and answer.json()["detail"]["code"] == "soon"
     mia.post("/api/visits", json={"building": "school", "stars": 3, "key": "s"})
-    answer = mia.post("/api/plays", json={"building": "arcade", "key": "p"})
-    assert answer.status_code == 409 and answer.json()["detail"]["code"] == "soon"
     assert mia.post("/api/free-visits", json={"building": "malen", "key": "m"}).status_code == 200
     assert mia.post("/api/free-visits", json={"building": "haus", "key": "h"}).status_code == 200
     # Nothing was counted for the refused ones
@@ -94,3 +92,13 @@ def test_movement_buildings_open_at_oberstufe(papa, mia):
     for building, key, stars in [("yoga", "y", 9), ("huepfhalle", "h", 18), ("tanzsaal", "t", 28)]:
         answer = mia.post("/api/visits", json={"building": building, "stars": 20, "key": key})
         assert answer.status_code == 200 and answer.json()["state"]["stars"] == stars
+
+
+def test_play_buildings_open_at_oberstufe(papa, mia):
+    oberstufe(papa)
+    answer = mia.post("/api/plays", json={"building": "arcade", "key": "early"})
+    assert answer.status_code == 409 and answer.json()["detail"]["code"] == "locked"
+    mia.post("/api/visits", json={"building": "school", "stars": 15, "key": "s"})
+    for building in ["arcade", "schlange", "bonbonjagd", "kino", "flatterflug"]:
+        answer = mia.post("/api/plays", json={"building": building, "key": building})
+        assert answer.status_code == 200, building
