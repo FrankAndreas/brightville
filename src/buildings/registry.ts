@@ -42,6 +42,7 @@ const coachYoga = () => import('./coach/CoachYoga.vue')
 const coachWorkout = () => import('./coach/CoachWorkout.vue')
 const coachSimon = () => import('./coach/CoachSimon.vue')
 const wordMemory = () => import('./arcade/WordMemory.vue')
+const sprechen = () => import('./sprechen/Sprechen.vue')
 
 /**
  * Every building in the town, mixed along the streets of `src/city/map.ts` so every walk passes learning, playing and
@@ -186,7 +187,7 @@ export const BUILDINGS: BuildingDef[] = [
     id: 'trommelhaus', spokenName: 'Trommelhaus', toName: 'zum Trommelhaus', icon: '🥁', kind: 'earn', needs: [], door: { x: 24, z: -3.5, side: 'back' },
     component: defineAsyncComponent(trommelhaus), preload: trommelhaus,
     // At Oberstufe a speaking room in English or French: the browser's recogniser and a microphone
-    oberstufe: { needs: ['speech'] },
+    oberstufe: { component: defineAsyncComponent(sprechen), preload: sprechen, needs: ['speech'] },
   },
 ]
 
