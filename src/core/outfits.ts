@@ -1,4 +1,5 @@
 import catalogue from '../../shared/outfits.json'
+import type { Level } from '@/services/api'
 
 // The add-ons for her character: sold on three shelves in the Kleiderladen, or given with a sticker. The server has
 // the same rules (backend/app/outfits.py) and decides; these let the page show what it will decide.
@@ -20,6 +21,11 @@ export interface OutfitDef {
   sticker?: string
   /** For the voice: der, die, das, or pl (die Feenflügel) */
   article: 'der' | 'die' | 'das' | 'pl'
+  /** His range (the Oberstufe); left out: hers */
+  level?: 'oberstufe'
+  /** His range: its name in English and French (labels in the shop) */
+  en?: string
+  fr?: string
 }
 
 export const OUTFITS = catalogue as OutfitDef[]
@@ -40,8 +46,15 @@ export function shelfOpenIn(defs: { id: string; shelf?: number }[], shelf: 1 | 2
   return fromAbove >= TO_OPEN
 }
 
-/** The clothes' shelves (gifts don't count) */
-export const shelfOpen = (shelf: 1 | 2 | 3, owned: string[]): boolean => shelfOpenIn(OUTFITS, shelf, owned)
+/** Whose range an add-on is: his (Oberstufe) or hers (everything without a level) */
+export const levelOf = (o: OutfitDef): Level => o.level ?? 'kindergarten'
+
+/** The add-ons the Kleiderladen sells to a child of this level */
+export const forLevel = (level: Level): OutfitDef[] => OUTFITS.filter(o => o.price !== undefined && levelOf(o) === level)
+
+/** The clothes' shelves for a child of this level: only that level's things count (gifts never) */
+export const shelfOpen = (shelf: 1 | 2 | 3, owned: string[], level: Level = 'kindergarten'): boolean =>
+  shelfOpenIn(forLevel(level), shelf, owned)
 
 /** Savings count in pairs: a lone saved Star left over counts like a new one, so it isn't worth nothing for good */
 const paired = (savings: number) => savings - (savings % 2)

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import stickers from '../../shared/stickers.json'
-import { OUTFITS, PLACES, giftFor, outfitDef, pay, shelfOpen, shopMoney } from './outfits'
+import { OUTFITS, PLACES, forLevel, giftFor, levelOf, outfitDef, pay, shelfOpen, shopMoney } from './outfits'
 
 // The same cases as tests/test_outfit_rules.py: page and server must agree
 const RANGES = { 1: [15, 25], 2: [40, 60], 3: [90, 120] } as const
@@ -20,7 +20,7 @@ describe('the outfit catalogue', () => {
         expect(o.price, o.id).toBeLessThanOrEqual(high)
       }
     }
-    expect(OUTFITS.filter(o => !o.sticker)).toHaveLength(15)
+    expect(OUTFITS.filter(o => !o.sticker && levelOf(o) === 'kindergarten')).toHaveLength(15)
     expect(giftFor('sternensammler')?.id).toBe('glitzerband')
     expect(outfitDef('krone')?.place).toBe('head')
     expect(outfitDef('gibtsnicht')).toBeUndefined()
@@ -33,6 +33,36 @@ describe('the outfit catalogue', () => {
     expect(shelfOpen(2, ['schleife', 'glitzerband'])).toBe(false)
     expect(shelfOpen(3, ['schleife', 'kappe'])).toBe(false)
     expect(shelfOpen(3, ['schleife', 'kappe', 'kleid', 'umhang'])).toBe(true)
+  })
+
+  it('his own range at Oberstufe: eleven items with their English and French names', () => {
+    const his = OUTFITS.filter(o => o.level === 'oberstufe')
+    expect(his.map(o => [o.id, o.name, o.article, o.en, o.fr, o.emoji, o.place, o.shelf, o.price])).toEqual([
+      ['baseballkappe', 'Baseballkappe', 'die', 'cap', 'la casquette', '🧢', 'head', 1, 20],
+      ['muetze', 'Mütze', 'die', 'beanie', 'le bonnet', '🧶', 'head', 1, 15],
+      ['fanschal', 'Fanschal', 'der', 'scarf', 'l’écharpe', '🧣', 'neck', 1, 20],
+      ['hoodie', 'Hoodie', 'der', 'hoodie', 'le sweat à capuche', '👕', 'body', 1, 25],
+      ['sportrucksack', 'Rucksack', 'der', 'backpack', 'le sac à dos', '🎒', 'back', 1, 25],
+      ['kopfhoerer', 'Kopfhörer', 'pl', 'headphones', 'le casque', '🎧', 'head', 2, 45],
+      ['fussballtrikot', 'Fussballtrikot', 'das', 'football shirt', 'le maillot de foot', '⚽', 'body', 2, 50],
+      ['jacke', 'Jacke', 'die', 'jacket', 'la veste', '🧥', 'body', 2, 55],
+      ['skateboard', 'Skateboard', 'das', 'skateboard', 'le skateboard', '🛹', 'back', 2, 60],
+      ['sportmedaille', 'Sportmedaille', 'die', 'medal', 'la médaille', '🥇', 'neck', 3, 90],
+      ['gitarre', 'Gitarre', 'die', 'guitar', 'la guitare', '🎸', 'back', 3, 110],
+    ])
+    expect(new Set(OUTFITS.map(o => o.id)).size).toBe(OUTFITS.length)
+    expect(OUTFITS.filter(o => !o.level).every(o => o.en === undefined && o.fr === undefined)).toBe(true)
+    expect(OUTFITS.filter(o => o.sticker)).toHaveLength(4)
+  })
+
+  it('each level sees its own sold items, and only its own count for a shelf', () => {
+    expect(forLevel('kindergarten').map(o => o.id)).toHaveLength(15)
+    expect(forLevel('kindergarten').every(o => !o.level && o.price)).toBe(true)
+    expect(forLevel('oberstufe')).toHaveLength(11)
+    expect(shelfOpen(2, ['kappe', 'schal'], 'oberstufe')).toBe(false)
+    expect(shelfOpen(2, ['baseballkappe', 'hoodie'], 'oberstufe')).toBe(true)
+    expect(shelfOpen(2, ['baseballkappe', 'hoodie'])).toBe(false)
+    expect(shelfOpen(3, ['kopfhoerer', 'jacke'], 'oberstufe')).toBe(true)
   })
 
   it('counts saved Stars half in the shop', () => {

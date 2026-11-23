@@ -18,7 +18,8 @@ def test_prices_within_each_shelf_and_gifts_for_existing_stickers():
         else:
             low, high = RANGES[o.shelf]
             assert low <= o.price <= high, o.id
-    assert len([o for o in outfits.catalogue() if not o.sticker]) == 15
+    assert len([o for o in outfits.catalogue() if not o.sticker and o.level == "kindergarten"]) == 15
+    assert len([o for o in outfits.catalogue() if o.level == "oberstufe"]) == 11
     assert outfits.gift_for("sternensammler").id == "glitzerband"
     assert outfits.outfit("gibtsnicht") is None
 
@@ -30,6 +31,12 @@ def test_a_shelf_opens_with_two_from_the_shelf_above_and_gifts_do_not_count():
     assert not outfits.shelf_open(2, ["schleife", "glitzerband"])
     assert not outfits.shelf_open(3, ["schleife", "kappe"])
     assert outfits.shelf_open(3, ["schleife", "kappe", "kleid", "umhang"])
+
+
+def test_only_the_childs_own_range_opens_a_shelf():
+    assert not outfits.shelf_open(2, ["kappe", "schal"], "oberstufe")
+    assert outfits.shelf_open(2, ["baseballkappe", "hoodie"], "oberstufe")
+    assert not outfits.shelf_open(2, ["baseballkappe", "hoodie"])
 
 
 def test_saved_stars_count_half():

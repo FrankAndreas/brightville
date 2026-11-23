@@ -99,8 +99,9 @@ def wear(db: sqlite3.Connection, person_id: int, changes: dict[str, Optional[str
 
 
 def buy(db: sqlite3.Connection, person_id: int, item_id: str, key: str) -> game.State:
-    """Buys one add-on and puts it on. Refused (game.Refused) with: unknown, not_for_sale, owned, then as
-    shop.purchase (locked, bought_today, shelf_locked, poor, key_used). The same key today buys once."""
+    """Buys one add-on and puts it on. Refused (game.Refused) with: unknown, not_for_sale, not_for_level (the other
+    child's range), owned, then as shop.purchase (locked, bought_today, shelf_locked, poor, key_used). The same key
+    today buys once."""
 
     def offer() -> shop.Offer:
         item = outfits.outfit(item_id)
@@ -108,6 +109,9 @@ def buy(db: sqlite3.Connection, person_id: int, item_id: str, key: str) -> game.
             raise game.Refused("unknown")
         if item.price is None or item.shelf is None:
             raise game.Refused("not_for_sale")
+        level = game._row(db, person_id).level
+        if item.level != level:
+            raise game.Refused("not_for_level")
         mine = owned_ids(db, person_id)
         if item_id in mine:
             raise game.Refused("owned")
@@ -122,7 +126,7 @@ def buy(db: sqlite3.Connection, person_id: int, item_id: str, key: str) -> game.
             worn[place] = item_id
             _store(db, person_id, look, worn)
 
-        return shop.Offer(item_id, item.price, lambda: outfits.shelf_open(shelf, mine), record)
+        return shop.Offer(item_id, item.price, lambda: outfits.shelf_open(shelf, mine, level), record)
 
     return shop.purchase(db, person_id, key, item_id, offer)
 
