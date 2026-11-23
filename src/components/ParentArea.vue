@@ -55,7 +55,7 @@ async function save(id: number) {
   // Stars only when they were changed here: a child may have earned some since the page was loaded
   const rules: Rules = { daily_goal: draft.daily_goal, play_minutes: draft.play_minutes }
   // Only when it was changed here: an older server doesn't know the level
-  if (row.role !== 'PARENT' && draft.level !== (row.level ?? 'kindergarten')) rules.level = draft.level
+  if (draft.level !== (row.level ?? 'kindergarten')) rules.level = draft.level
   if (stars !== row.stars) rules.stars = stars
   saving.value = id
   try {
@@ -139,11 +139,15 @@ onMounted(load)
               <option v-for="m in PLAY_CHOICES" :key="String(m)" :value="m">{{ m === null ? 'Ohne Grenze' : `${m} Minuten` }}</option>
             </select>
           </label>
-          <label v-if="row.role !== 'PARENT'">Stufe
+          <!-- A parent's own level: to try the other child's town as themselves, without touching a child's records -->
+          <label>Stufe
             <select v-model="drafts[row.id].level" data-test="level">
               <option value="kindergarten">Kindergarten</option>
               <option value="oberstufe">Oberstufe</option>
             </select>
+            <small v-if="row.role === 'PARENT'" class="level-hint" data-test="level-hint">
+              Nur für dich, zum Ausprobieren: so siehst du die Stadt der Kinder dieser Stufe.
+            </small>
           </label>
           <label>Sterne
             <input v-model.number="drafts[row.id].stars" data-test="stars-input" type="number" min="0" max="9999" step="1" inputmode="numeric" />
@@ -183,6 +187,7 @@ onMounted(load)
 </template>
 
 <style scoped>
+.level-hint { display: block; font-weight: 400; font-size: 12px; color: #5b6070; max-width: 22ch; }
 .owned { margin: 4px 0 0; font-size: 1.5rem; letter-spacing: 4px; }
 .parents {
   position: fixed;

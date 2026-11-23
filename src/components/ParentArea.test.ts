@@ -35,7 +35,6 @@ describe('ParentArea', () => {
     const { api, w } = await open()
     const level = card(w, 2).find('[data-test="level"]')
     expect((level.element as HTMLSelectElement).value).toBe('kindergarten')
-    expect(card(w, 1).find('[data-test="level"]').exists()).toBe(false)
     expect(card(w, 2).find('[data-test="sprachen"]').exists()).toBe(false)
     await level.setValue('oberstufe')
     await card(w, 2).find('[data-test="save"]').trigger('click')
@@ -45,6 +44,21 @@ describe('ParentArea', () => {
     expect(card(w, 2).find('[data-test="sprachen"]').exists()).toBe(true)
     expect(card(w, 2).find('[data-test="lehrplan"]').exists()).toBe(false)
     expect(card(w, 2).find('[data-test="writing"]').exists()).toBe(false)
+  })
+
+  it('a parent sets their own level too, to try the other level\'s town as themselves', async () => {
+    const { api, w } = await open()
+    const level = card(w, 1).find('[data-test="level"]')
+    expect((level.element as HTMLSelectElement).value).toBe('kindergarten')
+    expect(card(w, 1).find('[data-test="level-hint"]').text()).toContain('zum Ausprobieren')
+    await level.setValue('oberstufe')
+    await card(w, 1).find('[data-test="save"]').trigger('click')
+    await flushPromises()
+    expect(api.calls.find(c => c.startsWith('setRules 1'))).toContain('"level":"oberstufe"')
+    expect(w.emitted('saved')).toContainEqual([1])
+    // Still no daily goal, play time or child's sections for a parent
+    expect(card(w, 1).find('[data-test="goal"]').exists()).toBe(false)
+    expect(card(w, 1).find('[data-test="sprachen"]').exists()).toBe(false)
   })
 
   it('has a child\'s Lehrplan 21 section, but none for a parent', async () => {

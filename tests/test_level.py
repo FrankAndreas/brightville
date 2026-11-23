@@ -110,3 +110,12 @@ def test_trommelhaus_speaks_at_oberstufe(papa, mia):
     oberstufe(papa)
     answer = mia.post("/api/visits", json={"building": "trommelhaus", "stars": 20, "key": "o"})
     assert answer.status_code == 200 and answer.json()["state"]["stars"] == 10 + 15
+
+
+def test_a_parent_may_try_the_oberstufe_as_themselves(papa, mia):
+    me = papa.get("/api/me").json()["person"]["id"]
+    answer = papa.put(f"/api/players/{me}", json={"daily_goal": 1, "play_minutes": None, "level": "oberstufe"})
+    assert answer.status_code == 200 and answer.json()["level"] == "oberstufe"
+    assert papa.get("/api/state").json()["level"] == "oberstufe"
+    # The children's level is their own
+    assert mia.get("/api/state").json()["level"] == "kindergarten"
