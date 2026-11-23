@@ -47,10 +47,18 @@ def test_no_look_until_saved_then_kept(mia):
     assert answer.status_code == 422 and code(answer) == "bad_look"
 
 
+def test_the_new_looks_are_kept(mia):
+    look = {**LOOK, "hair": "short", "glasses": "sunglasses"}
+    assert mia.put("/api/look", json={"look": look}).status_code == 200
+    assert mia.get("/api/wardrobe").json()["look"] == look
+    look = {**LOOK, "hair": "messy", "glasses": "square"}
+    assert mia.put("/api/look", json={"look": look}).status_code == 200
+
+
 def test_the_look_options_match_the_page():
     # The same lists as src/core/look.ts
-    assert wardrobe.LOOK_OPTIONS["hair"] == ["none", "spiky", "ponytail", "buns", "curly"]
-    assert wardrobe.LOOK_OPTIONS["glasses"] == ["none", "round", "star", "heart"]
+    assert wardrobe.LOOK_OPTIONS["hair"] == ["none", "spiky", "ponytail", "buns", "curly", "short", "messy"]
+    assert wardrobe.LOOK_OPTIONS["glasses"] == ["none", "round", "star", "heart", "sunglasses", "square"]
     assert len(wardrobe.LOOK_OPTIONS["body"]) == 8 and wardrobe.LOOK_OPTIONS["body"][0] == "#ff9a3c"
     assert len(wardrobe.LOOK_OPTIONS["hairColor"]) == 6
 
@@ -275,3 +283,45 @@ def test_a_key_from_something_else_today_buys_nothing_and_says_so(mia):
     answer = buy(mia, "schal", key="d-1")
     assert answer.status_code == 409 and code(answer) == "key_used"
     assert owned(mia) == []
+
+
+def oberstufe(papa):
+    papa.put("/api/players/2", json={"daily_goal": 1, "play_minutes": None, "level": "oberstufe"})
+
+
+def buy_on(monkeypatch, mia, day, item):
+    """A purchase on its own day (one a day), after the day's learning, with money enough"""
+    set_time(monkeypatch, f"2026-11-{day} 10:00")
+    learn(mia, f"d{day}")
+    set_money(500, 0)
+    return buy(mia, item, f"k{day}")
+
+
+def test_his_range_only_at_oberstufe(papa, mia):
+    learn(mia)
+    set_money(200, 0)
+    answer = buy(mia, "hoodie")
+    assert answer.status_code == 409 and code(answer) == "not_for_level"
+    oberstufe(papa)
+    learn(mia, "o")
+    set_money(200, 0)
+    answer = buy(mia, "kleid")
+    assert answer.status_code == 409 and code(answer) == "not_for_level"
+    assert mia.get("/api/state").json()["stars"] == 200
+    assert buy(mia, "hoodie").status_code == 200
+    assert "hoodie" in owned(mia)
+
+
+def test_his_shelves_count_only_his_items(monkeypatch, papa, mia):
+    assert buy_on(monkeypatch, mia, 13, "kappe").status_code == 200
+    assert buy_on(monkeypatch, mia, 14, "schal").status_code == 200
+    oberstufe(papa)
+    answer = buy_on(monkeypatch, mia, 15, "kopfhoerer")
+    assert answer.status_code == 409 and code(answer) == "shelf_locked"
+    assert buy(mia, "baseballkappe", "k15b").status_code == 200
+    assert buy_on(monkeypatch, mia, 16, "hoodie").status_code == 200
+    assert buy_on(monkeypatch, mia, 17, "kopfhoerer").status_code == 200
+    # Her things he owns are still his, and can be worn
+    assert mia.put("/api/worn", json={"worn": {"head": "kappe", "neck": "schal"}}).status_code == 200
+    worn = mia.get("/api/wardrobe").json()["worn"]
+    assert worn["head"] == "kappe" and worn["neck"] == "schal"

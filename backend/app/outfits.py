@@ -23,13 +23,23 @@ class Outfit:
     shelf: Optional[int] = None  # sold ones: 1, 2 or 3
     price: Optional[int] = None
     sticker: Optional[str] = None  # gifts: the sticker that brings it; never sold
+    level: str = "kindergarten"  # whose range: hers, or his ("oberstufe")
 
 
 @lru_cache
 def catalogue() -> list[Outfit]:
     with open(os.getenv("OUTFITS_FILE") or DEFAULT_FILE, encoding="utf-8") as file:
         return [
-            Outfit(o["id"], o["name"], o["emoji"], o["place"], o.get("shelf"), o.get("price"), o.get("sticker"))
+            Outfit(
+                o["id"],
+                o["name"],
+                o["emoji"],
+                o["place"],
+                o.get("shelf"),
+                o.get("price"),
+                o.get("sticker"),
+                o.get("level", "kindergarten"),
+            )
             for o in json.load(file)
         ]
 
@@ -51,9 +61,9 @@ def shelf_open_in(items: Iterable[Any], shelf: int, owned: Iterable[str]) -> boo
     return sum(1 for i in owned if shelf_of.get(i) == shelf - 1) >= TO_OPEN
 
 
-def shelf_open(shelf: int, owned: Iterable[str]) -> bool:
-    """The clothes' shelves (gifts don't count)."""
-    return shelf_open_in(catalogue(), shelf, owned)
+def shelf_open(shelf: int, owned: Iterable[str], level: str = "kindergarten") -> bool:
+    """The clothes' shelves for a child of this level: only that level's things count (gifts never)."""
+    return shelf_open_in([o for o in catalogue() if o.level == level and o.price is not None], shelf, owned)
 
 
 def _paired(savings: int) -> int:

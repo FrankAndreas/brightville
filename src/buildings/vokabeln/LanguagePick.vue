@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { keptLang, lastLangKey } from '@/core/vocab/lastLang'
 import type { Lang } from '@/core/vocab/types'
 import { hasVoice, voiceCount } from '@/services/tts'
 
@@ -12,14 +13,8 @@ const emit = defineEmits<{ pick: [lang: Lang] }>()
 const VOICE: Record<Lang, string> = { en: 'en-GB', fr: 'fr-FR' }
 const LANGS: { lang: Lang; label: string }[] = [{ lang: 'en', label: '🇬🇧 Englisch' }, { lang: 'fr', label: '🇫🇷 Französisch' }]
 
-const LAST_LANG = `brightville.vocab.lang.${props.owner ?? 0}`
-const lastLang = ref<Lang | null>(null)
-try {
-  const kept = window.localStorage.getItem(LAST_LANG)
-  if (kept === 'en' || kept === 'fr') lastLang.value = kept
-} catch {
-  // Not remembered: he picks again
-}
+const LAST_LANG = lastLangKey(props.owner)
+const lastLang = ref<Lang | null>(keptLang(props.owner))
 
 /** The languages without a voice here, counted again when the voices arrive late */
 const mute = computed(() => {

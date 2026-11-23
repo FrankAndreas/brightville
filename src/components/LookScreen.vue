@@ -15,8 +15,10 @@ const look = ref<Look>({ ...props.start })
 const dress = computed<Dress>(() => ({ look: look.value, worn: {} }))
 
 // Pictures for the hair and glasses buttons
-const HAIR_ICON: Record<HairStyle, string> = { none: '🚫', spiky: '🦔', ponytail: '🎀', buns: '🍡', curly: '🌀' }
-const GLASSES_ICON: Record<Glasses, string> = { none: '🚫', round: '👓', star: '⭐', heart: '💗' }
+const HAIR_ICON: Record<HairStyle, string> = {
+  none: '🚫', spiky: '🦔', ponytail: '🎀', buns: '🍡', curly: '🌀', short: '✂️', messy: '🌪️',
+}
+const GLASSES_ICON: Record<Glasses, string> = { none: '🚫', round: '👓', star: '⭐', heart: '💗', sunglasses: '🕶️', square: '🔲' }
 
 function set<K extends keyof Look>(key: K, value: Look[K]) {
   look.value = { ...look.value, [key]: value }

@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_LOOK } from '@/core/look'
+import { DEFAULT_LOOK, GLASSES, HAIR_STYLES } from '@/core/look'
 import { OUTFITS, PLACES } from '@/core/outfits'
 import { createBlob } from './blob'
 import { dressParts } from './dress'
@@ -22,6 +22,11 @@ describe('dressing the wobbly character', () => {
   it('gives buns two parts on the head, and round glasses parts on the face', () => {
     expect(meshes(dressParts({ look: { ...DEFAULT_LOOK, hair: 'buns' }, worn: {} }).head)).toBeGreaterThanOrEqual(2)
     expect(meshes(dressParts({ look: { ...DEFAULT_LOOK, glasses: 'round' }, worn: {} }).face)).toBeGreaterThan(0)
+  })
+
+  it('gives every hair style but none parts on the head, and every glasses but none parts on the face', () => {
+    for (const hair of HAIR_STYLES.filter(h => h !== 'none')) expect(meshes(dressParts({ look: { ...DEFAULT_LOOK, hair }, worn: {} }).head), hair).toBeGreaterThan(0)
+    for (const glasses of GLASSES.filter(g => g !== 'none')) expect(meshes(dressParts({ look: { ...DEFAULT_LOOK, glasses }, worn: {} }).face), glasses).toBeGreaterThan(0)
   })
 
   it('darkens the limbs a little from the body colour', () => {

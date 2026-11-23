@@ -17,5 +17,16 @@
   { "id": "glitzerband", "name": "Glitzer-Stirnband", "emoji": "✨", "place": "head", "sticker": "sternensammler", "article": "das" },
   { "id": "yogaband", "name": "Yoga-Stirnband", "emoji": "🧘", "place": "head", "sticker": "yogameister", "article": "das" },
   { "id": "discokette", "name": "Discokugel-Kette", "emoji": "🪩", "place": "neck", "sticker": "tanzstern", "article": "die" },
-  { "id": "medaille", "name": "Medaille", "emoji": "🏅", "place": "neck", "sticker": "ganzewoche", "article": "die" }
+  { "id": "medaille", "name": "Medaille", "emoji": "🏅", "place": "neck", "sticker": "ganzewoche", "article": "die" },
+  { "id": "baseballkappe", "name": "Baseballkappe", "emoji": "🧢", "place": "head", "shelf": 1, "price": 20, "article": "die", "level": "oberstufe", "en": "cap", "fr": "la casquette" },
+  { "id": "muetze", "name": "Mütze", "emoji": "🧶", "place": "head", "shelf": 1, "price": 15, "article": "die", "level": "oberstufe", "en": "beanie", "fr": "le bonnet" },
+  { "id": "fanschal", "name": "Fanschal", "emoji": "🧣", "place": "neck", "shelf": 1, "price": 20, "article": "der", "level": "oberstufe", "en": "scarf", "fr": "l’écharpe" },
+  { "id": "hoodie", "name": "Hoodie", "emoji": "👕", "place": "body", "shelf": 1, "price": 25, "article": "der", "level": "oberstufe", "en": "hoodie", "fr": "le sweat à capuche" },
+  { "id": "sportrucksack", "name": "Rucksack", "emoji": "🎒", "place": "back", "shelf": 1, "price": 25, "article": "der", "level": "oberstufe", "en": "backpack", "fr": "le sac à dos" },
+  { "id": "kopfhoerer", "name": "Kopfhörer", "emoji": "🎧", "place": "head", "shelf": 2, "price": 45, "article": "pl", "level": "oberstufe", "en": "headphones", "fr": "le casque" },
+  { "id": "fussballtrikot", "name": "Fussballtrikot", "emoji": "⚽", "place": "body", "shelf": 2, "price": 50, "article": "das", "level": "oberstufe", "en": "football shirt", "fr": "le maillot de foot" },
+  { "id": "jacke", "name": "Jacke", "emoji": "🧥", "place": "body", "shelf": 2, "price": 55, "article": "die", "level": "oberstufe", "en": "jacket", "fr": "la veste" },
+  { "id": "skateboard", "name": "Skateboard", "emoji": "🛹", "place": "back", "shelf": 2, "price": 60, "article": "das", "level": "oberstufe", "en": "skateboard", "fr": "le skateboard" },
+  { "id": "sportmedaille", "name": "Sportmedaille", "emoji": "🥇", "place": "neck", "shelf": 3, "price": 90, "article": "die", "level": "oberstufe", "en": "medal", "fr": "la médaille" },
+  { "id": "gitarre", "name": "Gitarre", "emoji": "🎸", "place": "back", "shelf": 3, "price": 110, "article": "die", "level": "oberstufe", "en": "guitar", "fr": "la guitare" }
 ]

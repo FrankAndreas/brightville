@@ -93,15 +93,53 @@ function hair(style: HairStyle, color: string): THREE.Object3D[] {
         const a = (i / 11) * Math.PI * 2
         return mesh(new THREE.SphereGeometry(0.09, 12, 10), mat, Math.cos(a) * 0.3, TOP - 0.1 + (i % 2) * 0.04, Math.sin(a) * 0.3 - 0.04)
       })
+    case 'short':
+      // Close to the head: a thin cap reaching a little lower at the back
+      return [shell(mat, 0, Math.PI * 0.36, 0.015)]
+    case 'messy':
+      return [cap(), ...[
+        [-0.22, 0.4, 0.05], [-0.1, -0.5, 0.12], [0.02, 0.3, -0.02], [0.14, -0.35, 0.1], [0.25, 0.55, 0.02], [-0.04, 0.9, -0.16], [0.1, -0.8, -0.14],
+      ].map(([x, tilt, z]) => {
+        const tuft = mesh(new THREE.ConeGeometry(0.06, 0.16, 7), mat, x, TOP - 0.01 - Math.abs(x) * 0.3, z)
+        tuft.rotation.z = tilt
+        tuft.rotation.x = z * 2
+        return tuft
+      })]
   }
+}
+
+/** A rectangle with rounded corners, centred */
+function roundedRect(w: number, h: number, r: number): THREE.Shape {
+  const s = new THREE.Shape()
+  s.moveTo(-w / 2 + r, -h / 2)
+  s.lineTo(w / 2 - r, -h / 2)
+  s.quadraticCurveTo(w / 2, -h / 2, w / 2, -h / 2 + r)
+  s.lineTo(w / 2, h / 2 - r)
+  s.quadraticCurveTo(w / 2, h / 2, w / 2 - r, h / 2)
+  s.lineTo(-w / 2 + r, h / 2)
+  s.quadraticCurveTo(-w / 2, h / 2, -w / 2, h / 2 - r)
+  s.lineTo(-w / 2, -h / 2 + r)
+  s.quadraticCurveTo(-w / 2, -h / 2, -w / 2 + r, -h / 2)
+  return s
+}
+
+const FRAME_COLOR: Record<Exclude<Glasses, 'none'>, number> = {
+  round: 0x333333, star: 0xf2c230, heart: 0xe8457a, sunglasses: 0x1d1d1d, square: 0x2b4a7a,
 }
 
 function glasses(kind: Glasses): THREE.Object3D[] {
   if (kind === 'none') return []
-  const frame = material(kind === 'round' ? 0x333333 : kind === 'star' ? 0xf2c230 : 0xe8457a, { roughness: 0.4 })
+  const frame = material(FRAME_COLOR[kind], { roughness: 0.4 })
   const lenses = [-1, 1].map(side => {
     const x = side * 0.19
     if (kind === 'round') return mesh(new THREE.TorusGeometry(0.15, 0.022, 8, 24), frame, x, EYE_Y, 0.53)
+    // Dark lenses, filled
+    if (kind === 'sunglasses') return mesh(flat(roundedRect(0.3, 0.2, 0.07)), frame, x, EYE_Y, 0.53)
+    if (kind === 'square') {
+      const outer = roundedRect(0.3, 0.24, 0.02)
+      outer.holes.push(new THREE.Path(roundedRect(0.24, 0.18, 0.01).getPoints()))
+      return mesh(flat(outer), frame, x, EYE_Y, 0.52)
+    }
     const shape = kind === 'star' ? starShape(0.19, 0.09) : heartShape(0.15)
     const inner = kind === 'star' ? starShape(0.14, 0.065) : heartShape(0.11)
     shape.holes.push(new THREE.Path(inner.getPoints()))
@@ -213,6 +251,91 @@ const BUILD: Record<string, () => THREE.Object3D[]> = {
     const cape = mesh(new THREE.CylinderGeometry(0.5, 0.7, 0.95, 24, 1, true, Math.PI * 0.55, Math.PI * 0.9),
       material(0xd62828, { side: THREE.DoubleSide, roughness: 0.8 }), 0, 0.52, 0)
     return [cape]
+  },
+  // His range (the Oberstufe)
+  baseballkappe: () => {
+    const navy = material(0x24365e)
+    const top = mesh(new THREE.SphereGeometry(0.4, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), navy, 0, TOP - 0.16, 0)
+    const brim = mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.03, 20, 1, false, -Math.PI / 2, Math.PI), navy, 0, TOP - 0.15, 0.3)
+    const button = mesh(new THREE.SphereGeometry(0.04, 10, 8), material(0xd62828), 0, TOP + 0.24, 0)
+    return [top, brim, button]
+  },
+  muetze: () => {
+    const wool = material(0x2f9e8f, { roughness: 1 })
+    return [shell(wool, 0, Math.PI * 0.27, 0.03), ring(wool, TOP - 0.2, 0.045, 0.03), mesh(new THREE.SphereGeometry(0.08, 12, 10), material(0xf4f4f4, { roughness: 1 }), 0, TOP + 0.05, 0)]
+  },
+  kopfhoerer: () => {
+    const dark = material(0x222222, { roughness: 0.4 })
+    const band = mesh(new THREE.TorusGeometry(0.47, 0.03, 8, 24, Math.PI), dark, 0, EYE_Y + 0.02, 0)
+    const cups = [-1, 1].map(side => {
+      const cup = mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.08, 18), material(0xe8457a, { roughness: 0.4 }), side * 0.49, EYE_Y + 0.02, 0)
+      cup.rotation.z = Math.PI / 2
+      return cup
+    })
+    return [band, ...cups]
+  },
+  fanschal: () => {
+    const blue = material(0x3a7bd5, { roughness: 0.9 })
+    const white = material(0xf4f4f4, { roughness: 0.9 })
+    const ends = [0.15, -0.1].map((x, i) => {
+      const end = mesh(new THREE.BoxGeometry(0.1, 0.25, 0.04), i ? white : blue, x, 0.38, 0.47)
+      end.rotation.z = i ? -0.1 : 0.15
+      return end
+    })
+    return [ring(blue, 0.48, 0.06), ...ends]
+  },
+  sportmedaille: () => {
+    const disc = mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.025, 20), material(0xf2c230, { metalness: 0.8, roughness: 0.25 }), 0, 0.34, 0.53)
+    disc.rotation.x = Math.PI / 2
+    const star = mesh(flat(starShape(0.06, 0.028)), material(0xd62828), 0, 0.34, 0.55)
+    return [ring(material(0xd62828), 0.5, 0.02), disc, star]
+  },
+  hoodie: () => {
+    const grey = material(0x8a8f98, { roughness: 0.95 })
+    const hood = mesh(new THREE.TorusGeometry(0.2, 0.08, 10, 20), grey, 0, 0.62, -0.45)
+    hood.rotation.x = Math.PI / 2.4
+    const pocket = mesh(new THREE.BoxGeometry(0.3, 0.12, 0.03), material(0x737880), 0, 0.3, 0.47)
+    return [shell(grey, Math.PI * 0.46, Math.PI * 0.8, 0.02), hood, pocket]
+  },
+  fussballtrikot: () => {
+    // Swiss red, a white cross on the front
+    const white = material(0xffffff)
+    return [
+      shell(material(0xd62828, { roughness: 0.8 }), Math.PI * 0.48, Math.PI * 0.78),
+      mesh(new THREE.BoxGeometry(0.2, 0.06, 0.03), white, 0, 0.45, 0.5),
+      mesh(new THREE.BoxGeometry(0.06, 0.2, 0.03), white, 0, 0.45, 0.5),
+    ]
+  },
+  jacke: () => {
+    const green = material(0x2f5d3a, { roughness: 0.7 })
+    const zip = mesh(new THREE.BoxGeometry(0.02, 0.42, 0.02), material(0xcccccc, { metalness: 0.7 }), 0, 0.42, 0.5)
+    return [shell(green, Math.PI * 0.44, Math.PI * 0.8, 0.025), zip, ring(green, 0.62, 0.045, 0.03)]
+  },
+  sportrucksack: () => {
+    const orange = material(0xff8a3d)
+    return [mesh(new THREE.BoxGeometry(0.42, 0.45, 0.2), orange, 0, 0.58, -0.55), mesh(new THREE.BoxGeometry(0.3, 0.15, 0.06), material(0xc45d14), 0, 0.48, -0.67)]
+  },
+  skateboard: () => {
+    const deck = mesh(new THREE.CapsuleGeometry(0.11, 0.55, 6, 12), material(0x4f8fe8), 0, 0.58, -0.58)
+    deck.scale.set(1, 1, 0.18)
+    deck.rotation.z = 0.35
+    const wheels = [-1, 1].flatMap(end => [-1, 1].map(side => {
+      const along = end * 0.26
+      return mesh(new THREE.SphereGeometry(0.035, 8, 6), material(0xf2c230), Math.sin(0.35) * -along + side * 0.07, 0.58 + Math.cos(0.35) * along, -0.64)
+    }))
+    return [deck, ...wheels]
+  },
+  gitarre: () => {
+    const wood = material(0xb5651d, { roughness: 0.6 })
+    const big = mesh(new THREE.SphereGeometry(0.17, 16, 12), wood, 0.08, 0.38, -0.6)
+    big.scale.set(1, 1, 0.35)
+    const small = mesh(new THREE.SphereGeometry(0.13, 16, 12), wood, 0.02, 0.6, -0.6)
+    small.scale.set(1, 1, 0.35)
+    const neck = mesh(new THREE.BoxGeometry(0.06, 0.5, 0.04), material(0x5b3a1e), -0.06, 0.9, -0.6)
+    neck.rotation.z = 0.25
+    const hole = mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.02, 14), material(0x222222), 0.06, 0.42, -0.66)
+    hole.rotation.x = Math.PI / 2
+    return [big, small, neck, hole]
   },
   feenfluegel: () => {
     const wing = material(0xbde0fe, { transparent: true, opacity: 0.75, side: THREE.DoubleSide, roughness: 0.2 })

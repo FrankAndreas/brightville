@@ -3,8 +3,8 @@ import type { Place } from './outfits'
 // How her wobbly character looks: chosen on the first visit, free, and changed again in the wardrobe.
 // The server takes exactly these choices (backend/app/wardrobe.py, LOOK_OPTIONS).
 
-export type HairStyle = 'none' | 'spiky' | 'ponytail' | 'buns' | 'curly'
-export type Glasses = 'none' | 'round' | 'star' | 'heart'
+export type HairStyle = 'none' | 'spiky' | 'ponytail' | 'buns' | 'curly' | 'short' | 'messy'
+export type Glasses = 'none' | 'round' | 'star' | 'heart' | 'sunglasses' | 'square'
 
 export interface Look {
   body: string
@@ -21,10 +21,10 @@ export interface Dress {
 
 /** Today's orange first */
 export const BODY_COLORS = ['#ff9a3c', '#4f8fe8', '#4bd37b', '#e86fb0', '#a58bf0', '#f2c230', '#3cc8c8', '#ff6b6b']
-export const HAIR_STYLES: HairStyle[] = ['none', 'spiky', 'ponytail', 'buns', 'curly']
+export const HAIR_STYLES: HairStyle[] = ['none', 'spiky', 'ponytail', 'buns', 'curly', 'short', 'messy']
 /** Brown, black, blond, red, blue, pink */
 export const HAIR_COLORS = ['#6b3b1f', '#222222', '#f2c94c', '#d4572a', '#4f8fe8', '#ff8fc8']
-export const GLASSES: Glasses[] = ['none', 'round', 'star', 'heart']
+export const GLASSES: Glasses[] = ['none', 'round', 'star', 'heart', 'sunglasses', 'square']
 
 /** The character before she chose: today's orange blob */
 export const DEFAULT_LOOK: Look = { body: BODY_COLORS[0], hair: 'none', hairColor: HAIR_COLORS[0], glasses: 'none' }

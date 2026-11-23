@@ -13,9 +13,9 @@ from .db import writing
 # The same lists as src/core/look.ts: a look with anything else is refused
 LOOK_OPTIONS: dict[str, list[str]] = {
     "body": ["#ff9a3c", "#4f8fe8", "#4bd37b", "#e86fb0", "#a58bf0", "#f2c230", "#3cc8c8", "#ff6b6b"],
-    "hair": ["none", "spiky", "ponytail", "buns", "curly"],
+    "hair": ["none", "spiky", "ponytail", "buns", "curly", "short", "messy"],
     "hairColor": ["#6b3b1f", "#222222", "#f2c94c", "#d4572a", "#4f8fe8", "#ff8fc8"],
-    "glasses": ["none", "round", "star", "heart"],
+    "glasses": ["none", "round", "star", "heart", "sunglasses", "square"],
 }
 
 
@@ -99,8 +99,9 @@ def wear(db: sqlite3.Connection, person_id: int, changes: dict[str, Optional[str
 
 
 def buy(db: sqlite3.Connection, person_id: int, item_id: str, key: str) -> game.State:
-    """Buys one add-on and puts it on. Refused (game.Refused) with: unknown, not_for_sale, owned, then as
-    shop.purchase (locked, bought_today, shelf_locked, poor, key_used). The same key today buys once."""
+    """Buys one add-on and puts it on. Refused (game.Refused) with: unknown, not_for_sale, not_for_level (the other
+    child's range), owned, then as shop.purchase (locked, bought_today, shelf_locked, poor, key_used). The same key
+    today buys once."""
 
     def offer() -> shop.Offer:
         item = outfits.outfit(item_id)
@@ -108,6 +109,9 @@ def buy(db: sqlite3.Connection, person_id: int, item_id: str, key: str) -> game.
             raise game.Refused("unknown")
         if item.price is None or item.shelf is None:
             raise game.Refused("not_for_sale")
+        level = game._row(db, person_id).level
+        if item.level != level:
+            raise game.Refused("not_for_level")
         mine = owned_ids(db, person_id)
         if item_id in mine:
             raise game.Refused("owned")
@@ -122,7 +126,7 @@ def buy(db: sqlite3.Connection, person_id: int, item_id: str, key: str) -> game.
             worn[place] = item_id
             _store(db, person_id, look, worn)
 
-        return shop.Offer(item_id, item.price, lambda: outfits.shelf_open(shelf, mine), record)
+        return shop.Offer(item_id, item.price, lambda: outfits.shelf_open(shelf, mine, level), record)
 
     return shop.purchase(db, person_id, key, item_id, offer)
 
