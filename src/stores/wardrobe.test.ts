@@ -39,6 +39,13 @@ describe('wardrobe store', () => {
     storage = memory()
   })
 
+  it('a look with an option this page doesn\'t know (saved by a newer page): kept, the unknown part plain', async () => {
+    api.wardrobe_.look = { ...BLUE, hair: 'mohawk', glasses: 'monocle' } as unknown as Look
+    const { wardrobe } = await open()
+    expect(wardrobe.look).toEqual({ ...BLUE, hair: 'none', glasses: 'none' })
+    expect(api.wardrobe_.look).toMatchObject({ hair: 'mohawk' })
+  })
+
   it('takes the server\'s wardrobe, and shows the orange blob until a look is saved', async () => {
     api.wardrobe_.look = null
     const { wardrobe } = await open()

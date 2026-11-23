@@ -53,6 +53,20 @@ def test_the_wait_follows_the_stars_and_the_building(mia, monkeypatch):
     assert visit(mia, "s", stars=3).status_code == 200
 
 
+def test_speaking_at_oberstufe_has_its_own_pace(papa, mia, monkeypatch):
+    papa.put("/api/players/2", json={"daily_goal": 1, "play_minutes": None, "level": "oberstufe"})
+    set_time(monkeypatch, "2026-11-12 10:00")
+    visit(mia, "a")
+    # 15 Stars at 2 s each need 30 s (her rhythm keeps 3 s per Star)
+    later = datetime(2026, 11, 12, 10, 0, 25, tzinfo=ZoneInfo("Europe/Zurich"))
+    monkeypatch.setattr(clock, "now", lambda: later)
+    assert visit(mia, "t", building="trommelhaus", stars=15).json()["detail"] == {"code": "too_soon", "retry_after": 5}
+    later = datetime(2026, 11, 12, 10, 0, 31, tzinfo=ZoneInfo("Europe/Zurich"))
+    monkeypatch.setattr(clock, "now", lambda: later)
+    assert visit(mia, "t", building="trommelhaus", stars=15).status_code == 200
+    assert all_buildings()["trommelhaus"].min_seconds_per_star == 3
+
+
 def test_children_have_their_own_cool_down(mia, family_hub, monkeypatch):
     from conftest import as_person
 

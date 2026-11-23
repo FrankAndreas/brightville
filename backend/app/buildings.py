@@ -23,6 +23,8 @@ class Building:
     oberstufe: bool = False
     # The most one earning visit gives at Oberstufe, when it differs
     oberstufe_max_stars: Optional[int] = None
+    # The pace at Oberstufe, when it differs (his building can be a different game: speaking is quicker than rhythm)
+    oberstufe_min_seconds_per_star: Optional[float] = None
 
 
 @lru_cache
@@ -37,6 +39,7 @@ def all_buildings() -> dict[str, Building]:
                 float(b.get("minSecondsPerStar", 0)),
                 "oberstufe" in b,
                 b["oberstufe"].get("maxStars") if "oberstufe" in b else None,
+                (float(b["oberstufe"]["minSecondsPerStar"]) if "minSecondsPerStar" in b.get("oberstufe", {}) else None),
             )
             for b in json.load(file)
         }

@@ -55,6 +55,17 @@ describe('a speaking round', () => {
     expect(round).toHaveLength(10)
   })
 
+  it('the same word in his list and in a topic comes once', () => {
+    const builtin = words[0]
+    const own: VocabWord = { key: `en:own:${builtin.foreign}|${builtin.de.toLowerCase()}`, foreign: builtin.foreign, de: builtin.de, source: 'l' }
+    for (let i = 0; i < 30; i++) {
+      const round = buildSpeakRound('en', [own, builtin, ...words.slice(1, 8)], {}, {}, Math.random, TODAY)
+      const shownTwice = round.filter(x => x.kind === 'word' && x.shown === round.find(y => y.key === x.key)!.shown)
+        .map(x => x.shown).filter((t, j, all) => all.indexOf(t) !== j)
+      expect(shownTwice, round.map(x => x.shown).join(', ')).toEqual([])
+    }
+  })
+
   it('keys: a built-in and an own word', () => {
     expect(speakKey({ key: 'fr:travel:gare', foreign: 'la gare', de: 'der Bahnhof', source: 'travel' }, 'fr')).toBe('fr:speak:travel:gare')
     expect(speakKey({ key: 'fr:own:la gare|der bahnhof', foreign: 'la gare', de: 'der Bahnhof', source: 'x' }, 'fr')).toBe('fr:speak:own:la gare|der bahnhof')

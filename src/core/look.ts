@@ -44,6 +44,20 @@ export function isLook(x: unknown): x is Look {
   return wanted.every(k => OPTIONS[k as keyof Look].includes((x as Record<string, unknown>)[k] as string))
 }
 
+/**
+ * A look as far as this page knows it: a choice it doesn't know (saved by a newer page) becomes the plain one, the rest
+ * is kept. Null when it isn't a look at all.
+ */
+export function knownLook(x: unknown): Look | null {
+  if (typeof x !== 'object' || x === null) return null
+  const keys = Object.keys(OPTIONS) as (keyof Look)[]
+  const raw = x as Record<string, unknown>
+  if (!keys.every(k => typeof raw[k] === 'string')) return null
+  const out = { ...DEFAULT_LOOK }
+  for (const k of keys) if (OPTIONS[k].includes(raw[k] as string)) (out as Record<string, string>)[k] = raw[k] as string
+  return out
+}
+
 /** For a child who doesn't want to choose: the 🎲 */
 export function randomLook(rnd: () => number = Math.random): Look {
   const pick = <T,>(list: readonly T[]) => list[Math.min(list.length - 1, Math.floor(rnd() * list.length))]

@@ -22,22 +22,22 @@ const room = useRoomStore()
 
 type Sold = OutfitDef & { shelf: 1 | 2 | 3; price: number }
 const player = usePlayerStore()
-// Each child's own range: hers, or at Oberstufe his
-const level = player.level
-const sold = forLevel(level).filter((o): o is Sold => o.shelf !== undefined && o.price !== undefined)
+// Each child's own range: hers, or at Oberstufe his; it follows a level the parents change meanwhile
+const level = computed(() => player.level)
+const sold = computed(() => forLevel(level.value).filter((o): o is Sold => o.shelf !== undefined && o.price !== undefined))
 
 // At Oberstufe each item is labelled in the language he picked last (English if none), its German underneath
 const ARTICLE: Record<OutfitDef['article'], string> = { der: 'der', die: 'die', das: 'das', pl: 'die' }
 // The same child the language screen remembers it for (the vocabulary store's)
 const labelLang = lastPickedLang(useVocabStore().who)
-const label = level === 'oberstufe'
+const label = computed(() => level.value === 'oberstufe'
   ? (o: Sold) => ({ main: o[labelLang] ?? o.name, lang: labelLang, de: `${ARTICLE[o.article]} ${o.name}` })
-  : undefined
+  : undefined)
 
 const { ownedIds, trying, celebrating, canBuy, ready, open, tap, buy } = useShop({
-  items: sold,
+  items: () => sold.value,
   owned: () => wardrobe.owned.map(o => o.id),
-  shelfOpen: (shelf, owned) => shelfOpen(shelf, owned, level),
+  shelfOpen: (shelf, owned) => shelfOpen(shelf, owned, level.value),
   boughtToday: () => wardrobe.boughtToday || room.boughtToday,
   buy: id => wardrobe.buy(id),
   // Both stores: a purchase in either shop counts for both (and yesterday's, after midnight, for neither). Only this

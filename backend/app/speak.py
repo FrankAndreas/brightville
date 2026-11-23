@@ -36,7 +36,8 @@ def state(db: sqlite3.Connection, person_id: int, seen: bool = True) -> dict:
 
 
 def record(db: sqlite3.Connection, person_id: int, key: str, lang: str, answers: list[Answer]) -> None:
-    """One round's answers, counted once (by its key); a item of the other language is skipped"""
+    """One round's answers, counted once (by its key); an item of the other language, or not a speaking key, is
+    skipped"""
     today = clock.today()
     forget = (date.fromisoformat(today) - timedelta(days=KEEP_KEYS_DAYS)).isoformat()
     with writing(db):
