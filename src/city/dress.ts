@@ -93,15 +93,53 @@ function hair(style: HairStyle, color: string): THREE.Object3D[] {
         const a = (i / 11) * Math.PI * 2
         return mesh(new THREE.SphereGeometry(0.09, 12, 10), mat, Math.cos(a) * 0.3, TOP - 0.1 + (i % 2) * 0.04, Math.sin(a) * 0.3 - 0.04)
       })
+    case 'short':
+      // Close to the head: a thin cap reaching a little lower at the back
+      return [shell(mat, 0, Math.PI * 0.36, 0.015)]
+    case 'messy':
+      return [cap(), ...[
+        [-0.22, 0.4, 0.05], [-0.1, -0.5, 0.12], [0.02, 0.3, -0.02], [0.14, -0.35, 0.1], [0.25, 0.55, 0.02], [-0.04, 0.9, -0.16], [0.1, -0.8, -0.14],
+      ].map(([x, tilt, z]) => {
+        const tuft = mesh(new THREE.ConeGeometry(0.06, 0.16, 7), mat, x, TOP - 0.01 - Math.abs(x) * 0.3, z)
+        tuft.rotation.z = tilt
+        tuft.rotation.x = z * 2
+        return tuft
+      })]
   }
+}
+
+/** A rectangle with rounded corners, centred */
+function roundedRect(w: number, h: number, r: number): THREE.Shape {
+  const s = new THREE.Shape()
+  s.moveTo(-w / 2 + r, -h / 2)
+  s.lineTo(w / 2 - r, -h / 2)
+  s.quadraticCurveTo(w / 2, -h / 2, w / 2, -h / 2 + r)
+  s.lineTo(w / 2, h / 2 - r)
+  s.quadraticCurveTo(w / 2, h / 2, w / 2 - r, h / 2)
+  s.lineTo(-w / 2 + r, h / 2)
+  s.quadraticCurveTo(-w / 2, h / 2, -w / 2, h / 2 - r)
+  s.lineTo(-w / 2, -h / 2 + r)
+  s.quadraticCurveTo(-w / 2, -h / 2, -w / 2 + r, -h / 2)
+  return s
+}
+
+const FRAME_COLOR: Record<Exclude<Glasses, 'none'>, number> = {
+  round: 0x333333, star: 0xf2c230, heart: 0xe8457a, sunglasses: 0x1d1d1d, square: 0x2b4a7a,
 }
 
 function glasses(kind: Glasses): THREE.Object3D[] {
   if (kind === 'none') return []
-  const frame = material(kind === 'round' ? 0x333333 : kind === 'star' ? 0xf2c230 : 0xe8457a, { roughness: 0.4 })
+  const frame = material(FRAME_COLOR[kind], { roughness: 0.4 })
   const lenses = [-1, 1].map(side => {
     const x = side * 0.19
     if (kind === 'round') return mesh(new THREE.TorusGeometry(0.15, 0.022, 8, 24), frame, x, EYE_Y, 0.53)
+    // Dark lenses, filled
+    if (kind === 'sunglasses') return mesh(flat(roundedRect(0.3, 0.2, 0.07)), frame, x, EYE_Y, 0.53)
+    if (kind === 'square') {
+      const outer = roundedRect(0.3, 0.24, 0.02)
+      outer.holes.push(new THREE.Path(roundedRect(0.24, 0.18, 0.01).getPoints()))
+      return mesh(flat(outer), frame, x, EYE_Y, 0.52)
+    }
     const shape = kind === 'star' ? starShape(0.19, 0.09) : heartShape(0.15)
     const inner = kind === 'star' ? starShape(0.14, 0.065) : heartShape(0.11)
     shape.holes.push(new THREE.Path(inner.getPoints()))

@@ -13,9 +13,9 @@ from .db import writing
 # The same lists as src/core/look.ts: a look with anything else is refused
 LOOK_OPTIONS: dict[str, list[str]] = {
     "body": ["#ff9a3c", "#4f8fe8", "#4bd37b", "#e86fb0", "#a58bf0", "#f2c230", "#3cc8c8", "#ff6b6b"],
-    "hair": ["none", "spiky", "ponytail", "buns", "curly"],
+    "hair": ["none", "spiky", "ponytail", "buns", "curly", "short", "messy"],
     "hairColor": ["#6b3b1f", "#222222", "#f2c94c", "#d4572a", "#4f8fe8", "#ff8fc8"],
-    "glasses": ["none", "round", "star", "heart"],
+    "glasses": ["none", "round", "star", "heart", "sunglasses", "square"],
 }
 
 

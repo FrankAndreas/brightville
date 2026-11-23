@@ -4,9 +4,9 @@ import { BODY_COLORS, DEFAULT_LOOK, GLASSES, HAIR_COLORS, HAIR_STYLES, isLook, r
 describe('her look', () => {
   it('offers the same choices the server takes (backend/app/wardrobe.py LOOK_OPTIONS)', () => {
     expect(BODY_COLORS).toEqual(['#ff9a3c', '#4f8fe8', '#4bd37b', '#e86fb0', '#a58bf0', '#f2c230', '#3cc8c8', '#ff6b6b'])
-    expect(HAIR_STYLES).toEqual(['none', 'spiky', 'ponytail', 'buns', 'curly'])
+    expect(HAIR_STYLES).toEqual(['none', 'spiky', 'ponytail', 'buns', 'curly', 'short', 'messy'])
     expect(HAIR_COLORS).toEqual(['#6b3b1f', '#222222', '#f2c94c', '#d4572a', '#4f8fe8', '#ff8fc8'])
-    expect(GLASSES).toEqual(['none', 'round', 'star', 'heart'])
+    expect(GLASSES).toEqual(['none', 'round', 'star', 'heart', 'sunglasses', 'square'])
   })
 
   it('starts as today\'s orange blob: no hair, no glasses', () => {
@@ -18,6 +18,8 @@ describe('her look', () => {
     expect(isLook({ ...DEFAULT_LOOK, hair: 'mohawk' })).toBe(false)
     expect(isLook({ ...DEFAULT_LOOK, extra: 1 })).toBe(false)
     expect(isLook(null)).toBe(false)
+    expect(isLook({ ...DEFAULT_LOOK, hair: 'short', glasses: 'sunglasses' })).toBe(true)
+    expect(isLook({ ...DEFAULT_LOOK, hair: 'messy', glasses: 'square' })).toBe(true)
     expect(isLook({ body: '#ff9a3c' })).toBe(false)
   })
 

@@ -47,10 +47,18 @@ def test_no_look_until_saved_then_kept(mia):
     assert answer.status_code == 422 and code(answer) == "bad_look"
 
 
+def test_the_new_looks_are_kept(mia):
+    look = {**LOOK, "hair": "short", "glasses": "sunglasses"}
+    assert mia.put("/api/look", json={"look": look}).status_code == 200
+    assert mia.get("/api/wardrobe").json()["look"] == look
+    look = {**LOOK, "hair": "messy", "glasses": "square"}
+    assert mia.put("/api/look", json={"look": look}).status_code == 200
+
+
 def test_the_look_options_match_the_page():
     # The same lists as src/core/look.ts
-    assert wardrobe.LOOK_OPTIONS["hair"] == ["none", "spiky", "ponytail", "buns", "curly"]
-    assert wardrobe.LOOK_OPTIONS["glasses"] == ["none", "round", "star", "heart"]
+    assert wardrobe.LOOK_OPTIONS["hair"] == ["none", "spiky", "ponytail", "buns", "curly", "short", "messy"]
+    assert wardrobe.LOOK_OPTIONS["glasses"] == ["none", "round", "star", "heart", "sunglasses", "square"]
     assert len(wardrobe.LOOK_OPTIONS["body"]) == 8 and wardrobe.LOOK_OPTIONS["body"][0] == "#ff9a3c"
     assert len(wardrobe.LOOK_OPTIONS["hairColor"]) == 6
 
