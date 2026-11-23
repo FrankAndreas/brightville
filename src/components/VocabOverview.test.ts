@@ -115,12 +115,27 @@ describe('VocabOverview', () => {
   it('per language: sentences and words said right in the Trommelhaus', async () => {
     const api = fakeApi()
     const said = (right: number) => ({ right, last_right: right ? '2026-11-10' : null, last_asked: '2026-11-10' })
-    api.speak_ = { 'en:speak:travel:window': said(2), 'en:speak:sentence:food:pizza': said(1), 'en:speak:own:x|y': said(1), 'en:speak:travel:door': said(0), 'fr:speak:travel:gare': said(1) }
+    api.speak_ = { 'en:speak:travel:station': said(2), 'en:speak:sentence:food:pizza': said(1), 'en:speak:own:x|y': said(1), 'en:speak:sentence:food:gone': said(1), 'en:speak:travel:train': said(0), 'fr:speak:travel:station': said(1) }
     const w = mount(VocabOverview, { props: { api, personId: 2, today: '2026-11-12' } })
     ;(w.find('details').element as HTMLDetailsElement).open = true
     await w.find('details').trigger('toggle')
     await flushPromises()
-    expect(w.find('[data-test="lang-en"]').text()).toContain('3 Sätze und Wörter gesprochen')
+    expect(w.find('[data-test="lang-en"]').text()).toContain('2 Sätze und Wörter gesprochen')
     expect(w.find('[data-test="lang-fr"]').text()).toContain('1 Sätze und Wörter gesprochen')
+  })
+
+  it('per language: the speaking line comes after both Kalender lines', async () => {
+    const api = fakeApi()
+    const rec = (right: number) => ({ recent: Array.from({ length: 10 }, (_, i) => i >= 10 - right) })
+    api.dates_ = { 'en:spelling': rec(1) }
+    const w = mount(VocabOverview, { props: { api, personId: 2, today: '2026-11-12' } })
+    ;(w.find('details').element as HTMLDetailsElement).open = true
+    await w.find('details').trigger('toggle')
+    await flushPromises()
+    const lines = w.find('[data-test="lang-en"]').findAll('p').map(p => p.text())
+    const kalender = lines.findIndex(l => l.startsWith('Schwach (Kalender)'))
+    const spoken = lines.findIndex(l => l.includes('Sätze und Wörter gesprochen'))
+    expect(kalender).toBeGreaterThan(-1)
+    expect(spoken).toBe(kalender + 1)
   })
 })

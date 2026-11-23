@@ -10,7 +10,8 @@ import { allTexts } from '@/core/reading/texts'
 import { ownWords } from '@/core/vocab/round'
 import { spellKey } from '@/core/vocab/spelling'
 import { LANGS, type Lang } from '@/core/vocab/types'
-import { saidCount } from '@/core/speak/round'
+import { saidCount, speakKey } from '@/core/speak/round'
+import { sentences } from '@/core/speak/sentences'
 import type { Api, DatesState, SpeakState, GrammarState, ListenState, ReadingState, VocabState } from '@/services/api'
 
 // On the parents' page, in the card of a child at Oberstufe: per language how many words he has learned (box 3 and up,
@@ -69,7 +70,9 @@ const perLang = computed(() => LANGS.map(lang => {
     kindsSure: KINDS.filter(k => isSure(asRec(times.value?.progress[`${lang}:${k.id}`]))).length,
     kinds: KINDS.length,
     weakKinds: weakestKinds(lang, times.value?.progress ?? {}).map(id => KINDS.find(k => k.id === id)!.name),
-    spoken: saidCount(lang, said.value?.progress ?? {}),
+    spoken: saidCount(lang, said.value?.progress ?? {}, new Set([
+      ...[...ownWords(lists, lang), ...builtinWords(lang)].map(w => speakKey(w, lang)), ...sentences(lang).map(x => x.key),
+    ])),
     lists: lists.filter(l => l.lang === lang),
   }
 }))
@@ -90,8 +93,8 @@ const perLang = computed(() => LANGS.map(lang => {
         <p v-if="l.weak.length" data-test="weak">Schwach: {{ l.weak.join(', ') }}</p>
         <p>{{ l.read }} von {{ l.texts }} Texten gelesen</p>
         <p>Uhrzeit und Datum: {{ l.kindsSure }} von {{ l.kinds }} Aufgabenarten sicher</p>
-        <p>{{ l.spoken }} Sätze und Wörter gesprochen</p>
         <p v-if="l.weakKinds.length" data-test="weak-dates">Schwach (Kalender): {{ l.weakKinds.join(', ') }}</p>
+        <p>{{ l.spoken }} Sätze und Wörter gesprochen</p>
         <p v-if="!l.lists.length" class="none">Keine eigenen Listen.</p>
         <details v-for="list in l.lists" :key="list.id" :data-test="`vocab-list-${list.id}`">
           <summary>{{ list.name }} ({{ list.words.length }})</summary>

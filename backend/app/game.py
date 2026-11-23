@@ -122,11 +122,18 @@ def _log(db: sqlite3.Connection, person_id: int, key: str, kind: str, building: 
     )
 
 
-def _check_pace(db: sqlite3.Connection, person_id: int, building: Building, stars: int) -> None:
+def _pace(level: str, building: Building) -> float:
+    if level == OBERSTUFE and building.oberstufe_min_seconds_per_star is not None:
+        return building.oberstufe_min_seconds_per_star
+    return building.min_seconds_per_star
+
+
+def _check_pace(db: sqlite3.Connection, person_id: int, building: Building, stars: int, level: str) -> None:
     """The cool-down: a child is in one building at a time, so an earning visit can't end sooner after the one before
     than its Stars take to earn (building.min_seconds_per_star). Measured with the server's clock, between the
     arrivals of the two visits, which is longer than the visit itself: generous to a child, not to a script."""
-    if not COOLDOWN or building.min_seconds_per_star <= 0:
+    per_star = _pace(level, building)
+    if not COOLDOWN or per_star <= 0:
         return
     row = db.execute(
         "SELECT at FROM events WHERE person_id = ? AND kind = 'visit' ORDER BY at DESC LIMIT 1", (person_id,)
@@ -134,7 +141,7 @@ def _check_pace(db: sqlite3.Connection, person_id: int, building: Building, star
     if row is None:
         return
     since = (clock.now() - datetime.fromisoformat(row["at"])).total_seconds()
-    needed = stars * building.min_seconds_per_star
+    needed = stars * per_star
     if since < needed:
         raise TooSoon(max(1, math.ceil(needed - since)))
 
@@ -152,7 +159,7 @@ def visit(db: sqlite3.Connection, person_id: int, building: Building, stars: int
         earned = min(stars, _max_stars(now, building))
         if earned <= 0 or _seen(db, person_id, key):
             return now, False
-        _check_pace(db, person_id, building, earned)
+        _check_pace(db, person_id, building, earned, now.level)
         before = now.goal_reached()
         now.stars += earned
         now.visits += 1

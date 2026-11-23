@@ -290,4 +290,22 @@ describe('the Kleiderladen', () => {
     // Her things aren't for him, even asked for directly (the server's rule)
     await expect(api.buy('kleid', 'x')).rejects.toMatchObject({ code: 'not_for_level' })
   })
+
+  it('a stored language that isn\'t English or French: English labels', async () => {
+    window.localStorage.setItem('brightville.vocab.lang.1', 'de')
+    const { w } = await open(100, 0, 'oberstufe')
+    expect(item(w, 'hoodie').find('[data-test="label-main"]').text()).toBe('hoodie')
+  })
+
+  it('follows a level changed meanwhile, and says why the old range was refused', async () => {
+    const { w, player } = await open(100, 0, 'oberstufe')
+    api.state_.level = 'kindergarten'
+    await item(w, 'hoodie').trigger('click')
+    await w.find('[data-test="buy"]').trigger('click')
+    await flushPromises()
+    expect(lastSaid()).toBe('Das gibt es für dich hier nicht mehr. Schau, was es jetzt gibt!')
+    expect(player.level).toBe('kindergarten')
+    expect(item(w, 'hoodie').exists()).toBe(false)
+    expect(item(w, 'kleid').exists()).toBe(true)
+  })
 })

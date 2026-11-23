@@ -94,4 +94,38 @@ describe('the word memory at Oberstufe', () => {
     expect(w.emitted('finished')).toEqual([[{ stars: 0 }]])
     w.unmount()
   })
+
+  it('Esc leaves from the language screen too', () => {
+    const w = mount(WordMemory, { attachTo: document.body })
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape' }))
+    expect(w.emitted('finished')).toEqual([[{ stars: 0 }]])
+    w.unmount()
+  })
+
+  it('a whole round found at once: every word moves, recorded once when the Spielhalle closes by itself', async () => {
+    const w = await opened()
+    for (const word of wordsIn(w)) {
+      await flip(w, `${word}-f`)
+      await flip(w, `${word}-d`)
+    }
+    await run(10000)
+    expect(w.emitted('finished')).toEqual([[{ stars: 0 }]])
+    await flushPromises()
+    expect(api.calls.filter(c => c.startsWith('vocabResults'))).toHaveLength(1)
+    for (const word of wordsIn(w)) expect(api.vocab_.progress[word].box, word).toBe(3)
+    w.unmount()
+  })
+
+  it('a word not due today found at once changes nothing', async () => {
+    const first = builtinWords('fr', 'travel')[0].key
+    api.vocab_.progress[first] = { box: 2, due: '2026-11-20' }
+    await useVocabStore().load()
+    const w = await opened()
+    await flip(w, `${first}-f`)
+    await flip(w, `${first}-d`)
+    requestLeave()
+    await flushPromises()
+    expect(api.vocab_.progress[first]).toEqual({ box: 2, due: '2026-11-20' })
+    w.unmount()
+  })
 })

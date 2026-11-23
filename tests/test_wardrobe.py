@@ -325,3 +325,14 @@ def test_his_shelves_count_only_his_items(monkeypatch, papa, mia):
     assert mia.put("/api/worn", json={"worn": {"head": "kappe", "neck": "schal"}}).status_code == 200
     worn = mia.get("/api/wardrobe").json()["worn"]
     assert worn["head"] == "kappe" and worn["neck"] == "schal"
+
+
+def test_a_purchase_sent_again_after_a_level_change_still_counts_once(papa, mia):
+    learn(mia)
+    set_money(200, 0)
+    assert buy(mia, "schal", "same").status_code == 200
+    oberstufe(papa)
+    again = buy(mia, "schal", "same")
+    assert again.status_code == 200
+    assert owned(mia) == ["schal"]
+    assert again.json()["state"]["stars"] == 180

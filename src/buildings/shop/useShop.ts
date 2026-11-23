@@ -31,10 +31,12 @@ const REFUSED: Partial<Record<string, string>> = {
   poor: 'Dafür hast du noch nicht genug Sterne.',
   shelf_locked: 'Dieses Regal ist noch zu.',
   locked: 'Erst lernen, dann einkaufen!',
+  not_for_level: 'Das gibt es für dich hier nicht mehr. Schau, was es jetzt gibt!',
 }
 
 export interface ShopOptions<T extends ShopItem> {
-  items: T[]
+  /** What the shop sells (a function: what it sells now, e.g. after the child's level changed) */
+  items: T[] | (() => T[])
   /** The ids she owns */
   owned: () => string[]
   shelfOpen: (shelf: 1 | 2 | 3, owned: string[]) => boolean
@@ -68,6 +70,7 @@ export interface Shop<T extends ShopItem> {
  * way (on her character, in her room).
  */
 export function useShop<T extends ShopItem>(opts: ShopOptions<T>): Shop<T> {
+  const itemsNow = (): T[] => (typeof opts.items === 'function' ? opts.items() : opts.items)
   const player = usePlayerStore()
   const ownedIds = computed(() => opts.owned())
   const open = (shelf: 1 | 2 | 3) => opts.shelfOpen(shelf, ownedIds.value)
@@ -92,7 +95,7 @@ export function useShop<T extends ShopItem>(opts: ShopOptions<T>): Shop<T> {
         void speak('Dieses Regal geht später auf. Fang ganz oben an!')
         return
       }
-      const above = ownedIds.value.filter(id => opts.items.find(x => x.id === id)?.shelf === o.shelf - 1).length
+      const above = ownedIds.value.filter(id => itemsNow().find(x => x.id === id)?.shelf === o.shelf - 1).length
       const more = TO_OPEN - above
       void speak(more === 1
         ? 'Kauf noch ein Teil von oben, dann geht dieses Regal auf.'
@@ -147,7 +150,8 @@ export function useShop<T extends ShopItem>(opts: ShopOptions<T>): Shop<T> {
 
   async function catchUp() {
     await Promise.all([opts.catchUp(), player.refresh()])
-    if (trying.value && ownedIds.value.includes(trying.value.id)) trying.value = null
+    const tried = trying.value
+    if (tried && (ownedIds.value.includes(tried.id) || !itemsNow().some(x => x.id === tried.id))) trying.value = null
   }
 
   function leave() {
@@ -177,5 +181,5 @@ export function useShop<T extends ShopItem>(opts: ShopOptions<T>): Shop<T> {
     clearTimeout(confettiTimer)
   })
 
-  return { items: opts.items, ownedIds, trying, celebrating, canBuy, ready, open, tap, buy }
+  return { items: itemsNow(), ownedIds, trying, celebrating, canBuy, ready, open, tap, buy }
 }

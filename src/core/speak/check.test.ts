@@ -16,6 +16,9 @@ describe('what the recogniser heard', () => {
     expect(heardRight(['71'], 'soixante et onze', 'fr')).toBe(true)
     expect(heardRight(['80'], 'quatre-vingts', 'fr')).toBe(true)
     expect(heardRight(['99'], 'ninety-nine', 'en')).toBe(true)
+    expect(heardRight(['j’ai 1 sœur'], 'J’ai une sœur.', 'fr')).toBe(true)
+    expect(heardRight(['j’ai 1 frère'], 'J’ai un frère.', 'fr')).toBe(true)
+    expect(heardRight(['21 heures'], 'vingt et une heures', 'fr')).toBe(true)
   })
 
   it('any answer of a word counts, and a verb may leave out its "to"', () => {

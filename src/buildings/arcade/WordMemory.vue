@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { builtinWords } from '@/core/vocab/builtin'
 import { dueToday, pickMemoryWords, wordDeck, type WordCard } from '@/core/vocab/memoryWords'
 import { ownWords } from '@/core/vocab/round'
@@ -32,12 +32,18 @@ const localDay = () => {
 /** The progress as the round starts: a word found now is judged by its day then */
 let progress = vocab.progress
 
-// Leaving on the language screen; once the cards are dealt, the Spielhalle answers the leave button itself
-const visit = useVisit(() => {
+// Leaving on the language screen (the leave button or Esc); once the cards are dealt, the Spielhalle answers both
+function leaveUnpicked() {
   if (visit.isClosed() || lang.value) return
   visit.shutDown()
   emit('finished', { stars: 0 })
-})
+}
+const visit = useVisit(leaveUnpicked)
+function onKey(e: KeyboardEvent) {
+  if (e.code === 'Escape' && !e.repeat) leaveUnpicked()
+}
+onMounted(() => window.addEventListener('keydown', onKey))
+onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 
 function pick(chosen: Lang) {
   progress = vocab.progress

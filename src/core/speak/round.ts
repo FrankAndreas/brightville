@@ -1,4 +1,4 @@
-import { answersOf } from '@/core/vocab/answer'
+import { answersOf, sameWord } from '@/core/vocab/answer'
 import type { Lang, Progress, VocabWord } from '@/core/vocab/types'
 import { sentences } from './sentences'
 
@@ -55,11 +55,14 @@ export function buildSpeakRound(
   lang: Lang, words: VocabWord[], vocab: Progress, said: SpeakProgress, rand: () => number, today: string,
 ): SpeakItem[] {
   const seen = new Set<string>()
+  // One word once, even when it is in his list and in a topic too (two keys, the same word)
+  const same = new Set<string>()
   const usable = words
     .filter(w => w.key.startsWith(`${lang}:`) && w.de.trim() && (answersOf(w.foreign)[0] ?? '').length > 0)
     .filter(w => answersOf(w.foreign)[0].length <= MAX_TEXT && w.de.length <= MAX_TEXT)
     .map(w => ({ key: speakKey(w, lang), word: w }))
     .filter(x => !seen.has(x.key) && seen.add(x.key))
+    .filter(x => !same.has(sameWord(x.word.foreign, x.word.de)) && same.add(sameWord(x.word.foreign, x.word.de)))
   const item = (x: { key: string; word: VocabWord }, mode: SpeakItem['mode']): SpeakItem => ({
     key: x.key, mode, kind: 'word', text: x.word.foreign, shown: answersOf(x.word.foreign)[0], de: x.word.de,
   })
@@ -95,7 +98,8 @@ export function laySpeak(
   return next
 }
 
-/** Sentences and words of a language he said right at least once */
-export function saidCount(lang: Lang, progress: SpeakProgress): number {
-  return Object.entries(progress).filter(([k, p]) => k.startsWith(`${lang}:speak:`) && p.right >= 1).length
+/** Sentences and words of a language he said right at least once (`known`: only these keys, the ones that exist now) */
+export function saidCount(lang: Lang, progress: SpeakProgress, known?: Set<string>): number {
+  return Object.entries(progress)
+    .filter(([k, p]) => k.startsWith(`${lang}:speak:`) && p.right >= 1 && (!known || known.has(k))).length
 }

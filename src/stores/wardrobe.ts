@@ -1,13 +1,14 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
-import { DEFAULT_LOOK, isLook, type Dress, type Look } from '@/core/look'
+import { DEFAULT_LOOK, isLook, knownLook, type Dress, type Look } from '@/core/look'
 import type { Place } from '@/core/outfits'
 import { ApiError, type Api, type WardrobeState } from '@/services/api'
 import { usePlayerStore } from './player'
 import { useRoomStore } from './room'
 
 /** Why a purchase didn't happen: the server's code, or 'offline' (nothing was taken) */
-export type BuyResult = 'ok' | 'offline' | 'locked' | 'bought_today' | 'shelf_locked' | 'owned' | 'poor' | 'not_for_sale' | 'unknown'
+export type BuyResult =
+  | 'ok' | 'offline' | 'locked' | 'bought_today' | 'shelf_locked' | 'owned' | 'poor' | 'not_for_sale' | 'not_for_level' | 'unknown'
 
 /** Changes made while the server was away, sent with the next load */
 interface Waiting {
@@ -67,7 +68,7 @@ export const useWardrobeStore = defineStore('wardrobe', () => {
   /** The server's state, with what still waits on this device laid over it (it is sent with the next load) */
   function take(state: WardrobeState) {
     const waiting = readWaiting(key)
-    look.value = waiting.look ?? (isLook(state.look) ? state.look : null)
+    look.value = waiting.look ?? knownLook(state.look)
     const next = { ...state.worn }
     for (const [place, id] of Object.entries(waiting.worn ?? {}) as [Place, string | null][]) {
       if (id === null) delete next[place]

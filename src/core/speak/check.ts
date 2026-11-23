@@ -33,10 +33,15 @@ export function numberWords(n: number, lang: Lang): string {
   return `quatre-vingt-${FR_SMALL[n - 80]}`
 }
 
-/** What is left to compare: figures (0–100) as words, small letters without accents, nothing but letters and figures */
-export function spokenForm(text: string, lang: Lang): string {
+/** What is left to compare: figures (0–100) as words, small letters without accents, nothing but letters and figures.
+ * `feminine`: a French figure ending in one says "une" ("1 sœur" = "une sœur", "21 heures" = "vingt et une heures") */
+export function spokenForm(text: string, lang: Lang, feminine = false): string {
+  const said = (n: number) => {
+    const words = numberWords(n, lang)
+    return feminine && lang === 'fr' && /\bun$/.test(words) ? `${words}e` : words
+  }
   return text
-    .replace(/\d+/g, d => (Number(d) <= 100 ? ` ${numberWords(Number(d), lang)} ` : d))
+    .replace(/\d+/g, d => (Number(d) <= 100 ? ` ${said(Number(d))} ` : d))
     .toLowerCase()
     .replace(/œ/g, 'oe').replace(/æ/g, 'ae')
     .normalize('NFD').replace(/\p{M}/gu, '')
@@ -53,8 +58,8 @@ export function heardRight(alternatives: string[], expected: string, lang: Lang,
   const loose = lang === 'en' && opts.word
   const form = (text: string) => spokenForm(loose ? withoutTo(text) : text, lang)
   const answers = answersOf(expected).map(form).filter(Boolean)
-  return alternatives.some(heard => {
-    const mine = form(heard)
-    return mine !== '' && answers.includes(mine)
-  })
+  // A French figure ending in one: the recogniser doesn't say whether it was "un" or "une", so both are tried
+  const forms = (text: string) =>
+    lang === 'fr' && /\d/.test(text) ? [form(text), spokenForm(loose ? withoutTo(text) : text, lang, true)] : [form(text)]
+  return alternatives.some(heard => forms(heard).some(mine => mine !== '' && answers.includes(mine)))
 }

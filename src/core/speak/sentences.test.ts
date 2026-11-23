@@ -32,4 +32,11 @@ describe('everyday sentences to say', () => {
     expect(all[0]).toMatchObject({ key: `fr:speak:sentence:travel:${fr.topics[0].sentences[0].id}`, topic: 'travel', text: fr.topics[0].sentences[0].text })
     expect(new Set(all.map(s => s.key)).size).toBe(60)
   })
+
+  it('no place name the recogniser easily mishears, and the French drafts polished', () => {
+    const all = [...sentences('en'), ...sentences('fr')].map(s => s.text)
+    expect(all.join(' ')).not.toMatch(/\bBern\b/)
+    expect(all).toContain('Tu devrais dormir plus.')
+    expect(all).toContain('Allez tout droit, puis tournez à gauche.')
+  })
 })
