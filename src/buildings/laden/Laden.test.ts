@@ -6,6 +6,7 @@ import { speak } from '@/services/tts'
 import { fakeApi, type FakeApi } from '@/services/fakeApi'
 import { usePlayerStore } from '@/stores/player'
 import { useRoomStore } from '@/stores/room'
+import { useVocabStore } from '@/stores/vocab'
 import { useWardrobeStore } from '@/stores/wardrobe'
 import Laden from './Laden.vue'
 
@@ -24,20 +25,22 @@ const lastSaid = () => vi.mocked(speak).mock.calls.at(-1)?.[0]
 
 describe('the Kleiderladen', () => {
   let api: FakeApi
-  async function open(stars = 100, savings = 0) {
-    api = fakeApi({ stars, savings, visits: 2 })
+  async function open(stars = 100, savings = 0, level: 'kindergarten' | 'oberstufe' = 'kindergarten') {
+    api = fakeApi({ stars, savings, visits: 2, level, daily_goal: level === 'oberstufe' ? 1 : 2 })
     const player = usePlayerStore()
     player.init(api, 1)
     await player.refresh()
     const wardrobe = useWardrobeStore()
     wardrobe.init(api, 1)
     await wardrobe.load()
+    useVocabStore().init(api, 1, window.localStorage)
     const w = mount(Laden, { attachTo: document.body })
     await flushPromises()
     return { w, player, wardrobe }
   }
 
   beforeEach(() => {
+    window.localStorage.clear()
     setActivePinia(createPinia())
     vi.mocked(speak).mockClear()
   })
@@ -247,5 +250,44 @@ describe('the Kleiderladen', () => {
     await item(w, 'schal').trigger('click')
     expect(w.find('[data-test="buy"]').attributes('data-ready')).toBe('true')
     w.unmount()
+  })
+
+  it('at Kindergarten: exactly her fifteen, without labels', async () => {
+    const { w } = await open()
+    expect(w.findAll('[data-test="item"]')).toHaveLength(15)
+    expect(item(w, 'hoodie').exists()).toBe(false)
+    expect(w.find('[data-test="item-label"]').exists()).toBe(false)
+  })
+
+  it('at Oberstufe: exactly his eleven, labelled in English with the German underneath', async () => {
+    const { w } = await open(100, 0, 'oberstufe')
+    expect(w.findAll('[data-test="item"]')).toHaveLength(11)
+    expect(item(w, 'kleid').exists()).toBe(false)
+    const label = item(w, 'hoodie').find('[data-test="item-label"]')
+    expect(label.find('[data-test="label-main"]').text()).toBe('hoodie')
+    expect(label.find('[data-test="label-main"]').attributes('lang')).toBe('en')
+    expect(label.find('[data-test="label-de"]').text()).toBe('der Hoodie')
+    expect(item(w, 'kopfhoerer').find('[data-test="label-de"]').text()).toBe('die Kopfhörer')
+  })
+
+  it('in French when he picked French last', async () => {
+    window.localStorage.setItem('brightville.vocab.lang.1', 'fr')
+    const { w } = await open(100, 0, 'oberstufe')
+    expect(item(w, 'hoodie').find('[data-test="label-main"]').text()).toBe('le sweat à capuche')
+    expect(item(w, 'hoodie').find('[data-test="label-main"]').attributes('lang')).toBe('fr')
+  })
+
+  it('his second shelf opens only with his own things, and he buys from his range', async () => {
+    const { w, wardrobe } = await open(100, 0, 'oberstufe')
+    api.wardrobe_.owned = [{ id: 'kappe', how: 'bought', got_at: '2026-11-01' }, { id: 'schal', how: 'bought', got_at: '2026-11-02' }]
+    await wardrobe.load()
+    await flushPromises()
+    expect(shelf(w, 2).attributes('data-open')).toBe('false')
+    await item(w, 'hoodie').trigger('click')
+    await w.find('[data-test="buy"]').trigger('click')
+    await flushPromises()
+    expect(wardrobe.owned.map(o => o.id)).toContain('hoodie')
+    // Her things aren't for him, even asked for directly (the server's rule)
+    await expect(api.buy('kleid', 'x')).rejects.toMatchObject({ code: 'not_for_level' })
   })
 })

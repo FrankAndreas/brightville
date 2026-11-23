@@ -2,12 +2,14 @@
 import { SHELVES, type ShopItem } from './useShop'
 
 // A shop's three shelves (stages 7 and 8): a tile per item with its price next to a Star, or ✔️ once she owns it;
-// locked shelves greyed, with a 🔒 in the corner.
+// locked shelves greyed, with a 🔒 in the corner. `label`: a name under the picture (his range at Oberstufe: the word in
+// his language, the German smaller underneath).
 defineProps<{
   items: T[]
   owned: string[]
   trying: T | null
   open: (shelf: 1 | 2 | 3) => boolean
+  label?: (item: T) => { main: string; lang: string; de: string } | null
 }>()
 const emit = defineEmits<{ tap: [item: T] }>()
 </script>
@@ -20,6 +22,10 @@ const emit = defineEmits<{ tap: [item: T] }>()
         :data-owned="owned.includes(o.id)" :data-trying="trying?.id === o.id" :aria-label="o.name" @click="emit('tap', o)"
       >
         <span class="emoji">{{ o.emoji }}</span>
+        <span v-if="label?.(o)" class="label" data-test="item-label">
+          <span class="main" data-test="label-main" :lang="label(o)!.lang">{{ label(o)!.main }}</span>
+          <span class="de" data-test="label-de" lang="de">{{ label(o)!.de }}</span>
+        </span>
         <span v-if="owned.includes(o.id)" class="tag">✔️</span>
         <span v-else class="tag">⭐ {{ o.price }}</span>
       </button>
@@ -29,6 +35,9 @@ const emit = defineEmits<{ tap: [item: T] }>()
 </template>
 
 <style scoped>
+.label { display: flex; flex-direction: column; align-items: center; line-height: 1.1; max-width: 100%; }
+.label .main { font: 700 clamp(12px, 1.7vh, 17px) system-ui, sans-serif; color: #23264a; text-align: center; }
+.label .de { font: 500 clamp(10px, 1.3vh, 13px) system-ui, sans-serif; color: #5b6070; text-align: center; }
 .shelves { display: flex; flex-direction: column; gap: 2.4vh; }
 .shelf {
   position: relative;
