@@ -47,4 +47,11 @@ describe("the coach's words", () => {
     ]
     for (const line of all) expect(line).not.toMatch(FRENCH)
   })
+
+  it('the stretch move says what is counted, and the star asks for wide legs', () => {
+    expect(coachWords('en').workout('strecken', 5)).toBe('Do five knee touches: arms up, then hands to your knees!')
+    expect(coachWords('fr').workout('strecken', 5)).toBe('Fais cinq fois: bras en haut, puis mains aux genoux!')
+    expect(coachWords('en').poseSay('stern')).toContain('wide apart')
+    expect(coachWords('fr').poseSay('riese')).toContain('Joins les pieds')
+  })
 })

@@ -11,7 +11,7 @@ import { forgetInstruction, instruct, speak, stopSpeaking } from '@/services/tts
 import { coachWords } from '@/core/coach/words'
 import type { Lang } from '@/core/vocab/types'
 import CoachLine from '../coach/CoachLine.vue'
-import { coachSay } from '../coach/voice'
+import { coachQuiet, coachSay } from '../coach/voice'
 import { onLeaveRequest } from '../leave'
 import type { BuildingResult } from '../types'
 import HoldRing from './HoldRing.vue'
@@ -44,6 +44,14 @@ const flow = createYogaFlow(poses, words)
 const coachText = ref<string | null>(null)
 const hint = ref(!props.lang)
 let hintTimer: ReturnType<typeof setTimeout> | undefined
+/** The picture comes if he hasn't found the pose by then; while he holds it, it waits a little more */
+function armHint(ms: number) {
+  clearTimeout(hintTimer)
+  hintTimer = setTimeout(() => {
+    if (view.progress > 0) armHint(1000)
+    else hint.value = true
+  }, ms)
+}
 const view = reactive({ ...flow.state })
 /** How each finished pose went, in order */
 const results = ref<('held' | 'missed')[]>([])
@@ -77,7 +85,7 @@ function send(event: YogaEvent) {
     // A new pose: its picture only comes later, as a hint
     hint.value = false
     clearTimeout(hintTimer)
-    hintTimer = setTimeout(() => { hint.value = true }, HINT_MS)
+    armHint(HINT_MS)
   }
   for (const effect of effects) {
     if (effect.type === 'speak' && effect.coach && props.lang) {
@@ -111,6 +119,7 @@ function shutDown() {
     () => tracker?.close(),
     () => intents?.dispose(),
     () => stopSpeaking(),
+    () => { if (props.lang) coachQuiet() },
     () => stopLeaveRequests(),
     () => window.removeEventListener('keydown', logBody),
   ]
@@ -235,7 +244,7 @@ onBeforeUnmount(shutDown)
 
         <div class="lesson">
           <HoldRing class="ring" :progress="view.progress" />
-          <div v-if="hint" class="figure" data-test="pose-hint"><YogaTeacher class="teacher" :pose="view.pose" /></div>
+          <YogaTeacher v-if="hint" class="figure" :pose="view.pose" />
           <CoachLine
             v-if="lang && coachText && view.pose" class="coach" :lang="lang" :text="coachText"
             :title="words?.poseTitle(view.pose)" :first="view.poseNumber === 1"
@@ -292,7 +301,6 @@ video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
 .lesson { background: #fff7e6; display: grid; place-items: center; overflow: visible; }
 .ring, .figure { position: absolute; height: 92%; aspect-ratio: 1; max-width: 92%; }
 .figure { height: 74%; }
-.teacher { width: 100%; height: 100%; }
 .coach { position: absolute; left: 4%; right: 4%; top: 4%; }
 
 .no-camera { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6vh; }

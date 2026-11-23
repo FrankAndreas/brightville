@@ -33,6 +33,8 @@ export interface CoachWords {
 interface Table {
   poses: Record<PoseId, { title: string; say: string }>
   moves: Record<MoveId, string>
+  /** Moves said in a sentence of their own (n in words) */
+  sentences?: Partial<Record<MoveId, (n: string) => string>>
   numbers: string[]
   doThem: (n: string, move: string) => string
   simon: Record<SimonMove, string>
@@ -44,13 +46,14 @@ interface Table {
 
 const EN: Table = {
   poses: {
-    stern: { title: 'Star', say: 'Stand with your legs apart. Stretch your arms out to the sides.' },
+    stern: { title: 'Star', say: 'Stand with your legs wide apart. Stretch your arms out to the sides.' },
     riese: { title: 'Reach up', say: 'Stand with your feet together. Stretch both arms high above your head.' },
     baum: { title: 'Tree', say: 'Stand on one leg. Put your hands together above your head.' },
     frosch: { title: 'Deep squat', say: 'Squat down low. Put your hands on the floor between your knees.' },
     flieger: { title: 'Side lean', say: 'Stretch your arms out wide and lean to one side.' },
   },
-  moves: { hampelmann: 'jumping jacks', huepfen: 'jumps', kniebeuge: 'squats', strecken: 'reach-ups' },
+  moves: { hampelmann: 'jumping jacks', huepfen: 'jumps', kniebeuge: 'squats', strecken: 'knee touches' },
+  sentences: { strecken: n => `Do ${n} knee touches: arms up, then hands to your knees!` },
   numbers: ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'],
   doThem: (n, move) => `Do ${n} ${move}!`,
   simon: {
@@ -65,13 +68,14 @@ const EN: Table = {
 
 const FR: Table = {
   poses: {
-    stern: { title: "L'étoile", say: 'Écarte les jambes. Tends les bras sur les côtés.' },
-    riese: { title: 'Bien haut', say: 'Mets les pieds ensemble. Tends les deux bras bien haut au-dessus de la tête.' },
+    stern: { title: "L'étoile", say: 'Écarte bien les jambes. Tends les bras sur les côtés.' },
+    riese: { title: 'Bien haut', say: 'Joins les pieds. Tends les deux bras bien haut au-dessus de la tête.' },
     baum: { title: "L'arbre", say: 'Tiens-toi sur une jambe. Joins les mains au-dessus de la tête.' },
     frosch: { title: 'Accroupi', say: 'Accroupis-toi. Pose les mains par terre entre les genoux.' },
     flieger: { title: 'Penché', say: 'Tends les bras bien écartés et penche-toi sur le côté.' },
   },
   moves: { hampelmann: 'sauts en étoile', huepfen: 'sauts sur place', kniebeuge: 'flexions', strecken: 'étirements' },
+  sentences: { strecken: n => `Fais ${n} fois: bras en haut, puis mains aux genoux!` },
   numbers: ['un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf', 'dix'],
   doThem: (n, move) => `Fais ${n} ${move}!`,
   simon: {
@@ -90,7 +94,7 @@ function wordsOf(t: Table): CoachWords {
   return {
     poseTitle: id => t.poses[id].title,
     poseSay: id => t.poses[id].say,
-    workout: (move, n) => t.doThem(t.numbers[n - 1], t.moves[move]),
+    workout: (move, n) => t.sentences?.[move]?.(t.numbers[n - 1]) ?? t.doThem(t.numbers[n - 1], t.moves[move]),
     number: n => t.numbers[n - 1] ?? String(n),
     simon: (move, said) => (said ? `${t.says}: ${t.simon[move]}!` : `${capital(t.simon[move])}!`),
     trap: t.trap,

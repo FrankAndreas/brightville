@@ -10,7 +10,7 @@ import { useCameraLoop, type CameraEvent } from '../cameraLoop'
 import NoCamera from '../NoCamera.vue'
 import type { BuildingResult } from '../types'
 import CoachLine from './CoachLine.vue'
-import { coachSay } from './voice'
+import { coachQuiet, coachSay } from './voice'
 
 // The Tanzsaal at Oberstufe: "Simon says" / "Jacques a dit". Fifteen commands written large and spoken in the
 // language, a beat in the background, no dancer to copy: understanding the command is the whole game.
@@ -63,6 +63,7 @@ function leave() {
   closed = true
   clearTimeout(doneTimer)
   camera.close()
+  if (props.lang) coachQuiet()
   emit('finished', { stars: flow.earned() })
 }
 

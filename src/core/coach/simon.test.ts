@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import type { Body } from '@/core/pose/body'
 import { mirrored, standing } from '@/core/pose/fixtures'
-import { ARMS_T, ARMS_UP, CLAP, HANDS_ON_HEAD, HANDS_ON_HIPS, LEFT_ARM_UP } from '@/core/moves/fixtures'
+import { ARMS_T, ARMS_UP, CLAP, HANDS_ON_HEAD, HANDS_ON_HIPS, LEFT_ARM_UP, unseen } from '@/core/moves/fixtures'
 import { SAY_STEP_IN } from '@/buildings/tanzsaal/flow'
-import { createSimonFlow, HOLD_MS, LOWER_MS, matchSimon, pickCommands, REACT_MS, simonStars, type SimonEffect, type SimonFlow } from './simon'
+import { createSimonFlow, HOLD_MS, LOWER_MS, PAUSE_MS, matchSimon, pickCommands, REACT_MS, simonStars, type SimonEffect, type SimonFlow } from './simon'
 import { coachWords, type SimonMove } from './words'
 
 const STEP = 40
@@ -117,5 +117,48 @@ describe('Simon says: a visit', () => {
     expect(flow.state.phase).toBe('done')
     expect(flow.state.points).toBe(15)
     expect(flow.earned()).toBe(10)
+  })
+
+  it('a real clap counts: hands together for a moment, then apart', () => {
+    const { flow } = ready([{ move: 'clap', said: true }, { move: 'bothUp', said: true }])
+    for (let i = 0; i < 4; i++) { feed(flow, CLAP, 80); feed(flow, standing(), 200) }
+    expect(flow.state.points).toBe(1)
+  })
+
+  it('a trap of the move he still holds leaves time to hear it and lower the arms', () => {
+    const { flow } = ready([{ move: 'bothUp', said: true }, { move: 'bothUp', said: false }, { move: 'clap', said: true }])
+    feed(flow, ARMS_UP, HOLD_MS + 200)
+    feed(flow, ARMS_UP, PAUSE_MS + 100)
+    expect(flow.state.index).toBe(1)
+    feed(flow, ARMS_UP, 1000)
+    feed(flow, standing(), REACT_MS)
+    expect(flow.state.points).toBe(2)
+  })
+
+  it('a trap is not lost on one stray frame', () => {
+    const { flow } = ready([{ move: 'clap', said: false }, { move: 'bothUp', said: true }])
+    feed(flow, standing(), LOWER_MS + 200)
+    feed(flow, CLAP, 40)
+    feed(flow, standing(), REACT_MS)
+    expect(flow.state.points).toBe(1)
+  })
+
+  it('the clock waits while he is only half seen', () => {
+    const { flow } = ready([{ move: 'clap', said: false }, { move: 'bothUp', said: true }])
+    feed(flow, unseen(['nose', 'lShoulder'], standing()), REACT_MS + 500)
+    expect(flow.state.index).toBe(0)
+    expect(flow.state.results).toEqual([])
+  })
+
+  it('says the command again when he is back after being lost', () => {
+    const { flow } = ready([{ move: 'bothUp', said: true }, { move: 'clap', said: true }])
+    feed(flow, null, 2000)
+    const back = feed(flow, standing(), 1200)
+    expect(said(back)).toContain('Simon says: raise both arms!')
+  })
+
+  it('gives him more than four seconds to understand and do it', () => {
+    expect(REACT_MS).toBeGreaterThanOrEqual(5000)
+    expect(LOWER_MS).toBeGreaterThanOrEqual(1200)
   })
 })

@@ -11,13 +11,16 @@ import { SIMON_MOVES, type CoachWords, type SimonMove } from './words'
 export const COMMANDS = 15
 export const SAID = 10
 /** How long he has for a command, counted only while he is seen */
-export const REACT_MS = 4000
+export const REACT_MS = 5500
 /** How long a said command must be held to count */
 export const HOLD_MS = 300
-/** At the start of a command not said: time to lower the arms from the one before */
-export const LOWER_MS = 600
-/** The pause after a command's answer, before the next one */
+/** At the start of a command not said: time to hear it isn't "Simon says" and lower the arms from the one before */
+export const LOWER_MS = 1300
+/** A command not said is only followed when held this long (one stray frame is not a move) */
+export const TRAP_HOLD_MS = 150
+/** The pause after a command's answer, before the next one; after a trap long enough for its line */
 export const PAUSE_MS = 900
+export const TRAP_PAUSE_MS = 1800
 /** The background beat */
 export const BEAT_MS = 600
 export const MAX_STARS = 10
@@ -93,6 +96,9 @@ export function createSimonFlow(commands: { move: SimonMove; said: boolean }[], 
   let ms = 0
   let held = 0
   let beats = 0
+  let pauseMs = PAUSE_MS
+  /** He was lost during this command: it is said again when he is back */
+  let wasLost = false
 
   function ask(): SimonEffect[] {
     const c = commands[state.index]
@@ -115,6 +121,7 @@ export function createSimonFlow(commands: { move: SimonMove; said: boolean }[], 
     }
     state.phase = 'pause'
     ms = 0
+    pauseMs = extra.length ? TRAP_PAUSE_MS : PAUSE_MS
     return effects
   }
 
@@ -128,11 +135,19 @@ export function createSimonFlow(commands: { move: SimonMove; said: boolean }[], 
       if (s.ready) effects.push(...ask())
       return effects
     }
-    // Not seen: the clock waits for him
-    if (!s.ready || !body) return effects
+    // Not seen (or only half): the clock waits for him
+    if (!s.ready || !s.seen || !body) {
+      if (s.lost) wasLost = true
+      return effects
+    }
+    if (wasLost && state.phase === 'command' && state.command) {
+      wasLost = false
+      effects.push({ type: 'speak', text: words.simon(state.command.move, state.command.said), ask: true, coach: true })
+    }
+    wasLost = false
     ms += dt
     if (state.phase === 'pause') {
-      if (ms >= PAUSE_MS) {
+      if (ms >= pauseMs) {
         state.index += 1
         effects.push(...ask())
       }
@@ -142,12 +157,15 @@ export function createSimonFlow(commands: { move: SimonMove; said: boolean }[], 
     for (; beats * BEAT_MS <= ms; beats++) effects.push({ type: 'beat' })
     const doing = matchSimon(state.command.move, body, s.unit)
     if (state.command.said) {
+      // A clap is a moment: hands together once is enough; the other moves are held
+      if (state.command.move === 'clap' && doing) return [...effects, ...answer(true)]
       held = doing ? held + dt : 0
       if (held >= HOLD_MS) return [...effects, ...answer(true)]
       if (ms >= REACT_MS) return [...effects, ...answer(false)]
       return effects
     }
-    if (doing && ms > LOWER_MS) return [...effects, ...answer(false, [{ type: 'speak', text: words.trap, coach: true }])]
+    held = doing && ms > LOWER_MS ? held + dt : 0
+    if (held >= TRAP_HOLD_MS) return [...effects, ...answer(false, [{ type: 'speak', text: words.trap, coach: true }])]
     if (ms >= REACT_MS) return [...effects, ...answer(true)]
     return effects
   }

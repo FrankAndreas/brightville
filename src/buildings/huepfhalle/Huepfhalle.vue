@@ -11,7 +11,7 @@ import { coachWords } from '@/core/coach/words'
 import { createWorkoutFlow, pickWorkout, type WorkoutPart } from '@/core/coach/workout'
 import type { Lang } from '@/core/vocab/types'
 import CoachLine from '../coach/CoachLine.vue'
-import { coachSay } from '../coach/voice'
+import { coachQuiet, coachSay } from '../coach/voice'
 import { useCameraLoop, type CameraEvent } from '../cameraLoop'
 import MoveFigure from '../MoveFigure.vue'
 import NoCamera from '../NoCamera.vue'
@@ -98,6 +98,7 @@ function leave() {
   clearTimeout(doneTimer)
   clearInterval(showTimer)
   camera.close()
+  if (props.lang) coachQuiet()
   emit('finished', { stars: flow.state.stars })
 }
 

@@ -288,9 +288,9 @@ describe('YogaStudio', () => {
     expect(w.find('[data-test="coach-say"]').text()).toContain(fr.poseSay('stern'))
     expect(w.find('[data-test="coach-title"]').text()).toBe(fr.poseTitle('stern'))
     expect(vi.mocked(speak).mock.calls.at(-1)).toEqual([fr.poseSay('stern'), 'fr-FR'])
-    expect(w.find('[data-test="pose-hint"]').exists()).toBe(false)
+    expect(w.find('[data-test="teacher"]').exists()).toBe(false)
     await run(6100)
-    expect(w.find('[data-test="pose-hint"]').exists()).toBe(true)
+    expect(w.find('[data-test="teacher"]').exists()).toBe(true)
     vi.mocked(speak).mockClear()
     await w.find('[data-test="coach-again"]').trigger('click')
     expect(vi.mocked(speak).mock.calls).toEqual([[fr.poseSay('stern'), 'fr-FR']])
@@ -299,8 +299,21 @@ describe('YogaStudio', () => {
 
   it('in the Kindergarten the teacher shows the pose at once, as always', async () => {
     const w = await calibrated()
-    expect(w.find('[data-test="pose-hint"]').exists()).toBe(true)
+    expect(w.find('[data-test="teacher"]').exists()).toBe(true)
     expect(w.find('[data-test="coach-say"]').exists()).toBe(false)
+    w.unmount()
+  })
+
+  it('at Oberstufe the hint does not come while he is already holding the pose', async () => {
+    const w = mount(YogaStudio, { props: { poses, lang: 'en' }, attachTo: document.body })
+    await run(50)
+    seen = standing()
+    await run(1200)
+    // Searching for 3 s, then holding it: at 6 s he is in the pose, halfway through holding it
+    await run(3000)
+    seen = FIXTURES.stern
+    await run(3500)
+    expect(w.find('[data-test="teacher"]').exists()).toBe(false)
     w.unmount()
   })
 })
