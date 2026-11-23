@@ -7,6 +7,7 @@ import type { Letters } from '@/core/writing/levels'
 import type { DatesProgress } from '@/core/dates/round'
 import type { GrammarProgress } from '@/core/grammar/round'
 import type { ListenProgress } from '@/core/listen/round'
+import type { SpeakProgress } from '@/core/speak/round'
 import type { ReadingProgress } from '@/core/reading/rules'
 import type { Lang, Progress, VocabList } from '@/core/vocab/types'
 
@@ -82,6 +83,19 @@ export interface ListenResultsIn {
   key: string
   lang: Lang
   answers: { scene: string; right: boolean }[]
+}
+
+/** The Oberstufe's speaking (backend/app/speak.py): his record per item, his results the server has */
+export interface SpeakState {
+  progress: SpeakProgress
+  seen?: string[]
+}
+
+/** One speaking round's answers, counted once by `key` */
+export interface SpeakResultsIn {
+  key: string
+  lang: Lang
+  answers: { item: string; right: boolean }[]
 }
 
 /** The Oberstufe's grammar (backend/app/grammar.py): his record per topic, his results the server has */
@@ -285,6 +299,12 @@ export interface Api {
   listenResults(results: ListenResultsIn): Promise<ListenState>
   /** Parents: a child's listening record */
   playerListen(personId: number): Promise<ListenState>
+  /** His speaking record (the Trommelhaus at Oberstufe) */
+  speak(): Promise<SpeakState>
+  /** One speaking round; counted once by its key */
+  speakResults(results: SpeakResultsIn): Promise<SpeakState>
+  /** Parents only: a child's speaking record */
+  playerSpeak(personId: number): Promise<SpeakState>
   /** His grammar record */
   grammar(): Promise<GrammarState>
   /** A grammar round's first answers, counted once by its key */
@@ -398,6 +418,9 @@ export function httpApi(fetchFn: Fetch = (url, init) => fetch(url, init), onRene
     listen: () => call('GET', '/api/listen'),
     listenResults: results => call('POST', '/api/listen/results', results, WRITING_TIMEOUT_MS),
     playerListen: personId => call('GET', `/api/players/${personId}/listen`),
+    speak: () => call('GET', '/api/speak'),
+    speakResults: results => call('POST', '/api/speak/results', results, WRITING_TIMEOUT_MS),
+    playerSpeak: personId => call('GET', `/api/players/${personId}/speak`),
     grammar: () => call('GET', '/api/grammar'),
     grammarResults: results => call('POST', '/api/grammar/results', results, WRITING_TIMEOUT_MS),
     playerGrammar: personId => call('GET', `/api/players/${personId}/grammar`),

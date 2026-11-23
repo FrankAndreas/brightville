@@ -10,10 +10,11 @@ import { nextBox } from '@/core/vocab/boxes'
 import { layGrammar } from '@/core/grammar/round'
 import { layReading } from '@/core/reading/rules'
 import { layDates } from '@/core/dates/round'
+import { laySpeak } from '@/core/speak/round'
 import type { VocabList } from '@/core/vocab/types'
 import {
   ApiError, type Api, type Film, type LogDay, type Me, type Person, type PlayerRow, type ServerState, type StickerRow,
-  type DatesState, type GrammarState, type ListDraft, type ListenState, type ReadingState, type RoomState, type SchoolState, type VocabState, type WardrobeState, type WritingState,
+  type DatesState, type GrammarState, type ListDraft, type ListenState, type ReadingState, type RoomState, type SchoolState, type SpeakState, type VocabState, type WardrobeState, type WritingState,
 } from './api'
 
 export interface FakePainting { id: string; updated: number; image: string; thumb: string }
@@ -49,6 +50,8 @@ export interface FakeApi extends Api {
   listen_: ListenState['progress']
   /** While true the server refuses every listening round's results */
   refuseListen: boolean
+  /** The Oberstufe's speaking record, as the server keeps it */
+  speak_: SpeakState['progress']
   /** The Oberstufe's grammar record, as the server keeps it */
   grammar_: GrammarState['progress']
   /** The Oberstufe's reading record, as the server keeps it */
@@ -99,6 +102,7 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
     vocab_: { lists: [], progress: {} },
     refuseVocab: false,
     listen_: {},
+    speak_: {},
     refuseListen: false,
     grammar_: {},
     reading_: {},
@@ -333,6 +337,15 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
       }
       return listenCopy()
     }),
+    speak: () => run('speak', () => speakCopy()),
+    // The server's rules (backend/app/speak.py record)
+    speakResults: r => run(`speakResults ${r.key}`, () => {
+      if (speakKeys.has(r.key)) return speakCopy()
+      speakKeys.add(r.key)
+      api.speak_ = laySpeak(api.speak_, r, state.day)
+      return speakCopy()
+    }),
+    playerSpeak: id => run(`playerSpeak ${id}`, () => ({ progress: speakCopy().progress })),
     grammar: () => run('grammar', () => grammarCopy()),
     // The server's rules (backend/app/grammar.py record)
     grammarResults: r => run(`grammarResults ${r.key}`, () => {
@@ -396,6 +409,8 @@ export function fakeApi(start: Partial<ServerState> = {}, me: Partial<Me> = {}):
   const schoolKeys = new Set<string>()
   const vocabKeys = new Set<string>()
   const listenKeys = new Set<string>()
+  const speakKeys = new Set<string>()
+  const speakCopy = (): SpeakState => ({ progress: JSON.parse(JSON.stringify(api.speak_)), seen: [...speakKeys].reverse() })
   const grammarKeys = new Set<string>()
   const readingKeys = new Set<string>()
   const datesKeys = new Set<string>()
