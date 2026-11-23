@@ -15,11 +15,11 @@
   { "id": "ausmalen", "kind": "free" },
   { "id": "malen", "kind": "free", "oberstufe": {} },
   { "id": "haus", "kind": "free", "oberstufe": {} },
-  { "id": "arcade", "kind": "play", "cost": 3 },
-  { "id": "schlange", "kind": "play", "cost": 3 },
-  { "id": "bonbonjagd", "kind": "play", "cost": 3 },
-  { "id": "kino", "kind": "play", "cost": 3 },
+  { "id": "arcade", "kind": "play", "cost": 3, "oberstufe": {} },
+  { "id": "schlange", "kind": "play", "cost": 3, "oberstufe": {} },
+  { "id": "bonbonjagd", "kind": "play", "cost": 3, "oberstufe": {} },
+  { "id": "kino", "kind": "play", "cost": 3, "oberstufe": {} },
   { "id": "laden", "kind": "shop", "oberstufe": {} },
   { "id": "moebel", "kind": "shop", "oberstufe": {} },
-  { "id": "flatterflug", "kind": "play", "cost": 3 }
+  { "id": "flatterflug", "kind": "play", "cost": 3, "oberstufe": {} }
 ]

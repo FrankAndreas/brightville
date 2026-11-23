@@ -3,16 +3,23 @@ import { onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import Confetti from '@/components/Confetti.vue'
 import { buildDeck, createMemory, pickPairs, type Card } from '@/core/memory'
 import { playBeat } from '@/services/sound'
-import { instruct, speak, stopSpeaking } from '@/services/tts'
+import { hasVoice, instruct, speak, stopSpeaking } from '@/services/tts'
 import { onLeaveRequest } from '../leave'
 import type { BuildingResult } from '../types'
 import { ANIMALS, COLUMNS, PAIRS_PER_ROUND } from './cards'
 
 const props = defineProps<{
-  /** The cards of this round; dealt at random when not given */
-  deck?: Card[]
+  /**
+   * The cards of this round; dealt at random when not given. A card with `text` shows it instead of a picture and is
+   * said in its `voice` (the Oberstufe's word memory)
+   */
+  deck?: (Card & { text?: string; voice?: string })[]
 }>()
-const emit = defineEmits<{ finished: [result: BuildingResult] }>()
+const emit = defineEmits<{
+  finished: [result: BuildingResult]
+  /** A pair found; `firstTry`: neither of its cards was turned before in a turn that missed */
+  pair: [id: string, firstTry: boolean]
+}>()
 
 // How long two cards that don't match stay face up
 const MISS_MS = 1200
@@ -20,8 +27,10 @@ const MISS_MS = 1200
 const CHEER_AFTER_MS = 800
 const CONFETTI_MS = 3000
 
-const deck = props.deck ?? buildDeck(pickPairs(ANIMALS, PAIRS_PER_ROUND))
+const deck: (Card & { text?: string; voice?: string })[] = props.deck ?? buildDeck(pickPairs(ANIMALS, PAIRS_PER_ROUND))
 const game = createMemory(deck)
+/** Pairs one of whose cards was in a miss */
+const missed = new Set<string>()
 const view = reactive({ open: game.open, matched: game.matched, done: false })
 /** The card the arrow keys are on */
 const focus = ref(0)
@@ -48,10 +57,18 @@ function flip(index: number) {
   focus.value = index
   const result = game.flip(card.key)
   if (result === 'ignored') return
+  const open = game.open.map(k => deck.find(c => c.key === k)!)
   sync()
-  void speak(card.say)
-  if (result === 'match') playBeat('chime')
-  if (result === 'miss') later(() => { game.hideMisses(); sync() }, MISS_MS)
+  if (!card.voice) void speak(card.say)
+  else if (card.voice === 'de-DE' || hasVoice(card.voice)) void speak(card.say, card.voice)
+  if (result === 'match') {
+    playBeat('chime')
+    emit('pair', card.id, !missed.has(card.id))
+  }
+  if (result === 'miss') {
+    for (const c of open) missed.add(c.id)
+    later(() => { game.hideMisses(); sync() }, MISS_MS)
+  }
   if (game.done) {
     later(() => void speak('Super gemacht!'), CHEER_AFTER_MS)
     later(leave, CHEER_AFTER_MS + CONFETTI_MS)
@@ -112,7 +129,7 @@ onBeforeUnmount(shutDown)
         v-for="(card, i) in deck" :key="card.key" class="card" data-test="card" :data-key="card.key"
         :data-face="isUp(card.key) ? 'up' : 'down'" :data-matched="view.matched.includes(card.key)"
         :data-focus="focus === i" tabindex="-1" @pointerdown="flip(i)"
-      ><span v-if="isUp(card.key)" class="picture">{{ card.emoji }}</span></button>
+      ><span v-if="isUp(card.key) && card.text" class="word" :lang="card.voice?.slice(0, 2)">{{ card.text }}</span><span v-else-if="isUp(card.key)" class="picture">{{ card.emoji }}</span></button>
     </div>
     <Confetti v-if="view.done" />
   </div>
@@ -147,5 +164,6 @@ onBeforeUnmount(shutDown)
 .card[data-matched='true'] { background: #e9ffe9; box-shadow: 0 7px 0 #9fd8a3; animation: found 0.5s ease; }
 .card[data-focus='true'] { outline: 8px solid #4d96ff; outline-offset: 2px; transform: translateY(-4px); }
 .picture { font-size: clamp(40px, 13vh, 110px); line-height: 1; }
+.word { padding: 0 8px; font: 700 clamp(18px, 3.6vh, 30px)/1.2 system-ui, sans-serif; color: #23264a; text-align: center; overflow-wrap: anywhere; }
 @keyframes found { 50% { transform: scale(1.1) rotate(4deg); } }
 </style>

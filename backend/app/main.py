@@ -243,6 +243,8 @@ class DatesResultsIn(BaseModel):
 class FilmIn(BaseModel):
     url: str = Field(max_length=500)
     title: str = Field(default="", max_length=60)
+    # Left out: her list (Kindergarten)
+    level: Literal["kindergarten", "oberstufe"] = "kindergarten"
 
 
 class PaintingIn(BaseModel):
@@ -536,7 +538,7 @@ def film_list(_: Person = Depends(auth.current_person), db: sqlite3.Connection =
 @app.post("/api/films")
 def add_film(body: FilmIn, _: Person = Depends(auth.parent), db: sqlite3.Connection = Depends(get_db)) -> dict:
     try:
-        return films.add(db, body.url, body.title)
+        return films.add(db, body.url, body.title, body.level)
     except films.Refused as refused:
         raise error(422 if refused.code == "not_youtube" else 409, refused.code) from None
 

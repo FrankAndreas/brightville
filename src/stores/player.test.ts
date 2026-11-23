@@ -66,6 +66,20 @@ describe('player store', () => {
     expect(player.films).toEqual([])
   })
 
+  it('hands each child only the films of their level (a film without one is hers)', async () => {
+    api.films_ = [
+      { id: 1, youtube_id: 'aaaaaaaaaaa', title: 'Lieder', level: 'kindergarten' },
+      { id: 2, youtube_id: 'bbbbbbbbbbb', title: 'Song' , level: 'oberstufe' },
+      { id: 3, youtube_id: 'ccccccccccc', title: 'Alt' },
+    ]
+    const player = await open()
+    expect(player.films.map(f => f.title)).toEqual(['Lieder', 'Alt'])
+    setActivePinia(createPinia())
+    api.state_.level = 'oberstufe'
+    const his = await open()
+    expect(his.films.map(f => f.title)).toEqual(['Song'])
+  })
+
   it('is not loaded, and shows nothing, before the server answered', async () => {
     api.offline = true
     const player = await open()

@@ -179,6 +179,8 @@ export interface Film {
   id: number
   youtube_id: string
   title: string
+  /** Whose list it is on; left out (an older server): hers */
+  level?: Level
 }
 
 /** A painting from Malen on the server; its pictures are at paintingUrl() */
@@ -236,7 +238,7 @@ export interface Api {
   choose(personId: number): Promise<unknown>
   films(): Promise<Film[]>
   /** Parents only. Rejects with 'not_youtube', 'already_there' or 'too_many'. */
-  addFilm(url: string, title: string): Promise<Film>
+  addFilm(url: string, title: string, level?: Level): Promise<Film>
   removeFilm(id: number): Promise<unknown>
   /** The person's paintings, newest first */
   paintings(): Promise<PaintingRow[]>
@@ -360,7 +362,7 @@ export function httpApi(fetchFn: Fetch = (url, init) => fetch(url, init), onRene
     setRules: (personId, rules) => call('PUT', `/api/players/${personId}`, rules),
     choose: personId => call('POST', '/api/local/choose', { id: personId }),
     films: () => call('GET', '/api/films'),
-    addFilm: (url, title) => call('POST', '/api/films', { url, title }),
+    addFilm: (url, title, level = 'kindergarten') => call('POST', '/api/films', { url, title, level }),
     removeFilm: id => call('DELETE', `/api/films/${id}`),
     paintings: () => call('GET', '/api/paintings'),
     keepPainting: (id, image, thumb) => call('PUT', `/api/paintings/${encodeURIComponent(id)}`, { image, thumb }),

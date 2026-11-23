@@ -1,4 +1,4 @@
-"""The Cinema's films: YouTube films the parents chose, the same list for every child."""
+"""The Cinema's films: YouTube films the parents chose, one list per level (Kindergarten, Oberstufe)."""
 
 import re
 import sqlite3
@@ -52,21 +52,24 @@ def youtube_id(url: str) -> Optional[str]:
 
 
 def listing(db: sqlite3.Connection) -> list[dict]:
-    rows = db.execute("SELECT id, youtube_id, title FROM films ORDER BY id").fetchall()
+    rows = db.execute("SELECT id, youtube_id, title, level FROM films ORDER BY id").fetchall()
     return [dict(r) for r in rows]
 
 
-def add(db: sqlite3.Connection, url: str, title: str) -> dict:
+def add(db: sqlite3.Connection, url: str, title: str, level: str = "kindergarten") -> dict:
+    """A film on the list of one level; the same film may be on both lists"""
     film = youtube_id(url)
     if film is None:
         raise Refused("not_youtube")
     with writing(db):
-        if db.execute("SELECT 1 FROM films WHERE youtube_id = ?", (film,)).fetchone():
+        if db.execute("SELECT 1 FROM films WHERE youtube_id = ? AND level = ?", (film, level)).fetchone():
             raise Refused("already_there")
-        if db.execute("SELECT COUNT(*) FROM films").fetchone()[0] >= MAX_FILMS:
+        if db.execute("SELECT COUNT(*) FROM films WHERE level = ?", (level,)).fetchone()[0] >= MAX_FILMS:
             raise Refused("too_many")
-        cursor = db.execute("INSERT INTO films (youtube_id, title) VALUES (?, ?)", (film, title.strip()))
-        return {"id": cursor.lastrowid, "youtube_id": film, "title": title.strip()}
+        cursor = db.execute(
+            "INSERT INTO films (youtube_id, title, level) VALUES (?, ?, ?)", (film, title.strip(), level)
+        )
+        return {"id": cursor.lastrowid, "youtube_id": film, "title": title.strip(), "level": level}
 
 
 def remove(db: sqlite3.Connection, film_id: int) -> bool:

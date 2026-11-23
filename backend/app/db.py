@@ -277,6 +277,20 @@ CREATE TABLE dates_keys (
     day TEXT NOT NULL,
     PRIMARY KEY (person_id, key)
 );
+""",  # The Cinema's films get a level: Kindergarten (every film so far) or Oberstufe; a film is unique per level
+    """
+CREATE TABLE films_new (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    youtube_id TEXT NOT NULL,
+    title TEXT NOT NULL DEFAULT '',
+    level TEXT NOT NULL DEFAULT 'kindergarten',
+    UNIQUE (youtube_id, level)
+);
+INSERT INTO films_new (id, youtube_id, title, level) SELECT id, youtube_id, title, 'kindergarten' FROM films;
+-- Keep the id counter: a deleted film's id is never given again (a page left open might still show it)
+UPDATE sqlite_sequence SET seq = (SELECT seq FROM sqlite_sequence WHERE name = 'films') WHERE name = 'films_new';
+DROP TABLE films;
+ALTER TABLE films_new RENAME TO films;
 """,
 ]
 VERSION = len(MIGRATIONS)

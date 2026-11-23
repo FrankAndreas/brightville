@@ -33,8 +33,10 @@ export const usePlayerStore = defineStore('player', () => {
   const savings = ref(0)
   /** True once the server has answered */
   const loaded = ref(false)
-  /** The Cinema's films, the same for everyone */
-  const films = ref<Film[]>([])
+  /** The Cinema's films, both levels' lists */
+  const allFilms = ref<Film[]>([])
+  /** The films of this child's level (a film without one is on her, the Kindergarten, list) */
+  const films = computed(() => allFilms.value.filter(f => (f.level ?? 'kindergarten') === level.value))
   /** Earning visits the server doesn't know about yet */
   const waiting = ref<PendingVisit[]>([])
   /** The server's day, as of its last answer */
@@ -211,7 +213,7 @@ export const usePlayerStore = defineStore('player', () => {
     if (state.status === 'fulfilled') {
       if (asked === newer) apply(state.value)
     } else checkLogin(state.reason)
-    if (filmList.status === 'fulfilled') films.value = filmList.value
+    if (filmList.status === 'fulfilled') allFilms.value = filmList.value
     if (stickerRows.status === 'fulfilled') takeStickers(stickerRows.value)
   }
 
