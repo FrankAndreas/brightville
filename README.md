@@ -120,7 +120,7 @@ A wrong answer only fades its button and the objects are counted together; the t
 
 ## Trommelhaus
 
-At the door she picks 👆 Tippen or 👏 Klatschen (without a microphone, tapping starts straight away). Clapping asks the iPad for the microphone on that tap; if it says no, she taps. The microphone only measures loudness while she answers: nothing is recorded or sent. The house never listens while it plays: when she claps along to a beat, it drums the first two beats and then only the light and the bear keep it. Tolerances are generous (±0.2 s on a beat, six of eight; a copied rhythm's gaps within a third). After three misses a task is shown once more and the visit goes on; if the microphone hears nothing in two tasks running, she taps.
+At the door she picks 👆 Tippen or 👏 Klatschen (without a microphone, tapping starts straight away). Clapping asks the iPad for the microphone on that tap; if it says no, she taps. The microphone only measures loudness while she answers: nothing is recorded or sent. When she claps along to a beat, the house drums four beats loud and then goes on quietly (the light and the bear keep it too); it heard its quiet drum three times when the microphone opened (the quietest counts) and only counts claps clearly louder than that. Tolerances are generous (±0.2 s on a beat, six of eight; a copied rhythm's gaps within a third). After three misses a task is shown once more and the visit goes on; if the microphone hears nothing in two tasks running, she taps.
 
 ## Spielwelt
 

@@ -34,9 +34,10 @@ describe('the tasks of a visit', () => {
   })
 
   it('says each task in a whole sentence for tapping and for clapping', () => {
-    expect(taskText(keep, 'clap')).toBe('Hör zu und klatsch mit! Halte den Takt.')
+    expect(taskText(keep, 'clap')).toBe('Hör gut zu! Erst spiele ich laut, dann leise. Klatsch laut mit und halte den Takt!')
     expect(taskText(keep, 'tap')).toBe('Hör zu und tipp mit! Halte den Takt.')
-    expect(taskText({ type: 'keep', bpm: 120, speed: 'schnell' }, 'clap')).toBe('Jetzt ganz schnell! Klatsch mit.')
+    expect(taskText({ type: 'keep', bpm: 120, speed: 'schnell' }, 'clap')).toBe('Jetzt ganz schnell! Erst laut, dann leise. Klatsch laut mit!')
+    expect(taskText({ type: 'keep', bpm: 120, speed: 'schnell' }, 'tap')).toBe('Jetzt ganz schnell! Tipp mit.')
     expect(taskText({ type: 'dynamics', order: ['leise', 'leise', 'laut', 'laut'] }, 'clap')).toBe('Hör zu: zweimal leise, dann zweimal laut. Jetzt du!')
     expect(taskText({ type: 'dynamics', order: ['laut', 'leise', 'laut', 'leise'] }, 'tap'))
       .toBe('Die große Trommel ist laut, die kleine leise. Hör zu: laut, leise, laut, leise. Jetzt du!')
@@ -94,6 +95,17 @@ describe('hearing claps', () => {
     const levels = [quiet(0), quiet(10), { t: 20, level: 0.3 }, { t: 30, level: 0.5 }, { t: 40, level: 0.2 }, quiet(50),
       { t: 100, level: 0.4 }, quiet(110), { t: 300, level: 0.35 }, quiet(310)]
     expect(findOnsets(levels, 0.01)).toEqual([{ t: 20, peak: 0.5 }, { t: 300, peak: 0.35 }])
+  })
+
+  it('starts with four beats to listen to', () => {
+    expect(LEAD_IN).toBe(4)
+  })
+
+  // The house's own quiet drum, while she claps along, must not count as a clap
+  it('hears only what is louder than the given level', () => {
+    const levels = [quiet(0), { t: 10, level: 0.12 }, quiet(20), { t: 300, level: 0.4 }, quiet(310)]
+    expect(findOnsets(levels, 0.01).map(h => h.t)).toEqual([10, 300])
+    expect(findOnsets(levels, 0.01, 0.24).map(h => h.t)).toEqual([300])
   })
 
   it('hears nothing in a quiet room', () => {

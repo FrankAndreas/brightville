@@ -78,6 +78,16 @@ describe('sound with Web Audio', () => {
     }
   })
 
+  // Laptop and iPad speakers play almost nothing below 200 Hz: a drum of only a low sine (160 → 50 Hz) was silent there
+  it('gives the drum a higher skin and click that small speakers can play', async () => {
+    const { unlockAudio, playBeat } = await load()
+    const ctx = unlockAudio() as unknown as FakeAudioContext
+    playBeat('drum')
+    const starts = ctx.oscillators.map(o => o.frequency.setValueAtTime.mock.calls[0][0] as number)
+    expect(Math.min(...starts)).toBeLessThan(200)
+    expect(starts.filter(f => f >= 250).length).toBeGreaterThanOrEqual(2)
+  })
+
   it('moos: one low sawtooth gliding down for about 0.6 s', async () => {
     const { unlockAudio, playMoo } = await load()
     const ctx = unlockAudio() as unknown as FakeAudioContext

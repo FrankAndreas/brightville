@@ -35,7 +35,8 @@ The camera is not used here (it is slower; the Tanzsaal already uses it for movi
 ## Anti-goals
 
 - A buzz or anything that feels like failing: a miss says "Hör nochmal gut zu", plays it again, and she tries again.
-- The house judging its own sounds: it never listens while it plays or speaks.
+- The house judging its own sounds: it never listens while it speaks, and the only thing it plays while listening
+  is its quiet drum, which it has measured and doesn't count (below).
 - A strict timing judge: a five-year-old is off by a fifth of a second easily; the tolerances are generous.
 - A visit that can't go on because the microphone doesn't work: if it is refused, missing or hears nothing for a
   while, the voice says so kindly and the visit goes on by tapping.
@@ -53,7 +54,7 @@ The camera is not used here (it is slower; the Tanzsaal already uses it for movi
 
 **Judging** (pure functions with tests; *my calls, the builder may tune the numbers on the device*):
 
-- **Keeping a beat (1–2):** after two beats to listen, of her next eight beats at least six land within ±200 ms of the
+- **Keeping a beat (1–2):** after four beats to listen, of her next eight beats at least six land within ±200 ms of the
   house's beat (it keeps playing quietly and the light keeps pulsing while she plays).
 - **Loud and quiet (3):** tapping: the big drum is loud, the small drum quiet, so each beat is right or wrong.
   Clapping: her loud claps must be clearly louder than her quiet ones in the same task (at least 1.5 times, by peak
@@ -63,9 +64,20 @@ The camera is not used here (it is slower; the Tanzsaal already uses it for movi
 - She has 6 seconds after the house finishes to start; then the voice asks again. Two such silences in a task count
   as one try.
 
-**Clapping while the beat goes on (steps 1–2), after the builder check (my call):** in clapping mode the house drums
-the two beats to listen to, then goes **silent and the light and figure keep the beat**, so the microphone never hears
-the house. In tapping mode the drum keeps sounding quietly.
+**Clapping while the beat goes on (steps 1–2), changed 2026-11-26 after trying it:** a house that went silent after
+two beats left her wondering where the beat went. Now it drums the **four beats to listen to loud, then goes on with
+its quiet drum** while the light and figure keep the beat, and the instruction says so ("Erst spiele ich laut, dann
+leise. Klatsch laut mit …"). So the microphone doesn't take the quiet drum for her claps, the house plays it three times
+when the microphone opens and hears how loud it comes in (the quietest counts: a clap or a word meanwhile makes one
+louder, and taken for the drum it hid all her quieter claps); while she claps along, only what is at least twice as loud
+counts. If it comes in too loud (0.2 and above) or not at all, the house stays silent after the four beats, as
+before. In tapping mode the drum keeps sounding.
+
+**The microphone measures only above 400 Hz (2026-11-26):** with the browser's filters off, the room's low hum comes
+through. Measured on a laptop at normal input gain: the quiet room read 0.033 unfiltered (so claps had to pass 0.1),
+0.002 above 400 Hz; an adult's quietest clap 0.21 and 0.18; the house's quiet drum 0.016 and 0.003. Claps lie mostly at
+0.8–3.2 kHz (about 80 % of their energy), so the filter costs them almost nothing. (At full input gain the laptop's
+readings were useless either way: the input was overloaded.)
 
 **Three tries a task (my call):** a task is solved when she gets it right; after three misses the house shows it once
 more ("Hör zu, so geht's: …"), says "Das üben wir noch. Weiter geht's!", and the task ends: it counts as missed on the
