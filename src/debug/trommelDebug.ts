@@ -5,7 +5,8 @@ import { playBeat, unlockAudio, type SoundKind } from '@/services/sound'
 // A test of the Trommelhaus on this device, for finding out why sound or the microphone doesn't work: the house's own
 // code plays its beats (calibration, four loud, eight quiet, as when she claps along) while the microphone's loudness
 // is logged and its sound recorded. Everything stays on the device: the result is a file to download (or copy).
-// Opened at /debug/trommel.html; not linked from the game.
+// Opened at /debug/trommel.html (in the build too, for the iPad, which needs https for the microphone); not linked
+// from the game.
 
 const KEEP: RhythmTask = { type: 'keep', bpm: 90 }
 /** As the Trommelhaus: its quiet drum heard three times (the quietest counts), claps along must be this much louder, the room's first readings */
