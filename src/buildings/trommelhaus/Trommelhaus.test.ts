@@ -4,7 +4,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { beatTimes, LEAD_IN, type RhythmTask } from '@/core/rhythm'
 import type { Level, Microphone } from '@/services/microphone'
 import { playBeat } from '@/services/sound'
-import { instruction, speak } from '@/services/tts'
+import { instruction, speak, stopSpeaking } from '@/services/tts'
 import { useLaddersStore } from '@/stores/ladders'
 import { askedAgain } from '@/services/sayAgain'
 import { requestLeave } from '../leave'
@@ -23,6 +23,13 @@ const COPY: RhythmTask = { type: 'copy', gaps: [500, 500] }
 const KEEP: RhythmTask = { type: 'keep', bpm: 90 }
 const run = (ms: number) => vi.advanceTimersByTimeAsync(ms)
 const said = () => vi.mocked(speak).mock.calls.map(x => x[0])
+const beats = (kind: string) => vi.mocked(playBeat).mock.calls.filter(c => c[0] === kind).length
+/** How loud the house's quiet drum comes into the microphone: louder than the quietest clap */
+const HOUSE = 0.12
+/** The house hears its quiet drum three times after the microphone opens, this far apart */
+const CALIBRATE_GAP_MS = 250
+const CALIBRATE_MS = 3 * CALIBRATE_GAP_MS
+const CALIBRATION = [0, CALIBRATE_GAP_MS, 2 * CALIBRATE_GAP_MS]
 
 /** A microphone the test claps into */
 function fakeMic() {
@@ -34,10 +41,11 @@ function fakeMic() {
     listen(cb) { each = cb; listenedAt.push(performance.now()); return () => { each = null } },
     close() { mic.closed = true },
   }
-  /** Room noise for `ms`, with claps at the given times (ms from now) */
-  const room = async (ms: number, claps: number[] = []) => {
+  /** Room noise for `ms`, with claps and the house's quiet drum (as loud as `house`) at the given times (ms from now) */
+  const room = async (ms: number, claps: number[] = [], drum: number[] = [], house = HOUSE, clap = 0.5) => {
+    const at = (times: number[], t: number) => times.some(c => t >= c && t < c + 30)
     for (let t = 0; t < ms; t += 10) {
-      const level = flat ? 0 : claps.some(c => t >= c && t < c + 30) ? 0.5 : 0.01
+      const level = flat ? 0 : at(claps, t) ? clap : at(drum, t) ? house : 0.01
       each?.({ t: performance.now(), level })
       await run(10)
     }
@@ -140,28 +148,81 @@ describe('Trommelhaus', () => {
     const w = await open([COPY, COPY], { openMic: () => Promise.resolve(mic) })
     const chose = performance.now()
     await w.find('[data-test="choose-clap"]').trigger('pointerdown')
-    await run(1500)
-    const lastBeat = chose + beatTimes(COPY).at(-1)!
-    // Not before the last drum has died away
-    expect(mic.listenedAt[0]).toBeGreaterThanOrEqual(lastBeat + 300)
+    await run(CALIBRATE_MS + 1500)
+    const lastBeat = chose + CALIBRATE_MS + beatTimes(COPY).at(-1)!
+    // Not before the last drum has died away (the first listenings are the house hearing its quiet drum)
+    expect(mic.listenedAt[CALIBRATION.length]).toBeGreaterThanOrEqual(lastBeat + 300)
     await room(3500, [200, 700, 1200])
     expect(said()).toContain('Super!')
     w.unmount()
     expect(mic.closed).toBe(true)
   })
 
-  it('takes claps that keep the beat', async () => {
+  /**
+   * Clapping a beat-keeping task: the house hears its quiet drum (as loud as `house`; `stray`: a sound meanwhile, ms
+   * from the start), plays, and she claps (as loud as `clap`) on `claps` of the eight
+   */
+  async function keepClapping(claps: number[], house = HOUSE, { clap = 0.5, stray = [] as number[] } = {}) {
     const { mic, room } = fakeMic()
     const w = await open([KEEP, COPY], { openMic: () => Promise.resolve(mic) })
     await w.find('[data-test="choose-clap"]').trigger('pointerdown')
+    await room(CALIBRATE_MS, stray, CALIBRATION, house)
     const times = beatTimes(KEEP)
     const beat = times[1] - times[0]
-    // Run up to the moment it listens, then clap on each of the eight beats
+    // Run up to the moment it listens; then the house drums quietly on each of the eight beats, and she claps
     await run(times[LEAD_IN - 1] + 350)
     const toFirst = times[LEAD_IN] - times[LEAD_IN - 1] - 350
-    await room(toFirst + 8 * beat + 600, Array.from({ length: 8 }, (_, k) => toFirst + k * beat))
+    const eight = Array.from({ length: 8 }, (_, k) => toFirst + k * beat)
+    // Up to just before her turn ends with the house's beats (it starts again at once when she was silent)
+    await room(toFirst + 8 * beat - 50, claps.map(k => eight[k]), eight, house, clap)
+    // What the house drummed in this one turn
+    const drummed = { loud: beats('drum'), quiet: beats('softDrum') }
     await run(1000)
+    return { w, drummed }
+  }
+
+  it('takes claps that keep the beat', async () => {
+    const { w } = await keepClapping([0, 1, 2, 3, 4, 5, 6, 7])
     expect(said()).toContain('Super!')
+    w.unmount()
+  })
+
+  it('drums four beats loud, then on quietly while she claps, and doesn\'t take its own drum for her claps', async () => {
+    const { w, drummed } = await keepClapping([])
+    // Three times to hear itself, then the eight she joins
+    expect(drummed).toEqual({ loud: LEAD_IN, quiet: 3 + 8 })
+    expect(said()).not.toContain('Super!')
+    w.unmount()
+  })
+
+  it('stays silent after the first beats where its quiet drum is too loud in the microphone', async () => {
+    const { w, drummed } = await keepClapping([], 0.4)
+    expect(drummed).toEqual({ loud: LEAD_IN, quiet: 3 })
+    w.unmount()
+  })
+
+  // A clap or a word while the house hears itself made it take that for its drum and ignore her quieter claps
+  it('takes quiet claps along to the beat after a sound while the house heard itself', async () => {
+    const { w } = await keepClapping([0, 1, 2, 3, 4, 5, 6, 7], HOUSE, { clap: 0.3, stray: [CALIBRATE_GAP_MS + 100] })
+    expect(said()).toContain('Super!')
+    w.unmount()
+  })
+
+  // She may tap 👏 while the question is still spoken: the voice would raise what the house hears of itself
+  it('stops the voice when 👏 is tapped, before the microphone opens', async () => {
+    const { mic } = fakeMic()
+    const order: string[] = []
+    vi.mocked(stopSpeaking).mockImplementation(() => { order.push('stop') })
+    const w = await open([COPY], { openMic: () => { order.push('mic'); return Promise.resolve(mic) } })
+    await w.find('[data-test="choose-clap"]').trigger('pointerdown')
+    await run(10)
+    expect(order).toEqual(['stop', 'mic'])
+    w.unmount()
+  })
+
+  it('explains clapping along to a beat', async () => {
+    const { w } = await keepClapping([0, 1, 2, 3, 4, 5, 6, 7])
+    expect(said()).toContain('Hör gut zu! Erst spiele ich laut, dann leise. Klatsch laut mit und halte den Takt!')
     w.unmount()
   })
 
@@ -179,11 +240,31 @@ describe('Trommelhaus', () => {
     w.unmount()
   })
 
+  // So a parent (and she) can see the microphone hears: a ring that grows with the loudness, and flashes on a clap
+  it('shows what the microphone hears while it listens, and flashes on a clap', async () => {
+    const { mic, room } = fakeMic()
+    const w = await open([COPY], { openMic: () => Promise.resolve(mic) })
+    await w.find('[data-test="choose-clap"]').trigger('pointerdown')
+    await run(CALIBRATE_MS + 1500)
+    const ring = () => w.find('[data-test="mic-level"]')
+    const size = () => Number(ring().attributes('data-level'))
+    await room(50)
+    const quiet = size()
+    expect(quiet).toBeGreaterThan(0)
+    await room(20, [0])
+    expect(size()).toBeGreaterThan(quiet)
+    await run(60)
+    expect(ring().attributes('data-clap')).toBe('true')
+    await room(400)
+    expect(ring().attributes('data-clap')).toBe('false')
+    w.unmount()
+  })
+
   it('keeps 🔊 quiet while the microphone listens', async () => {
     const { mic, room } = fakeMic()
     const w = await open([COPY], { openMic: () => Promise.resolve(mic) })
     await w.find('[data-test="choose-clap"]').trigger('pointerdown')
-    await run(1500)
+    await run(CALIBRATE_MS + 1500)
     expect(instruction.value).toBeNull()
     await room(100)
     w.unmount()
@@ -194,7 +275,7 @@ describe('Trommelhaus', () => {
     dead()
     const w = await open([COPY], { openMic: () => Promise.resolve(mic) })
     await w.find('[data-test="choose-clap"]').trigger('pointerdown')
-    await run(1500)
+    await run(CALIBRATE_MS + 1500)
     await room(6500)
     expect(said()).toContain('Ich höre dich nicht. Tipp einfach auf die Trommel!')
     expect(mic.closed).toBe(true)
@@ -212,7 +293,7 @@ describe('Trommelhaus', () => {
     tap('choose-clap')
     tap('choose-clap')
     tap('choose-tap')
-    await run(10)
+    await run(CALIBRATE_MS + 10)
     expect(openMic).toHaveBeenCalledTimes(1)
     expect(w.find('[data-test="trommelhaus"]').attributes('data-mode')).toBe('clap')
     w.unmount()
@@ -225,15 +306,6 @@ describe('Trommelhaus', () => {
     vi.mocked(playBeat).mockClear()
     await run(5000)
     expect(playBeat).not.toHaveBeenCalled()
-    w.unmount()
-  })
-
-  it('claps without the house drumming along once the beat has started', async () => {
-    const { mic } = fakeMic()
-    const w = await open([KEEP], { openMic: () => Promise.resolve(mic) })
-    await w.find('[data-test="choose-clap"]').trigger('pointerdown')
-    await run(beatTimes(KEEP).at(-1)! + 100)
-    expect(vi.mocked(playBeat).mock.calls.filter(c => c[0] === 'drum')).toHaveLength(LEAD_IN)
     w.unmount()
   })
 

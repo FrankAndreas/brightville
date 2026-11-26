@@ -7,13 +7,14 @@ import {
 } from '@/core/rhythm'
 import { hasMicrophone, openMicrophone, type Level, type Microphone } from '@/services/microphone'
 import { playBeat, unlockAudio } from '@/services/sound'
-import { forgetInstruction, instruct, instruction, speak } from '@/services/tts'
+import { forgetInstruction, instruct, instruction, speak, stopSpeaking } from '@/services/tts'
 import type { BuildingResult } from '../types'
 import { ladderVisit, useVisit } from '../visit'
 import { createRhythmFlow, type RhythmEffect } from './flow'
 
 // The Trommelhaus: rhythm. She taps the drums or claps (the microphone hears it), chosen at the door; the beat is
-// always seen too. On the Rhythmus ladder (Lehrplan 21 MU, Zugänge 1 and 2). The house never listens while it plays.
+// always seen too. On the Rhythmus ladder (Lehrplan 21 MU, Zugänge 1 and 2). While it listens, the house only plays its quiet
+// drum, which it has heard (three times) and doesn't take for her claps (hearHouse).
 // Vue reads a yes/no prop that isn't passed as false; every prop here defaults to undefined, so `??` finds the real answer
 // when the game opens the house (it passes none)
 const props = withDefaults(defineProps<{
@@ -42,6 +43,13 @@ const FLOOR_READINGS = 5
 const FLOOR_AT_MOST = 0.02
 /** Readings that never rise above this, or never change, come from a microphone that hears nothing */
 const DEAD_LEVEL = 0.002
+/** After the microphone opens, the house plays its quiet drum this often, this far apart, to hear how loud it comes in */
+const CALIBRATE_BEATS = 3
+const CALIBRATE_GAP_MS = 250
+/** Claps along to the house's quiet drum must be this much louder than it */
+const OVER_HOUSE = 2
+/** The quiet drum coming in louder than this would hide her claps: then the house stays silent while she claps */
+const HOUSE_TOO_LOUD = 0.2
 
 // Her step, her answers at it and the child who plays, as the visit starts
 const ladder = ladderVisit('rhythmus')
@@ -59,10 +67,18 @@ const pulsing = ref(false)
 /** Whether her taps count right now */
 const listening = ref(false)
 const confetti = ref(false)
+/** What the microphone hears while it listens, 0–1 as the ring shows it; so she (and a parent) can see it works */
+const micLevel = ref(0)
+/** A clap was just heard: the ring flashes */
+const heardClap = ref(false)
+/** How long the ring flashes for a clap */
+const CLAP_FLASH_MS = 250
 
 const dynamicsTask = computed(() => view.task?.type === 'dynamics')
 
 let mic: Microphone | null = null
+/** How loud the house's quiet drum comes into the microphone; null: it stays silent while she claps */
+let houseLevel: number | null = null
 /** One clock for the house's beats, her taps and the microphone's readings */
 const now = () => performance.now()
 
@@ -101,6 +117,8 @@ let levels: Level[] = []
 let stopLevels = () => {}
 let endTimer: ReturnType<typeof setTimeout> | null = null
 let finishTurn: (() => void) | null = null
+/** What isn't louder than this is no clap: the house's quiet drum while she claps along */
+let clapAtLeast = 0
 
 function onDrum(big: boolean) {
   if (!listening.value || view.mode !== 'tap') return
@@ -117,18 +135,22 @@ function waitForMore() {
   endTimer = setTimeout(() => finishTurn?.(), DONE_AFTER_MS)
 }
 
-/** Her turn: the house plays (keeping a beat: two beats, then it goes on, silent when she claps), then she answers */
+/** Her turn: the house plays (keeping a beat: four beats, then it goes on, quietly when she claps), then she answers */
 async function turn(task: RhythmTask, mode: Mode, live: () => boolean) {
   const times = beatTimes(task)
   hits = []
   levels = []
+  clapAtLeast = 0
   let judgedFrom = 0
   let endsAt = 0
   if (task.type === 'keep') {
     const beat = times[1] - times[0]
     const start = now()
-    // The two to listen to sound; the rest only sound when she taps (the microphone must not hear them)
-    void playBeats(times, () => true, i => i < LEAD_IN || mode === 'tap')
+    // The first ones to listen to are loud. Then, tapping, the drum goes on; clapping, it goes on quietly where the
+    // microphone can tell it from her claps (see hearHouse), and is silent where it can't
+    const loud = (i: number) => i < LEAD_IN || mode === 'tap'
+    void playBeats(times, loud, i => loud(i) || houseLevel !== null)
+    clapAtLeast = mode === 'clap' && houseLevel !== null ? houseLevel * OVER_HOUSE : 0
     await pause(times[LEAD_IN - 1] + QUIET_MS)
     if (!live()) return
     judgedFrom = start + times[LEAD_IN]
@@ -142,7 +164,10 @@ async function turn(task: RhythmTask, mode: Mode, live: () => boolean) {
   if (mode === 'clap' && mic) {
     // 🔊 would be heard as claps: it hides while the microphone listens
     forgetInstruction()
-    stopLevels = mic.listen(l => { levels.push(l) })
+    stopLevels = mic.listen(l => {
+      levels.push(l)
+      micLevel.value = ringSize(l.level)
+    })
   }
   const answer = await new Promise<'answered' | 'silent'>(resolve => {
     finishTurn = () => resolve(hits.length > 0 || levels.length > 0 ? 'answered' : 'silent')
@@ -153,6 +178,7 @@ async function turn(task: RhythmTask, mode: Mode, live: () => boolean) {
   stopLevels()
   stopLevels = () => {}
   listening.value = false
+  micLevel.value = 0
   finishTurn = null
   if (endTimer) clearTimeout(endTimer)
   endTimer = null
@@ -165,6 +191,12 @@ async function turn(task: RhythmTask, mode: Mode, live: () => boolean) {
   }
   carryOn(answer === 'silent' || heard.length === 0 ? flow.silent() : flow.answered(heard))
 }
+
+/**
+ * The ring's size for a loudness: the square root, so the room's faint noise (about 0.01) already moves it a little
+ * and a clap (about 0.3 and up) fills it
+ */
+const ringSize = (level: number) => Math.min(1, Math.sqrt(Math.max(0, level)) * 1.6)
 
 /** Nothing at all came in, not even the room: the microphone isn't working */
 function micIsDead(): boolean {
@@ -184,7 +216,7 @@ function closeMic() {
 function claps(): Hit[] {
   if (levels.length === 0) return []
   const floor = Math.min(FLOOR_AT_MOST, ...levels.slice(0, FLOOR_READINGS).map(l => l.level))
-  return findOnsets(levels, floor).map(h => ({ ...h, t: h.t - t0 }))
+  return findOnsets(levels, floor, clapAtLeast).map(h => ({ ...h, t: h.t - t0 }))
 }
 
 /** While clapping: each new clap pulses the light, and the answer ends when she stops */
@@ -196,6 +228,8 @@ function watchClaps(task: RhythmTask) {
     if (found.length > seen) {
       seen = found.length
       beatSeen()
+      heardClap.value = true
+      later(() => { heardClap.value = false }, CLAP_FLASH_MS)
       if (task.type !== 'keep') waitForMore()
     }
     later(look, 50)
@@ -257,15 +291,42 @@ async function choose(mode: Mode) {
     carryOn(flow.choose('tap'))
     return
   }
-  // The tap on 👏 is the gesture the iPad wants before it asks for the microphone
+  // The tap on 👏 is the gesture the iPad wants before it asks for the microphone. The question may still be spoken:
+  // it stops, or the house would hear the voice as its own drum (hearHouse)
+  stopSpeaking()
   opening = true
   mic = await (props.openMic ?? openMicrophone)()
+  if (mic && !visit.isClosed()) await hearHouse(mic)
   opening = false
   if (visit.isClosed()) {
     mic?.close()
     return
   }
   carryOn(mic ? flow.choose('clap') : flow.micFailed())
+}
+
+/**
+ * The house plays its quiet drum and hears how loud it comes in, so it can drum on quietly while she claps along to a
+ * beat without taking itself for her (houseLevel). Nothing heard, or too loud: it stays silent then. Three times, and
+ * the quietest counts: the drum is the same each time, while a clap or a word meanwhile (she may clap at once) makes
+ * one louder, and taken for the drum it would hide all her quieter claps.
+ */
+async function hearHouse(m: Microphone) {
+  const peaks: number[] = []
+  let heard = 0
+  for (let i = 0; i < CALIBRATE_BEATS; i++) {
+    let peak = 0
+    const stop = m.listen(l => {
+      heard++
+      peak = Math.max(peak, l.level)
+    })
+    playBeat('softDrum')
+    await pause(CALIBRATE_GAP_MS)
+    stop()
+    peaks.push(peak)
+  }
+  const level = Math.min(...peaks)
+  houseLevel = heard > 0 && level < HOUSE_TOO_LOUD ? level : null
 }
 
 // ---- Leaving ----
@@ -314,7 +375,13 @@ onMounted(() => {
           <button v-if="dynamicsTask" class="drum small" data-test="drum-small" aria-label="Kleine Trommel, leise" @pointerdown="onDrum(false)">🥁</button>
           <button class="drum" data-test="drum-big" aria-label="Große Trommel, laut" @pointerdown="onDrum(true)">🥁</button>
         </div>
-        <div v-else class="ear" data-test="listening" :data-listening="listening" aria-hidden="true">👏</div>
+        <div v-else class="ear" data-test="listening" :data-listening="listening" aria-hidden="true">
+          <div
+            class="level" data-test="mic-level" :data-level="micLevel.toFixed(3)" :data-clap="heardClap"
+            :style="{ transform: `scale(${0.6 + micLevel * 0.9})` }"
+          />
+          <span class="hands">👏</span>
+        </div>
       </template>
     </div>
 
@@ -389,6 +456,26 @@ button { border: 0; padding: 0; background: none; font: inherit; cursor: pointer
 }
 .drum.small { font-size: min(14vw, 13vh, 110px); }
 .drum:active { transform: translateY(6px); box-shadow: 0 4px 0 #f0c4b8; }
-.ear { font-size: min(20vw, 18vh, 150px); opacity: 0.4; transition: opacity 0.2s ease; }
-.ear[data-listening='true'] { opacity: 1; }
+.ear {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: min(36vw, 32vh, 270px);
+  aspect-ratio: 1;
+  font-size: min(20vw, 18vh, 150px);
+}
+.hands { position: relative; opacity: 0.4; transition: opacity 0.2s ease; }
+.ear[data-listening='true'] .hands { opacity: 1; }
+/* The microphone's ring: grows with what it hears, flashes on a clap; hidden while it doesn't listen */
+.level {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 8px solid #f0c4b8;
+  background: #fff4f1;
+  opacity: 0;
+  transition: transform 0.06s linear, background 0.1s ease, border-color 0.1s ease;
+}
+.ear[data-listening='true'] .level { opacity: 1; }
+.level[data-clap='true'] { background: #ffe0b2; border-color: #ffb300; box-shadow: 0 0 30px #ffca28; }
 </style>

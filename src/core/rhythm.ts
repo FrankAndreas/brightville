@@ -8,7 +8,7 @@ export type Mode = 'tap' | 'clap'
 export type Dyn = 'laut' | 'leise'
 
 export type RhythmTask =
-  /** The house drums two beats to listen to, then eight to join */
+  /** The house drums four beats to listen to, then eight to join */
   | { type: 'keep'; bpm: number; speed?: 'schnell' | 'langsam' }
   /** Four beats, loud and quiet in this order */
   | { type: 'dynamics'; order: Dyn[] }
@@ -18,7 +18,7 @@ export type RhythmTask =
 /** One tap or clap: ms from the start of listening; a tap on the big drum; a clap's peak loudness */
 export interface Hit { t: number; big?: boolean; peak?: number }
 
-export const LEAD_IN = 2
+export const LEAD_IN = 4
 export const KEEP_BEATS = 8
 /** How far from the beat a tap or clap may land */
 export const TOLERANCE_MS = 200
@@ -90,6 +90,11 @@ function sayOrder(order: Dyn[]): string {
 export function taskText(task: RhythmTask, mode: Mode): string {
   const verb = mode === 'tap' ? 'tipp' : 'klatsch'
   if (task.type === 'keep') {
+    // Clapping, the house drums on quietly after the first beats (the microphone mustn't take it for her): she is told
+    if (mode === 'clap') {
+      if (task.speed) return `Jetzt ganz ${task.speed}! Erst laut, dann leise. Klatsch laut mit!`
+      return 'Hör gut zu! Erst spiele ich laut, dann leise. Klatsch laut mit und halte den Takt!'
+    }
     if (task.speed) return `Jetzt ganz ${task.speed}! ${verb[0].toUpperCase()}${verb.slice(1)} mit.`
     return `Hör zu und ${verb} mit! Halte den Takt.`
   }
@@ -132,9 +137,12 @@ const PEAK_WINDOW_MS = 60
 const ABOVE_ROOM = 3
 const LOUDEST_QUIET = 0.05
 
-/** The claps in a stream of loudness levels (0–1, timed in ms); `floor`: the room's own noise just before */
-export function findOnsets(levels: { t: number; level: number }[], floor: number): Hit[] {
-  const threshold = Math.max(floor * ABOVE_ROOM, LOUDEST_QUIET)
+/**
+ * The claps in a stream of loudness levels (0–1, timed in ms); `floor`: the room's own noise just before; `atLeast`:
+ * what isn't louder than this is no clap (the house's own quiet drum, while she claps along)
+ */
+export function findOnsets(levels: { t: number; level: number }[], floor: number, atLeast = 0): Hit[] {
+  const threshold = Math.max(floor * ABOVE_ROOM, LOUDEST_QUIET, atLeast)
   const hits: Hit[] = []
   let last = -Infinity
   levels.forEach((l, i) => {

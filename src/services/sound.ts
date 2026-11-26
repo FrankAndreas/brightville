@@ -41,7 +41,13 @@ const SOUNDS: Record<SoundKind, (ac: AudioContext) => void> = {
   chime: ac => { tone(ac, { freq: 1568, length: 0.35, volume: 0.2 }); tone(ac, { freq: 2093, length: 0.3, volume: 0.1 }) },
   siren: ac => tone(ac, { type: 'square', freq: 660, to: 990, length: 0.3, volume: 0.08 }),
   piano: ac => tone(ac, { type: 'triangle', freq: 523, length: 0.4, volume: 0.35 }),
-  drum: ac => tone(ac, { freq: 160, to: 50, length: 0.25, volume: 0.6 }),
+  // A low body, and a higher skin and click: laptop and iPad speakers play almost nothing below 200 Hz, where the body
+  // is, so without them the drum was silent there (and quieter than the small drum)
+  drum: ac => {
+    tone(ac, { freq: 160, to: 50, length: 0.25, volume: 0.5 })
+    tone(ac, { type: 'triangle', freq: 300, to: 140, length: 0.14, volume: 0.45 })
+    tone(ac, { type: 'square', freq: 900, length: 0.03, volume: 0.08 })
+  },
   // The small drum: higher, shorter and much quieter ("leise" in the Trommelhaus)
   softDrum: ac => tone(ac, { freq: 260, to: 120, length: 0.15, volume: 0.15 }),
 }
